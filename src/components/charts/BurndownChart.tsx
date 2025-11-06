@@ -69,6 +69,9 @@ const BurndownChart = () => {
     const idealWork = burndownData.map((point) => point.idealWork)
     const actualWork = burndownData.map((point) => point.remainingWork)
 
+    // Detect dark mode
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+
     const option: echarts.EChartsOption = {
       tooltip: {
         trigger: 'axis',
@@ -85,6 +88,8 @@ const BurndownChart = () => {
         bottom: 0,
         textStyle: {
           fontFamily: 'Inter, sans-serif',
+          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
+          fontSize: 13,
         },
       },
       grid: {
@@ -102,14 +107,35 @@ const BurndownChart = () => {
           rotate: 45,
           fontSize: 11,
           fontFamily: 'Inter, sans-serif',
+          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
+        },
+        axisLine: {
+          lineStyle: {
+            color: isDarkMode ? '#5A5A66' : '#D1D1D5',
+          },
         },
       },
       yAxis: {
         type: 'value',
         name: 'Work Remaining (%)',
+        nameTextStyle: {
+          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
+          fontFamily: 'Inter, sans-serif',
+        },
         axisLabel: {
           formatter: '{value}%',
           fontFamily: 'Inter, sans-serif',
+          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
+        },
+        axisLine: {
+          lineStyle: {
+            color: isDarkMode ? '#5A5A66' : '#D1D1D5',
+          },
+        },
+        splitLine: {
+          lineStyle: {
+            color: isDarkMode ? '#3D3D47' : '#E8E8EA',
+          },
         },
         min: 0,
         max: 100,

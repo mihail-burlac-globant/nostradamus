@@ -83,6 +83,10 @@ const GanttChart = () => {
       },
     }))
 
+    // Detect dark mode
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
+
     const option: echarts.EChartsOption = {
       tooltip: {
         formatter: (params: any) => {
@@ -107,6 +111,13 @@ const GanttChart = () => {
         type: 'time',
         axisLabel: {
           formatter: (value: number) => format(new Date(value), 'MMM dd'),
+          color: textColor,
+          fontFamily: 'Inter, sans-serif',
+        },
+        axisLine: {
+          lineStyle: {
+            color: isDarkMode ? '#5A5A66' : '#D1D1D5',
+          },
         },
       },
       yAxis: {
@@ -114,6 +125,13 @@ const GanttChart = () => {
         data: projectData.tasks.map((task) => task.name),
         axisLabel: {
           fontSize: 12,
+          color: textColor,
+          fontFamily: 'Inter, sans-serif',
+        },
+        axisLine: {
+          lineStyle: {
+            color: isDarkMode ? '#5A5A66' : '#D1D1D5',
+          },
         },
       },
       series: [
