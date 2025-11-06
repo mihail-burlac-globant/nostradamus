@@ -69,6 +69,11 @@ const BurndownChart = () => {
     const idealWork = burndownData.map((point) => point.idealWork)
     const actualWork = burndownData.map((point) => point.remainingWork)
 
+    // Calculate total hours for tooltip display
+    const totalHours = projectData?.tasks.reduce((sum, task) => {
+      return sum + (task.remaining_estimate_hours || 0)
+    }, 0) || 0
+
     // Detect dark mode
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
 
@@ -78,7 +83,9 @@ const BurndownChart = () => {
         formatter: (params: any) => {
           let result = `<strong>${params[0].name}</strong><br/>`
           params.forEach((param: any) => {
-            result += `${param.marker} ${param.seriesName}: ${param.value.toFixed(1)}%<br/>`
+            const percent = param.value.toFixed(1)
+            const hours = ((param.value / 100) * totalHours).toFixed(1)
+            result += `${param.marker} ${param.seriesName}: ${percent}% (${hours}h)<br/>`
           })
           return result
         },
@@ -198,7 +205,7 @@ const BurndownChart = () => {
 
   if (!burndownData || burndownData.length === 0) {
     return (
-      <div className="w-full h-[600px] flex items-center justify-center">
+      <div className="w-full h-[calc(100vh-420px)] min-h-[400px] flex items-center justify-center">
         <div className="text-center space-y-3">
           <svg className="w-16 h-16 text-navy-300 dark:text-navy-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -218,9 +225,9 @@ const BurndownChart = () => {
   return (
     <div className="w-full">
       {/* Header with Export Button */}
-      <div className="flex items-start justify-between mb-6 pb-4 border-b border-navy-100 dark:border-navy-700">
+      <div className="flex items-start justify-between mb-3 pb-3 border-b border-navy-100 dark:border-navy-700">
         <div>
-          <h3 className="text-h3 font-serif text-navy-900 dark:text-white mb-2">
+          <h3 className="text-h3 font-serif text-navy-900 dark:text-white mb-1">
             Burndown Chart
           </h3>
           <p className="text-body-sm text-navy-600 dark:text-navy-400">
@@ -229,7 +236,7 @@ const BurndownChart = () => {
         </div>
         <button
           onClick={handleExportPNG}
-          className="flex items-center gap-2 px-4 py-2.5 bg-salmon-600 hover:bg-salmon-700
+          className="flex items-center gap-2 px-4 py-2 bg-salmon-600 hover:bg-salmon-700
                    text-white font-medium text-sm rounded-lg transition-all duration-200
                    shadow-soft hover:shadow-medium"
         >
@@ -242,10 +249,10 @@ const BurndownChart = () => {
       </div>
 
       {/* Chart */}
-      <div ref={chartRef} className="w-full h-[600px]" />
+      <div ref={chartRef} className="w-full h-[calc(100vh-420px)] min-h-[400px]" />
 
       {/* Insights */}
-      <div className="flex flex-wrap gap-6 mt-6 pt-4 border-t border-navy-100 dark:border-navy-700">
+      <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-navy-100 dark:border-navy-700">
         <div className="flex items-center gap-3">
           <div className="w-1 h-8 bg-[#B3B3BA] rounded-full"></div>
           <div>

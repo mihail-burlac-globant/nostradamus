@@ -6,7 +6,7 @@ interface ChartControlsProps {
 const ChartControls = ({ activeChart, onChartChange }: ChartControlsProps) => {
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between
-                    bg-white dark:bg-navy-800 rounded-2xl shadow-soft p-6 gap-4 border border-navy-100 dark:border-navy-700">
+                    bg-white dark:bg-navy-800 rounded-2xl shadow-soft p-4 gap-3 border border-navy-100 dark:border-navy-700">
       {/* Title */}
       <div>
         <h2 className="text-h4 font-serif text-navy-900 dark:text-white mb-1">

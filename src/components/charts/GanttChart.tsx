@@ -195,9 +195,9 @@ const GanttChart = () => {
   return (
     <div className="w-full">
       {/* Header with Export Button */}
-      <div className="flex items-start justify-between mb-6 pb-4 border-b border-navy-100 dark:border-navy-700">
+      <div className="flex items-start justify-between mb-3 pb-3 border-b border-navy-100 dark:border-navy-700">
         <div>
-          <h3 className="text-h3 font-serif text-navy-900 dark:text-white mb-2">
+          <h3 className="text-h3 font-serif text-navy-900 dark:text-white mb-1">
             Gantt Chart
           </h3>
           <p className="text-body-sm text-navy-600 dark:text-navy-400">
@@ -206,7 +206,7 @@ const GanttChart = () => {
         </div>
         <button
           onClick={handleExportPNG}
-          className="flex items-center gap-2 px-4 py-2.5 bg-salmon-600 hover:bg-salmon-700
+          className="flex items-center gap-2 px-4 py-2 bg-salmon-600 hover:bg-salmon-700
                    text-white font-medium text-sm rounded-lg transition-all duration-200
                    shadow-soft hover:shadow-medium"
         >
@@ -219,10 +219,10 @@ const GanttChart = () => {
       </div>
 
       {/* Chart */}
-      <div ref={chartRef} className="w-full h-[600px]" />
+      <div ref={chartRef} className="w-full h-[calc(100vh-420px)] min-h-[400px]" />
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t border-navy-100 dark:border-navy-700">
+      <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-navy-100 dark:border-navy-700">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-[#FF9A66]"></div>
           <span className="text-sm text-navy-600 dark:text-navy-400">In Progress</span>
