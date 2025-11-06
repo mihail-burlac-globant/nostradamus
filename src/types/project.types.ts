@@ -4,9 +4,11 @@ export interface Task {
   startDate: Date
   endDate: Date
   progress: number
-  assignee?: string
-  dependencies?: string[]
   status: 'not-started' | 'in-progress' | 'completed' | 'blocked'
+  assignee?: string
+  profile_type?: string
+  remaining_estimate_hours?: number
+  dependency?: string
 }
 
 export interface ProjectData {

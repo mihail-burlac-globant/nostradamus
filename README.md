@@ -54,14 +54,19 @@ npm run preview
 
 Your CSV file should include the following columns:
 
-- `id` (optional): Unique task identifier
+### Required Columns
+- `id`: Unique task identifier
 - `name`: Task name
 - `startDate`: Start date (YYYY-MM-DD or MM/DD/YYYY)
 - `endDate`: End date (YYYY-MM-DD or MM/DD/YYYY)
 - `progress`: Progress percentage (0-100)
 - `status`: Task status (not-started, in-progress, completed, blocked)
-- `assignee` (optional): Person assigned to the task
-- `dependencies` (optional): Comma-separated list of dependent task IDs
+
+### Optional Columns
+- `assignee`: Person assigned to the task
+- `profile_type`: Role or profile type (e.g., Senior Developer, QA Engineer)
+- `remaining_estimate_hours`: Estimated hours remaining to complete the task
+- `dependency`: Task ID this task depends on (single dependency)
 
 ### Example CSV
 

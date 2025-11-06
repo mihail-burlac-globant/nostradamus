@@ -128,11 +128,14 @@ const CSVUploader = () => {
           </div>
 
           {/* CSV Format Info */}
-          <div className="bg-navy-50 dark:bg-navy-900/50 rounded-xl px-6 py-4 max-w-lg border border-navy-100 dark:border-navy-700">
-            <p className="text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-              Expected CSV Format
+          <div className="bg-navy-50 dark:bg-navy-900/50 rounded-xl px-6 py-4 max-w-2xl border border-navy-100 dark:border-navy-700">
+            <p className="text-sm font-medium text-navy-700 dark:text-navy-300 mb-3">
+              Required CSV Columns
             </p>
-            <div className="flex flex-wrap gap-2 text-xs">
+            <div className="flex flex-wrap gap-2 text-xs mb-3">
+              <code className="bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-200 px-3 py-1.5 rounded-lg font-mono border border-navy-200 dark:border-navy-600">
+                id
+              </code>
               <code className="bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-200 px-3 py-1.5 rounded-lg font-mono border border-navy-200 dark:border-navy-600">
                 name
               </code>
@@ -147,6 +150,23 @@ const CSVUploader = () => {
               </code>
               <code className="bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-200 px-3 py-1.5 rounded-lg font-mono border border-navy-200 dark:border-navy-600">
                 status
+              </code>
+            </div>
+            <p className="text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+              Optional Columns
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <code className="bg-salmon-50 dark:bg-salmon-900/20 text-salmon-800 dark:text-salmon-400 px-3 py-1.5 rounded-lg font-mono border border-salmon-200 dark:border-salmon-800">
+                assignee
+              </code>
+              <code className="bg-salmon-50 dark:bg-salmon-900/20 text-salmon-800 dark:text-salmon-400 px-3 py-1.5 rounded-lg font-mono border border-salmon-200 dark:border-salmon-800">
+                profile_type
+              </code>
+              <code className="bg-salmon-50 dark:bg-salmon-900/20 text-salmon-800 dark:text-salmon-400 px-3 py-1.5 rounded-lg font-mono border border-salmon-200 dark:border-salmon-800">
+                remaining_estimate_hours
+              </code>
+              <code className="bg-salmon-50 dark:bg-salmon-900/20 text-salmon-800 dark:text-salmon-400 px-3 py-1.5 rounded-lg font-mono border border-salmon-200 dark:border-salmon-800">
+                dependency
               </code>
             </div>
           </div>

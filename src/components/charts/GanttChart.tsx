@@ -91,14 +91,26 @@ const GanttChart = () => {
       tooltip: {
         formatter: (params: any) => {
           const task = projectData.tasks[params.dataIndex]
-          return `
-            <strong>${task.name}</strong><br/>
-            Start: ${format(task.startDate, 'MMM dd, yyyy')}<br/>
-            End: ${format(task.endDate, 'MMM dd, yyyy')}<br/>
-            Progress: ${task.progress}%<br/>
-            Status: ${task.status}<br/>
-            ${task.assignee ? `Assignee: ${task.assignee}` : ''}
-          `
+          let tooltip = `<strong>${task.name}</strong><br/>`
+          tooltip += `Start: ${format(task.startDate, 'MMM dd, yyyy')}<br/>`
+          tooltip += `End: ${format(task.endDate, 'MMM dd, yyyy')}<br/>`
+          tooltip += `Progress: ${task.progress}%<br/>`
+          tooltip += `Status: ${task.status}<br/>`
+
+          if (task.assignee) {
+            tooltip += `Assignee: ${task.assignee}<br/>`
+          }
+          if (task.profile_type) {
+            tooltip += `Profile: ${task.profile_type}<br/>`
+          }
+          if (task.remaining_estimate_hours !== undefined) {
+            tooltip += `Remaining: ${task.remaining_estimate_hours}h<br/>`
+          }
+          if (task.dependency) {
+            tooltip += `Depends on: ${task.dependency}<br/>`
+          }
+
+          return tooltip
         },
       },
       grid: {
