@@ -228,6 +228,29 @@ const GanttChart = () => {
             task.value[1],
             task.value[2], // progress
           ]),
+          markLine: {
+            symbol: 'none',
+            silent: false,
+            animation: false,
+            label: {
+              formatter: 'Today',
+              position: 'insideEndTop',
+              color: textColor,
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 11,
+              fontWeight: 'bold',
+            },
+            lineStyle: {
+              color: '#FF9A66',
+              width: 2,
+              type: 'solid',
+            },
+            data: [
+              {
+                xAxis: new Date().getTime(),
+              },
+            ],
+          },
         },
       ],
     }

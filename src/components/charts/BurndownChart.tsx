@@ -74,6 +74,11 @@ const BurndownChart = () => {
       return sum + (task.remaining_estimate_hours || 0)
     }, 0) || 0
 
+    // Find today's date index
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayFormatted = format(today, 'MMM dd')
+
     // Detect dark mode
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
 
@@ -186,6 +191,29 @@ const BurndownChart = () => {
               { offset: 1, color: 'rgba(255, 154, 102, 0.05)' },
             ]),
           },
+          markLine: {
+            symbol: 'none',
+            silent: false,
+            animation: false,
+            label: {
+              formatter: 'Today',
+              position: 'insideEndTop',
+              color: isDarkMode ? '#E8E8EA' : '#2E2E36',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 11,
+              fontWeight: 'bold',
+            },
+            lineStyle: {
+              color: '#FF9A66',
+              width: 2,
+              type: 'solid',
+            },
+            data: [
+              {
+                xAxis: todayFormatted,
+              },
+            ],
+          },
         },
       ],
     }
@@ -201,7 +229,7 @@ const BurndownChart = () => {
     return () => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [burndownData])
+  }, [burndownData, projectData])
 
   if (!burndownData || burndownData.length === 0) {
     return (
