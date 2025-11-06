@@ -60,8 +60,10 @@ export const parseCSVToProjectData = (rows: CSVRow[]): ProjectData => {
   const startDate = new Date(Math.min(...allDates.map((d) => d.getTime())))
   const endDate = new Date(Math.max(...allDates.map((d) => d.getTime())))
 
-  // Calculate total planned work
-  const totalPlannedWork = tasks.length * 100
+  // Calculate total planned work in hours (sum of all remaining_estimate_hours)
+  const totalPlannedWork = tasks.reduce((sum, task) => {
+    return sum + (task.remaining_estimate_hours || 0)
+  }, 0)
 
   return {
     name: 'Project',

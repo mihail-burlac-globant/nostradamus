@@ -69,6 +69,11 @@ const BurndownChart = () => {
     const idealWork = burndownData.map((point) => point.idealWork)
     const actualWork = burndownData.map((point) => point.remainingWork)
 
+    // Calculate total hours for tooltip display
+    const totalHours = projectData?.tasks.reduce((sum, task) => {
+      return sum + (task.remaining_estimate_hours || 0)
+    }, 0) || 0
+
     // Detect dark mode
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
 
@@ -78,7 +83,9 @@ const BurndownChart = () => {
         formatter: (params: any) => {
           let result = `<strong>${params[0].name}</strong><br/>`
           params.forEach((param: any) => {
-            result += `${param.marker} ${param.seriesName}: ${param.value.toFixed(1)}%<br/>`
+            const percent = param.value.toFixed(1)
+            const hours = ((param.value / 100) * totalHours).toFixed(1)
+            result += `${param.marker} ${param.seriesName}: ${percent}% (${hours}h)<br/>`
           })
           return result
         },
