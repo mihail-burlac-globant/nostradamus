@@ -26,6 +26,12 @@ export interface BurndownDataPoint {
   remainingWork: number
 }
 
+export interface BurndownByProfileDataPoint {
+  date: Date
+  profileBreakdown: Record<string, number> // profile_type -> hours remaining
+  total: number
+}
+
 export interface ChartData {
   gantt: GanttChartData
   burndown: BurndownDataPoint[]

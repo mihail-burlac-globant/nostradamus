@@ -87,6 +87,12 @@ const GanttChart = () => {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
 
+    // Calculate label interval based on project duration
+    const projectDuration = Math.ceil(
+      (projectData.endDate.getTime() - projectData.startDate.getTime()) / (1000 * 60 * 60 * 24)
+    )
+    const labelInterval = projectDuration > 30 ? Math.floor(projectDuration / 20) : projectDuration > 14 ? 1 : 0
+
     const option: echarts.EChartsOption = {
       tooltip: {
         formatter: (params: any) => {
@@ -125,6 +131,7 @@ const GanttChart = () => {
           formatter: (value: number) => format(new Date(value), 'MMM dd'),
           color: textColor,
           fontFamily: 'Inter, sans-serif',
+          interval: labelInterval,
         },
         axisLine: {
           lineStyle: {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useProjectStore } from '../stores/projectStore'
-import { BurndownDataPoint } from '../types/project.types'
+import { BurndownDataPoint, BurndownByProfileDataPoint } from '../types/project.types'
 import { eachDayOfInterval, differenceInDays } from 'date-fns'
 
 export const useBurndownData = (): BurndownDataPoint[] => {
@@ -67,6 +67,59 @@ export const useBurndownData = (): BurndownDataPoint[] => {
         idealWork: idealWorkPercent,
         actualWork: actualWorkPercent,
         remainingWork: remainingWorkPercent,
+      }
+    })
+
+    return burndownData
+  }, [projectData])
+}
+
+export const useBurndownByProfileData = (): BurndownByProfileDataPoint[] => {
+  const { projectData } = useProjectStore()
+
+  return useMemo(() => {
+    if (!projectData) return []
+
+    const { startDate, endDate, tasks } = projectData
+    const totalDays = differenceInDays(endDate, startDate)
+
+    if (totalDays <= 0) return []
+
+    // Generate all dates in the project range
+    const dates = eachDayOfInterval({ start: startDate, end: endDate })
+
+    const burndownData: BurndownByProfileDataPoint[] = dates.map((date) => {
+      const profileBreakdown: Record<string, number> = {}
+      let total = 0
+
+      tasks.forEach((task) => {
+        let hoursRemaining = 0
+
+        if (task.startDate <= date) {
+          // Task has started by this date
+          if (task.endDate <= date) {
+            // Task should be completed by this date - no hours remaining
+            hoursRemaining = 0
+          } else {
+            // Task is in progress - count remaining hours
+            hoursRemaining = task.remaining_estimate_hours || 0
+          }
+        } else {
+          // Task hasn't started yet - count full remaining hours
+          hoursRemaining = task.remaining_estimate_hours || 0
+        }
+
+        if (hoursRemaining > 0) {
+          const profileType = task.profile_type || 'Unassigned'
+          profileBreakdown[profileType] = (profileBreakdown[profileType] || 0) + hoursRemaining
+          total += hoursRemaining
+        }
+      })
+
+      return {
+        date,
+        profileBreakdown,
+        total,
       }
     })
 
