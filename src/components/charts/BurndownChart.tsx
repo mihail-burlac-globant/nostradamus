@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import { useProjectStore } from '../../stores/projectStore'
-import { useBurndownData } from '../../hooks/useChartCalculations'
+import { useBurndownData, useBurndownByProfileData } from '../../hooks/useChartCalculations'
 import { format } from 'date-fns'
 
 const BurndownChart = () => {
   const { projectData } = useProjectStore()
   const burndownData = useBurndownData()
+  const burndownByProfileData = useBurndownByProfileData()
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
 
@@ -79,6 +80,25 @@ const BurndownChart = () => {
     today.setHours(0, 0, 0, 0)
     const todayFormatted = format(today, 'MMM dd')
 
+    // Extract unique profile types and prepare data for stacked areas
+    const profileTypes = new Set<string>()
+    burndownByProfileData.forEach((point) => {
+      Object.keys(point.profileBreakdown).forEach((profile) => profileTypes.add(profile))
+    })
+    const profileTypesArray = Array.from(profileTypes).sort()
+
+    // Color palette for profile types
+    const profileColors = [
+      '#FF9A66', // Salmon
+      '#2DD4BF', // Teal
+      '#A78BFA', // Purple
+      '#F472B6', // Pink
+      '#FBBF24', // Amber
+      '#34D399', // Emerald
+      '#60A5FA', // Blue
+      '#FB923C', // Orange
+    ]
+
     // Detect dark mode
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
 
@@ -88,21 +108,21 @@ const BurndownChart = () => {
         formatter: (params: any) => {
           let result = `<strong>${params[0].name}</strong><br/>`
           params.forEach((param: any) => {
-            const percent = param.value.toFixed(1)
-            const hours = ((param.value / 100) * totalHours).toFixed(1)
-            result += `${param.marker} ${param.seriesName}: ${percent}% (${hours}h)<br/>`
+            const hours = param.value.toFixed(1)
+            result += `${param.marker} ${param.seriesName}: ${hours}h<br/>`
           })
           return result
         },
       },
       legend: {
-        data: ['Ideal Burndown', 'Actual Remaining Work'],
+        data: [...profileTypesArray, 'Ideal Burndown', 'Actual Remaining Work'],
         bottom: 0,
         textStyle: {
           fontFamily: 'Inter, sans-serif',
           color: isDarkMode ? '#E8E8EA' : '#2E2E36',
           fontSize: 13,
         },
+        type: 'scroll',
       },
       grid: {
         left: '3%',
@@ -120,6 +140,7 @@ const BurndownChart = () => {
           fontSize: 11,
           fontFamily: 'Inter, sans-serif',
           color: isDarkMode ? '#E8E8EA' : '#2E2E36',
+          interval: dates.length > 30 ? Math.floor(dates.length / 20) : dates.length > 14 ? 1 : 0,
         },
         axisLine: {
           lineStyle: {
@@ -129,13 +150,13 @@ const BurndownChart = () => {
       },
       yAxis: {
         type: 'value',
-        name: 'Work Remaining (%)',
+        name: 'Hours Remaining',
         nameTextStyle: {
           color: isDarkMode ? '#E8E8EA' : '#2E2E36',
           fontFamily: 'Inter, sans-serif',
         },
         axisLabel: {
-          formatter: '{value}%',
+          formatter: '{value}h',
           fontFamily: 'Inter, sans-serif',
           color: isDarkMode ? '#E8E8EA' : '#2E2E36',
         },
@@ -150,47 +171,59 @@ const BurndownChart = () => {
           },
         },
         min: 0,
-        max: 100,
       },
       series: [
+        // Stacked area charts for each profile type
+        ...profileTypesArray.map((profileType, index) => ({
+          name: profileType,
+          type: 'line',
+          stack: 'profile',
+          data: burndownByProfileData.map((point) => point.profileBreakdown[profileType] || 0),
+          smooth: true,
+          lineStyle: {
+            width: 0,
+          },
+          showSymbol: false,
+          areaStyle: {
+            color: profileColors[index % profileColors.length],
+            opacity: 0.7,
+          },
+          emphasis: {
+            focus: 'series',
+          },
+        })),
+        // Ideal burndown line (converted to hours)
         {
           name: 'Ideal Burndown',
           type: 'line',
-          data: idealWork,
+          data: idealWork.map((percent) => (percent / 100) * totalHours),
           smooth: true,
           lineStyle: {
-            color: '#B3B3BA',
+            color: '#5A5A66',
             width: 2,
             type: 'dashed',
           },
           itemStyle: {
-            color: '#B3B3BA',
+            color: '#5A5A66',
           },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(179, 179, 186, 0.2)' },
-              { offset: 1, color: 'rgba(179, 179, 186, 0.05)' },
-            ]),
-          },
+          showSymbol: false,
+          z: 10,
         },
+        // Actual remaining work line with today marker
         {
           name: 'Actual Remaining Work',
           type: 'line',
-          data: actualWork,
+          data: actualWork.map((percent) => (percent / 100) * totalHours),
           smooth: true,
           lineStyle: {
-            color: '#FF9A66',
+            color: '#1A1A1D',
             width: 3,
           },
           itemStyle: {
-            color: '#FF9A66',
+            color: '#1A1A1D',
           },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(255, 154, 102, 0.3)' },
-              { offset: 1, color: 'rgba(255, 154, 102, 0.05)' },
-            ]),
-          },
+          showSymbol: false,
+          z: 10,
           markLine: {
             symbol: 'none',
             silent: false,
@@ -229,7 +262,7 @@ const BurndownChart = () => {
     return () => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [burndownData, projectData])
+  }, [burndownData, burndownByProfileData, projectData])
 
   if (!burndownData || burndownData.length === 0) {
     return (
