@@ -35,9 +35,11 @@ export const parseCSVToProjectData = (rows: CSVRow[]): ProjectData => {
     const progress = Math.min(100, Math.max(0, parseFloat(row.progress) || 0))
     const status = parseStatus(row.status)
     const assignee = row.assignee || undefined
-    const dependencies = row.dependencies
-      ? row.dependencies.split(',').map((d) => d.trim())
+    const profile_type = row.profile_type || undefined
+    const remaining_estimate_hours = row.remaining_estimate_hours
+      ? parseFloat(row.remaining_estimate_hours)
       : undefined
+    const dependency = row.dependency || undefined
 
     return {
       id,
@@ -47,7 +49,9 @@ export const parseCSVToProjectData = (rows: CSVRow[]): ProjectData => {
       progress,
       status,
       assignee,
-      dependencies,
+      profile_type,
+      remaining_estimate_hours,
+      dependency,
     }
   })
 

@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 
 export const exportProjectToCSV = (projectData: ProjectData): void => {
   // Prepare CSV header
-  const headers = ['id', 'name', 'startDate', 'endDate', 'progress', 'status', 'assignee', 'dependencies']
+  const headers = ['id', 'name', 'startDate', 'endDate', 'progress', 'status', 'assignee', 'profile_type', 'remaining_estimate_hours', 'dependency']
 
   // Prepare CSV rows
   const rows = projectData.tasks.map(task => [
@@ -14,7 +14,9 @@ export const exportProjectToCSV = (projectData: ProjectData): void => {
     task.progress.toString(),
     task.status,
     task.assignee || '',
-    task.dependencies ? task.dependencies.join(';') : ''
+    task.profile_type || '',
+    task.remaining_estimate_hours?.toString() || '',
+    task.dependency || ''
   ])
 
   // Combine header and rows
