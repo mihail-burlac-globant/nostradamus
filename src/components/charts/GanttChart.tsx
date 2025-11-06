@@ -154,16 +154,68 @@ const GanttChart = () => {
             const start = api.coord([api.value(1), categoryIndex])
             const end = api.coord([api.value(2), categoryIndex])
             const height = api.size!([0, 1])[1] * 0.6
+            const progress = api.value(3) as number
+
+            const totalWidth = end[0] - start[0]
+            const completedWidth = totalWidth * (progress / 100)
+
+            // Get the base color for this task
+            const task = projectData.tasks[params.dataIndex!]
+            let baseColor = '#B3B3BA' // Default for not started
+            if (task.status === 'completed') baseColor = '#2DD4BF'
+            else if (task.status === 'in-progress') baseColor = '#FF9A66'
+            else if (task.status === 'blocked') baseColor = '#FF7C7C'
+
+            // Create stacked bar with completed and remaining portions
+            const rectY = start[1] - height / 2
 
             return {
-              type: 'rect',
-              shape: {
-                x: start[0],
-                y: start[1] - height / 2,
-                width: end[0] - start[0],
-                height: height,
-              },
-              style: api.style(),
+              type: 'group',
+              children: [
+                // Remaining portion (background - lighter/semi-transparent)
+                {
+                  type: 'rect',
+                  shape: {
+                    x: start[0],
+                    y: rectY,
+                    width: totalWidth,
+                    height: height,
+                  },
+                  style: {
+                    fill: baseColor,
+                    opacity: 0.25,
+                  },
+                },
+                // Completed portion (foreground - solid)
+                {
+                  type: 'rect',
+                  shape: {
+                    x: start[0],
+                    y: rectY,
+                    width: completedWidth,
+                    height: height,
+                  },
+                  style: {
+                    fill: baseColor,
+                    opacity: 1,
+                  },
+                },
+                // Border for the entire bar
+                {
+                  type: 'rect',
+                  shape: {
+                    x: start[0],
+                    y: rectY,
+                    width: totalWidth,
+                    height: height,
+                  },
+                  style: {
+                    fill: 'transparent',
+                    stroke: baseColor,
+                    lineWidth: 1,
+                  },
+                },
+              ],
             }
           },
           encode: {
@@ -174,6 +226,7 @@ const GanttChart = () => {
             index,
             task.value[0],
             task.value[1],
+            task.value[2], // progress
           ]),
         },
       ],
