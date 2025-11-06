@@ -11,48 +11,104 @@ const GanttChart = () => {
   const handleExportPNG = () => {
     if (!chartInstance.current) return
 
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    // Save current options
+    const currentOptions = chartInstance.current.getOption()
 
-    // Get chart image
-    const chartImage = new Image()
-    chartImage.src = chartInstance.current.getDataURL({
-      type: 'png',
-      pixelRatio: 2,
-      backgroundColor: '#fff',
-    })
-
-    chartImage.onload = () => {
-      canvas.width = chartImage.width
-      canvas.height = chartImage.height + 60 // Extra space for watermark
-
-      // Draw chart
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.drawImage(chartImage, 0, 0)
-
-      // Draw watermark
-      const watermarkY = canvas.height - 35
-
-      // Load logo
-      const logo = new Image()
-      logo.src = '/logo.svg'
-      logo.onload = () => {
-        ctx.drawImage(logo, 40, watermarkY - 10, 30, 30)
-
-        // Add text
-        ctx.font = '14px Inter, sans-serif'
-        ctx.fillStyle = '#5A5A66'
-        ctx.fillText('Nostradamus — Project Intelligence', 80, watermarkY + 8)
-
-        // Download
-        const link = document.createElement('a')
-        link.download = `gantt-chart-${format(new Date(), 'yyyy-MM-dd')}.png`
-        link.href = canvas.toDataURL('image/png')
-        link.click()
-      }
+    // Force dark text colors for export on white background
+    const exportOptions = {
+      ...currentOptions,
+      xAxis: {
+        ...currentOptions.xAxis,
+        axisLabel: {
+          ...(currentOptions.xAxis as any)?.axisLabel,
+          color: '#2E2E36',
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#D1D1D5',
+          },
+        },
+      },
+      yAxis: {
+        ...currentOptions.yAxis,
+        axisLabel: {
+          ...(currentOptions.yAxis as any)?.axisLabel,
+          color: '#2E2E36',
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#D1D1D5',
+          },
+        },
+      },
     }
+
+    // Apply export-friendly options temporarily
+    chartInstance.current.setOption(exportOptions)
+
+    // Small delay to ensure rendering is complete
+    setTimeout(() => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx || !chartInstance.current) return
+
+      // Get chart image with white background
+      const chartImage = new Image()
+      chartImage.src = chartInstance.current.getDataURL({
+        type: 'png',
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      })
+
+      chartImage.onload = () => {
+        canvas.width = chartImage.width
+        canvas.height = chartImage.height + 60 // Extra space for watermark
+
+        // Draw white background
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(chartImage, 0, 0)
+
+        // Draw watermark
+        const watermarkY = canvas.height - 35
+
+        // Load logo
+        const logo = new Image()
+        logo.src = '/logo.svg'
+        logo.onload = () => {
+          ctx.drawImage(logo, 40, watermarkY - 10, 30, 30)
+
+          // Add text with dark color
+          ctx.font = '14px Inter, sans-serif'
+          ctx.fillStyle = '#2E2E36'
+          ctx.fillText('Nostradamus — Project Intelligence', 80, watermarkY + 8)
+
+          // Download
+          const link = document.createElement('a')
+          link.download = `gantt-chart-${format(new Date(), 'yyyy-MM-dd')}.png`
+          link.href = canvas.toDataURL('image/png')
+          link.click()
+
+          // Restore original options after export
+          if (chartInstance.current) {
+            chartInstance.current.setOption(currentOptions)
+          }
+        }
+
+        logo.onerror = () => {
+          // If logo fails to load, still download without it
+          const link = document.createElement('a')
+          link.download = `gantt-chart-${format(new Date(), 'yyyy-MM-dd')}.png`
+          link.href = canvas.toDataURL('image/png')
+          link.click()
+
+          // Restore original options
+          if (chartInstance.current) {
+            chartInstance.current.setOption(currentOptions)
+          }
+        }
+      }
+    }, 100)
   }
 
   useEffect(() => {
