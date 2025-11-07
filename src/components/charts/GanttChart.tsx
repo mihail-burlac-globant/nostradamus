@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 import { useProjectStore } from '../../stores/projectStore'
-import { format, getWeek } from 'date-fns'
+import { format, getWeek, startOfWeek, addWeeks, isBefore } from 'date-fns'
 
 type XAxisFormat = 'day' | 'week' | 'month'
 
@@ -156,47 +156,55 @@ const GanttChart = () => {
       (projectData.endDate.getTime() - projectData.startDate.getTime()) / (1000 * 60 * 60 * 24)
     )
 
-    // Calculate number of weeks in project
-    const numberOfWeeks = Math.ceil(projectDuration / 7)
-
     // Calculate time intervals in milliseconds
     const DAY_MS = 24 * 60 * 60 * 1000
-    const WEEK_MS = 7 * DAY_MS
     const MONTH_MS = 30 * DAY_MS // Approximate
 
     // Maximum number of labels that fit comfortably on screen (rotated at 45 degrees)
     const MAX_LABELS = 40
 
+    // Calculate explicit week starts for week view (to avoid duplicates)
+    const weekTicksSet = new Set<number>()
+    if (xAxisFormat === 'week') {
+      // Start from the first Monday on or before project start
+      let currentWeekStart = startOfWeek(projectData.startDate, { weekStartsOn: 1 }) // 1 = Monday
+      const projectEnd = projectData.endDate
+
+      // Generate all week starts within project period
+      while (isBefore(currentWeekStart, projectEnd) || currentWeekStart.getTime() === projectEnd.getTime()) {
+        weekTicksSet.add(currentWeekStart.getTime())
+        currentWeekStart = addWeeks(currentWeekStart, 1)
+      }
+
+      // If we have more weeks than MAX_LABELS, filter to every Nth week
+      if (weekTicksSet.size > MAX_LABELS) {
+        const allWeeks = Array.from(weekTicksSet).sort((a, b) => a - b)
+        const step = Math.ceil(allWeeks.length / MAX_LABELS)
+        weekTicksSet.clear()
+        allWeeks.forEach((week, index) => {
+          if (index % step === 0) {
+            weekTicksSet.add(week)
+          }
+        })
+      }
+    }
+
     // Determine min/max interval and splitNumber based on format
     let minInterval: number | undefined
-    let maxInterval: number | undefined
     let splitNumber: number | undefined
-    let axisLabelInterval: number | 'auto' = 'auto'
 
     if (xAxisFormat === 'month') {
       // Show monthly intervals, let ECharts decide count
       minInterval = MONTH_MS
-      maxInterval = undefined
-      splitNumber = undefined // Auto
-      axisLabelInterval = 'auto'
-    } else if (xAxisFormat === 'week') {
-      // Force ticks at EVERY week boundary (min=max=WEEK_MS generates all weeks)
-      minInterval = WEEK_MS
-      maxInterval = WEEK_MS // This forces generation of ALL week ticks
       splitNumber = undefined
-      // Calculate label interval to show max MAX_LABELS weeks
-      if (numberOfWeeks <= MAX_LABELS) {
-        axisLabelInterval = 0 // Show all weeks
-      } else {
-        // Show every Nth week where N = ceil(numberOfWeeks / MAX_LABELS)
-        axisLabelInterval = Math.ceil(numberOfWeeks / MAX_LABELS) - 1
-      }
+    } else if (xAxisFormat === 'week') {
+      // Show approximately MAX_LABELS tick marks
+      minInterval = undefined
+      splitNumber = Math.min(weekTicksSet.size, MAX_LABELS)
     } else { // day
       // Limit to MAX_LABELS days maximum
       minInterval = DAY_MS
-      maxInterval = undefined
       splitNumber = Math.min(projectDuration, MAX_LABELS)
-      axisLabelInterval = 'auto'
     }
 
     // X-axis formatter based on selected format
@@ -205,9 +213,27 @@ const GanttChart = () => {
       switch (xAxisFormat) {
         case 'month':
           return format(date, 'MMM yyyy')
-        case 'week':
-          // Show only week number (minInterval ensures each tick is a different week)
-          return `W${getWeek(date)}`
+        case 'week': {
+          // Only show labels for week start dates in our calculated set
+          // Find the closest week start (within 3.5 days)
+          const THREE_HALF_DAYS = 3.5 * 24 * 60 * 60 * 1000
+          let closestWeek: number | null = null
+          let minDistance = THREE_HALF_DAYS
+
+          weekTicksSet.forEach((weekStart) => {
+            const distance = Math.abs(value - weekStart)
+            if (distance < minDistance) {
+              minDistance = distance
+              closestWeek = weekStart
+            }
+          })
+
+          // If this tick is close to one of our week starts, show the week number
+          if (closestWeek !== null) {
+            return `W${getWeek(new Date(closestWeek))}`
+          }
+          return '' // Hide labels that don't match our week starts
+        }
         case 'day':
         default:
           return format(date, 'MMM dd')
@@ -257,13 +283,11 @@ const GanttChart = () => {
       xAxis: {
         type: 'time',
         minInterval: minInterval,
-        maxInterval: maxInterval,
         splitNumber: splitNumber,
         axisLabel: {
           formatter: getXAxisFormatter,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
-          interval: axisLabelInterval,
           rotate: 45, // Rotate labels at 45 degrees for better fit
           fontSize: 10,
           margin: 8,
