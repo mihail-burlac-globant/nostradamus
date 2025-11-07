@@ -10,7 +10,6 @@ const GanttChart = () => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const [xAxisFormat, setXAxisFormat] = useState<XAxisFormat>('day')
-  const displayedWeeksRef = useRef<Set<number>>(new Set())
 
   const handleExportPNG = () => {
     if (!chartInstance.current) return
@@ -167,6 +166,7 @@ const GanttChart = () => {
 
     // For week view, calculate explicit week boundaries
     const weekBoundaries: number[] = []
+    let numberOfWeeks = 0
     if (xAxisFormat === 'week') {
       let currentWeekStart = startOfWeek(projectData.startDate, { weekStartsOn: 1 })
       const projectEnd = projectData.endDate
@@ -175,38 +175,38 @@ const GanttChart = () => {
         weekBoundaries.push(currentWeekStart.getTime())
         currentWeekStart = addWeeks(currentWeekStart, 1)
       }
-
-      // If too many weeks, keep every Nth
-      if (weekBoundaries.length > MAX_LABELS) {
-        const step = Math.ceil(weekBoundaries.length / MAX_LABELS)
-        const filtered = weekBoundaries.filter((_, index) => index % step === 0)
-        weekBoundaries.length = 0
-        weekBoundaries.push(...filtered)
-      }
+      numberOfWeeks = weekBoundaries.length
     }
 
     // Determine axis configuration based on format
     let minInterval: number | undefined
     let maxInterval: number | undefined
     let splitNumber: number | undefined
+    let axisLabelInterval: number | 'auto' = 'auto'
 
     if (xAxisFormat === 'month') {
       minInterval = MONTH_MS
       maxInterval = undefined
       splitNumber = undefined
+      axisLabelInterval = 'auto'
     } else if (xAxisFormat === 'week') {
       // Force exactly 7 days between ticks
       minInterval = WEEK_MS
       maxInterval = WEEK_MS
-      splitNumber = undefined // Let min/max handle it
+      splitNumber = undefined
+      // Calculate label interval to show max MAX_LABELS
+      if (numberOfWeeks <= MAX_LABELS) {
+        axisLabelInterval = 0 // Show all
+      } else {
+        // Show every Nth label where N = ceil(numberOfWeeks / MAX_LABELS)
+        axisLabelInterval = Math.ceil(numberOfWeeks / MAX_LABELS) - 1
+      }
     } else { // day
       minInterval = DAY_MS
       maxInterval = undefined
       splitNumber = Math.min(projectDuration, MAX_LABELS)
+      axisLabelInterval = 'auto'
     }
-
-    // Reset displayed weeks tracker when format changes or data changes
-    displayedWeeksRef.current.clear()
 
     // X-axis formatter based on selected format
     const getXAxisFormatter = (value: number) => {
@@ -214,19 +214,8 @@ const GanttChart = () => {
       switch (xAxisFormat) {
         case 'month':
           return format(date, 'MMM yyyy')
-        case 'week': {
-          // Calculate week number
-          const weekNum = getWeek(date)
-
-          // Check if already displayed
-          if (displayedWeeksRef.current.has(weekNum)) {
-            return ''
-          }
-
-          // Mark as displayed and return
-          displayedWeeksRef.current.add(weekNum)
-          return `W${weekNum}`
-        }
+        case 'week':
+          return `W${getWeek(date)}`
         case 'day':
         default:
           return format(date, 'MMM dd')
@@ -280,6 +269,7 @@ const GanttChart = () => {
         splitNumber: splitNumber,
         axisLabel: {
           formatter: getXAxisFormatter,
+          interval: axisLabelInterval,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
           rotate: 45,
