@@ -78,7 +78,7 @@ task-3,Task 3,2024-02-15,2024-03-01,0,not-started,Bob,qa,100,`, {
 
     it('should handle optional fields correctly', () => {
       const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
-task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,,,40,
+task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,,backend,40,
 task-2,Task 2,2024-01-15,2024-02-20,75,in-progress,Jane Smith,frontend,25,task-1`, {
         header: true,
         skipEmptyLines: true,
@@ -86,9 +86,11 @@ task-2,Task 2,2024-01-15,2024-02-20,75,in-progress,Jane Smith,frontend,25,task-1
 
       const result = parseCSVToProjectData(csvData.data)
 
+      // assignee and dependency are truly optional
       expect(result.tasks[0].assignee).toBeUndefined()
-      expect(result.tasks[0].profile_type).toBeUndefined()
       expect(result.tasks[0].dependency).toBeUndefined()
+      // profile_type is now mandatory
+      expect(result.tasks[0].profile_type).toBe('backend')
 
       expect(result.tasks[1].assignee).toBe('Jane Smith')
       expect(result.tasks[1].profile_type).toBe('frontend')
@@ -114,16 +116,47 @@ task-4,Task 4,2024-01-15,2024-01-25,0,not-started,Alice,devops,80,task-3`, {
       expect(result.tasks[3].status).toBe('not-started')
     })
 
-    it('should handle default values for remaining_estimate_hours', () => {
+    it('should throw error when remaining_estimate_hours is missing', () => {
       const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Task 1,2024-01-01,2024-01-10,100,completed,John,backend,,`, {
         header: true,
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data)
+      // remaining_estimate_hours is now mandatory
+      expect(() => parseCSVToProjectData(csvData.data)).toThrow('Missing required field')
+    })
 
-      expect(result.tasks[0].remaining_estimate_hours).toBeUndefined()
+    it('should validate unique task IDs', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+task-1,Task 1,2024-01-01,2024-01-10,100,completed,John,backend,0,
+task-1,Task 2,2024-01-15,2024-02-20,50,in-progress,Jane,frontend,40,`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      expect(() => parseCSVToProjectData(csvData.data)).toThrow('Duplicate task IDs')
+    })
+
+    it('should validate dependency references exist', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+task-1,Task 1,2024-01-01,2024-01-10,100,completed,John,backend,0,task-999`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      expect(() => parseCSVToProjectData(csvData.data)).toThrow('non-existent dependency')
+    })
+
+    it('should detect circular dependencies', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,John,backend,40,task-2
+task-2,Task 2,2024-01-15,2024-02-20,50,in-progress,Jane,frontend,40,task-1`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      expect(() => parseCSVToProjectData(csvData.data)).toThrow('Circular dependency')
     })
   })
 })
