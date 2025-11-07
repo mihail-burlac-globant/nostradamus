@@ -146,11 +146,28 @@ const GanttChart = () => {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
 
-    // Calculate label interval based on project duration
+    // Calculate label interval based on project duration and format
     const projectDuration = Math.ceil(
       (projectData.endDate.getTime() - projectData.startDate.getTime()) / (1000 * 60 * 60 * 24)
     )
-    const labelInterval = projectDuration > 30 ? Math.floor(projectDuration / 20) : projectDuration > 14 ? 1 : 0
+
+    // More aggressive label display - show more labels
+    let labelInterval = 0
+    if (xAxisFormat === 'month') {
+      labelInterval = 0 // Show all months
+    } else if (xAxisFormat === 'week') {
+      labelInterval = projectDuration > 90 ? 1 : 0 // Show all weeks unless >3 months
+    } else { // day
+      if (projectDuration > 180) {
+        labelInterval = Math.floor(projectDuration / 40) // ~40 labels for long projects
+      } else if (projectDuration > 90) {
+        labelInterval = Math.floor(projectDuration / 30) // ~30 labels for 3-6 months
+      } else if (projectDuration > 30) {
+        labelInterval = 1 // Every other day for 1-3 months
+      } else {
+        labelInterval = 0 // All days for <1 month
+      }
+    }
 
     // X-axis formatter based on selected format
     const getXAxisFormatter = (value: number) => {
@@ -203,7 +220,7 @@ const GanttChart = () => {
         left: '15%',
         right: '5%',
         top: '10%',
-        bottom: '10%',
+        bottom: '15%', // More space for rotated labels
       },
       xAxis: {
         type: 'time',
@@ -212,6 +229,9 @@ const GanttChart = () => {
           color: textColor,
           fontFamily: 'Inter, sans-serif',
           interval: labelInterval,
+          rotate: 45, // Rotate labels at 45 degrees for better fit
+          fontSize: 10,
+          margin: 8,
         },
         axisLine: {
           lineStyle: {
