@@ -1,12 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 import { useProjectStore } from '../../stores/projectStore'
-import { format } from 'date-fns'
+import { format, getWeek } from 'date-fns'
+
+type XAxisFormat = 'day' | 'week' | 'month'
 
 const GanttChart = () => {
   const { projectData } = useProjectStore()
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
+  const [xAxisFormat, setXAxisFormat] = useState<XAxisFormat>('day')
 
   const handleExportPNG = () => {
     if (!chartInstance.current) return
@@ -149,6 +152,27 @@ const GanttChart = () => {
     )
     const labelInterval = projectDuration > 30 ? Math.floor(projectDuration / 20) : projectDuration > 14 ? 1 : 0
 
+    // X-axis formatter based on selected format
+    const getXAxisFormatter = (value: number) => {
+      const date = new Date(value)
+      switch (xAxisFormat) {
+        case 'month':
+          return format(date, 'MMM yyyy')
+        case 'week':
+          return `W${getWeek(date)}`
+        case 'day':
+        default:
+          return format(date, 'MMM dd')
+      }
+    }
+
+    // Helper function to truncate and wrap task names
+    const formatTaskName = (name: string, maxLength: number = 30) => {
+      if (name.length <= maxLength) return name
+      // Truncate with ellipsis
+      return name.substring(0, maxLength) + '...'
+    }
+
     const option: echarts.EChartsOption = {
       tooltip: {
         formatter: (params: any) => {
@@ -184,7 +208,7 @@ const GanttChart = () => {
       xAxis: {
         type: 'time',
         axisLabel: {
-          formatter: (value: number) => format(new Date(value), 'MMM dd'),
+          formatter: getXAxisFormatter,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
           interval: labelInterval,
@@ -197,11 +221,14 @@ const GanttChart = () => {
       },
       yAxis: {
         type: 'category',
-        data: projectData.tasks.map((task) => task.name),
+        data: projectData.tasks.map((task) => formatTaskName(task.name)),
         axisLabel: {
-          fontSize: 12,
+          fontSize: 11,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
+          width: 120,
+          overflow: 'truncate',
+          ellipsis: '...',
         },
         axisLine: {
           lineStyle: {
@@ -329,7 +356,7 @@ const GanttChart = () => {
     return () => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [projectData])
+  }, [projectData, xAxisFormat])
 
   return (
     <div className="w-full">
@@ -355,6 +382,45 @@ const GanttChart = () => {
           </svg>
           Export PNG
         </button>
+      </div>
+
+      {/* X-Axis Format Selector */}
+      <div className="flex items-center gap-2 mb-3">
+        <label className="text-sm font-medium text-navy-700 dark:text-navy-300">
+          Timeline View:
+        </label>
+        <div className="flex gap-1 bg-navy-100 dark:bg-navy-800 rounded-lg p-1">
+          <button
+            onClick={() => setXAxisFormat('day')}
+            className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+              xAxisFormat === 'day'
+                ? 'bg-salmon-600 text-white shadow-sm'
+                : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-white'
+            }`}
+          >
+            Day
+          </button>
+          <button
+            onClick={() => setXAxisFormat('week')}
+            className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+              xAxisFormat === 'week'
+                ? 'bg-salmon-600 text-white shadow-sm'
+                : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-white'
+            }`}
+          >
+            Week
+          </button>
+          <button
+            onClick={() => setXAxisFormat('month')}
+            className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+              xAxisFormat === 'month'
+                ? 'bg-salmon-600 text-white shadow-sm'
+                : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-white'
+            }`}
+          >
+            Month
+          </button>
+        </div>
       </div>
 
       {/* Chart */}
