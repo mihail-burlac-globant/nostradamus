@@ -167,38 +167,22 @@ const GanttChart = () => {
     // Maximum number of labels that fit comfortably on screen (rotated at 45 degrees)
     const MAX_LABELS = 50
 
-    // Determine min/max interval based on format to control tick density
-    let minInterval: number
-    let maxInterval: number | undefined
-    let labelInterval = 0
+    // Determine min/max interval and splitNumber based on format
+    let minInterval: number | undefined
+    let splitNumber: number | undefined
 
     if (xAxisFormat === 'month') {
-      // Show monthly ticks
+      // Show monthly intervals, let ECharts decide count
       minInterval = MONTH_MS
-      maxInterval = MONTH_MS
-      labelInterval = 0 // Show all month labels (usually ~6-12)
+      splitNumber = undefined // Auto
     } else if (xAxisFormat === 'week') {
-      // Show weekly ticks
+      // Limit to MAX_LABELS weeks maximum
       minInterval = WEEK_MS
-      maxInterval = WEEK_MS
-      // Calculate how many labels to skip to fit MAX_LABELS
-      if (numberOfWeeks <= MAX_LABELS) {
-        labelInterval = 0 // Show all
-      } else {
-        // Show every Nth week where N = ceil(numberOfWeeks / MAX_LABELS)
-        labelInterval = Math.ceil(numberOfWeeks / MAX_LABELS) - 1
-      }
+      splitNumber = Math.min(numberOfWeeks, MAX_LABELS)
     } else { // day
-      // Show daily ticks
+      // Limit to MAX_LABELS days maximum
       minInterval = DAY_MS
-      maxInterval = DAY_MS
-      // Calculate how many labels to skip to fit MAX_LABELS
-      if (projectDuration <= MAX_LABELS) {
-        labelInterval = 0 // Show all
-      } else {
-        // Show every Nth day where N = ceil(projectDuration / MAX_LABELS)
-        labelInterval = Math.ceil(projectDuration / MAX_LABELS) - 1
-      }
+      splitNumber = Math.min(projectDuration, MAX_LABELS)
     }
 
     // X-axis formatter based on selected format
@@ -259,12 +243,11 @@ const GanttChart = () => {
       xAxis: {
         type: 'time',
         minInterval: minInterval,
-        maxInterval: maxInterval,
+        splitNumber: splitNumber,
         axisLabel: {
           formatter: getXAxisFormatter,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
-          interval: labelInterval,
           rotate: 45, // Rotate labels at 45 degrees for better fit
           fontSize: 10,
           margin: 8,
