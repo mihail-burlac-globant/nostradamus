@@ -170,19 +170,29 @@ const GanttChart = () => {
     // Determine min/max interval and splitNumber based on format
     let minInterval: number | undefined
     let splitNumber: number | undefined
+    let axisLabelInterval: number | 'auto' = 'auto'
 
     if (xAxisFormat === 'month') {
       // Show monthly intervals, let ECharts decide count
       minInterval = MONTH_MS
       splitNumber = undefined // Auto
+      axisLabelInterval = 'auto'
     } else if (xAxisFormat === 'week') {
-      // Limit to MAX_LABELS weeks maximum
+      // Force ticks at week intervals to avoid duplicates
       minInterval = WEEK_MS
-      splitNumber = Math.min(numberOfWeeks, MAX_LABELS)
+      splitNumber = undefined // Let ECharts generate all week ticks
+      // Calculate label interval to show max MAX_LABELS weeks
+      if (numberOfWeeks <= MAX_LABELS) {
+        axisLabelInterval = 0 // Show all
+      } else {
+        // Show every Nth week where N = ceil(numberOfWeeks / MAX_LABELS)
+        axisLabelInterval = Math.ceil(numberOfWeeks / MAX_LABELS) - 1
+      }
     } else { // day
       // Limit to MAX_LABELS days maximum
       minInterval = DAY_MS
       splitNumber = Math.min(projectDuration, MAX_LABELS)
+      axisLabelInterval = 'auto'
     }
 
     // X-axis formatter based on selected format
@@ -192,8 +202,8 @@ const GanttChart = () => {
         case 'month':
           return format(date, 'MMM yyyy')
         case 'week':
-          // Show date with week number to ensure uniqueness (splitNumber may create multiple ticks in same week)
-          return `${format(date, 'MMM dd')} (W${getWeek(date)})`
+          // Show only week number (minInterval ensures each tick is a different week)
+          return `W${getWeek(date)}`
         case 'day':
         default:
           return format(date, 'MMM dd')
@@ -248,6 +258,7 @@ const GanttChart = () => {
           formatter: getXAxisFormatter,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
+          interval: axisLabelInterval,
           rotate: 45, // Rotate labels at 45 degrees for better fit
           fontSize: 10,
           margin: 8,
