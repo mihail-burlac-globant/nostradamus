@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { exportToCSV } from '../csvExporter'
+import { projectToCSVString } from '../csvExporter'
 import type { ProjectData } from '../../types/project.types'
 
 describe('csvExporter', () => {
-  describe('exportToCSV', () => {
+  describe('projectToCSVString', () => {
     const mockProjectData: ProjectData = {
       name: 'Test Project',
       startDate: new Date('2024-01-01'),
@@ -38,13 +38,13 @@ describe('csvExporter', () => {
     }
 
     it('should generate CSV with correct header', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
 
       expect(csv).toContain('id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency')
     })
 
     it('should include all task data', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
 
       expect(csv).toContain('task-1')
       expect(csv).toContain('Test Task 1')
@@ -53,35 +53,35 @@ describe('csvExporter', () => {
     })
 
     it('should format dates correctly', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
 
       expect(csv).toContain('2024-01-01')
       expect(csv).toContain('2024-01-05')
     })
 
     it('should include progress and status', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
 
       expect(csv).toContain('100,completed')
       expect(csv).toContain('50,in-progress')
     })
 
     it('should include assignee and profile_type', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
 
       expect(csv).toContain('John Doe,backend')
       expect(csv).toContain('Jane Smith,frontend')
     })
 
     it('should include remaining_estimate_hours', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
 
       expect(csv).toContain(',0,')
       expect(csv).toContain(',40,')
     })
 
     it('should include dependencies', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
 
       expect(csv).toContain(',task-1')
     })
@@ -104,7 +104,7 @@ describe('csvExporter', () => {
         ],
       }
 
-      const csv = exportToCSV(projectWithOptionalFields)
+      const csv = projectToCSVString(projectWithOptionalFields)
 
       expect(csv).toBeDefined()
       expect(csv).toContain('task-1')
@@ -112,7 +112,7 @@ describe('csvExporter', () => {
     })
 
     it('should generate valid CSV with multiple rows', () => {
-      const csv = exportToCSV(mockProjectData)
+      const csv = projectToCSVString(mockProjectData)
       const lines = csv.split('\n').filter((line) => line.trim().length > 0)
 
       // Should have header + 2 task rows
@@ -128,7 +128,7 @@ describe('csvExporter', () => {
         tasks: [],
       }
 
-      const csv = exportToCSV(emptyProject)
+      const csv = projectToCSVString(emptyProject)
 
       // Should still have header
       expect(csv).toContain('id,name,startDate,endDate')
@@ -155,7 +155,7 @@ describe('csvExporter', () => {
         ],
       }
 
-      const csv = exportToCSV(projectWithCommas)
+      const csv = projectToCSVString(projectWithCommas)
 
       // Should wrap in quotes when there's a comma
       expect(csv).toContain('"Task with, comma"')
