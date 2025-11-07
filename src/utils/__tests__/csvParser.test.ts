@@ -1,17 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { parseCSVToProjectData } from '../csvParser'
 import Papa from 'papaparse'
+import { CSVRow } from '../../types/project.types'
 
 describe('csvParser', () => {
   describe('parseCSVToProjectData', () => {
     it('should parse valid CSV data correctly', () => {
-      const csvData = Papa.parse(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Test Task,2024-01-01,2024-01-10,50,in-progress,John Doe,backend,40,`, {
         header: true,
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data as any[])
+      const result = parseCSVToProjectData(csvData.data)
 
       expect(result).toBeDefined()
       expect(result.tasks).toHaveLength(1)
@@ -25,13 +26,13 @@ task-1,Test Task,2024-01-01,2024-01-10,50,in-progress,John Doe,backend,40,`, {
     })
 
     it('should parse dates correctly', () => {
-      const csvData = Papa.parse(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Test Task,2024-01-15,2024-02-20,100,completed,Jane Smith,frontend,0,`, {
         header: true,
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data as any[])
+      const result = parseCSVToProjectData(csvData.data)
 
       expect(result.tasks[0].startDate).toBeInstanceOf(Date)
       expect(result.tasks[0].endDate).toBeInstanceOf(Date)
@@ -41,7 +42,7 @@ task-1,Test Task,2024-01-15,2024-02-20,100,completed,Jane Smith,frontend,0,`, {
     })
 
     it('should calculate project start and end dates correctly', () => {
-      const csvData = Papa.parse(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Task 1,2024-01-01,2024-01-10,100,completed,John,backend,0,
 task-2,Task 2,2024-01-15,2024-02-20,50,in-progress,Jane,frontend,50,
 task-3,Task 3,2024-02-15,2024-03-01,0,not-started,Bob,qa,100,`, {
@@ -49,7 +50,7 @@ task-3,Task 3,2024-02-15,2024-03-01,0,not-started,Bob,qa,100,`, {
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data as any[])
+      const result = parseCSVToProjectData(csvData.data)
 
       expect(result.startDate).toBeInstanceOf(Date)
       expect(result.endDate).toBeInstanceOf(Date)
@@ -61,7 +62,7 @@ task-3,Task 3,2024-02-15,2024-03-01,0,not-started,Bob,qa,100,`, {
     })
 
     it('should calculate total planned work from remaining hours', () => {
-      const csvData = Papa.parse(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Task 1,2024-01-01,2024-01-10,100,completed,John,backend,0,
 task-2,Task 2,2024-01-15,2024-02-20,50,in-progress,Jane,frontend,50,
 task-3,Task 3,2024-02-15,2024-03-01,0,not-started,Bob,qa,100,`, {
@@ -69,21 +70,21 @@ task-3,Task 3,2024-02-15,2024-03-01,0,not-started,Bob,qa,100,`, {
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data as any[])
+      const result = parseCSVToProjectData(csvData.data)
 
       // Total: 0 + 50 + 100 = 150
       expect(result.totalPlannedWork).toBe(150)
     })
 
     it('should handle optional fields correctly', () => {
-      const csvData = Papa.parse(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,,,40,
 task-2,Task 2,2024-01-15,2024-02-20,75,in-progress,Jane Smith,frontend,25,task-1`, {
         header: true,
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data as any[])
+      const result = parseCSVToProjectData(csvData.data)
 
       expect(result.tasks[0].assignee).toBeUndefined()
       expect(result.tasks[0].profile_type).toBeUndefined()
@@ -95,7 +96,7 @@ task-2,Task 2,2024-01-15,2024-02-20,75,in-progress,Jane Smith,frontend,25,task-1
     })
 
     it('should handle multiple tasks correctly', () => {
-      const csvData = Papa.parse(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Task 1,2024-01-01,2024-01-10,100,completed,John,backend,0,
 task-2,Task 2,2024-01-05,2024-01-15,75,in-progress,Jane,frontend,20,task-1
 task-3,Task 3,2024-01-10,2024-01-20,50,in-progress,Bob,qa,40,task-2
@@ -104,7 +105,7 @@ task-4,Task 4,2024-01-15,2024-01-25,0,not-started,Alice,devops,80,task-3`, {
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data as any[])
+      const result = parseCSVToProjectData(csvData.data)
 
       expect(result.tasks).toHaveLength(4)
       expect(result.tasks[0].status).toBe('completed')
@@ -114,13 +115,13 @@ task-4,Task 4,2024-01-15,2024-01-25,0,not-started,Alice,devops,80,task-3`, {
     })
 
     it('should handle default values for remaining_estimate_hours', () => {
-      const csvData = Papa.parse(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
 task-1,Task 1,2024-01-01,2024-01-10,100,completed,John,backend,,`, {
         header: true,
         skipEmptyLines: true,
       })
 
-      const result = parseCSVToProjectData(csvData.data as any[])
+      const result = parseCSVToProjectData(csvData.data)
 
       expect(result.tasks[0].remaining_estimate_hours).toBeUndefined()
     })
