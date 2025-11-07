@@ -164,48 +164,61 @@ const GanttChart = () => {
     // Maximum number of labels that fit comfortably on screen (rotated at 45 degrees)
     const MAX_LABELS = 40
 
-    // For week view, calculate explicit week boundaries
-    const weekBoundaries: number[] = []
-    let numberOfWeeks = 0
+    // For week view: Calculate ALL weeks between first and last task, then select which to display
+    const selectedWeeksSet = new Set<string>() // Store as "YYYY-Wnn" format for uniqueness
     if (xAxisFormat === 'week') {
-      let currentWeekStart = startOfWeek(projectData.startDate, { weekStartsOn: 1 })
+      // Find actual project start and end from tasks
+      const projectStart = projectData.startDate
       const projectEnd = projectData.endDate
 
-      while (isBefore(currentWeekStart, projectEnd) || currentWeekStart.getTime() === projectEnd.getTime()) {
-        weekBoundaries.push(currentWeekStart.getTime())
-        currentWeekStart = addWeeks(currentWeekStart, 1)
+      // Calculate all week starts (Mondays) in the period
+      const allWeeks: Date[] = []
+      let currentWeek = startOfWeek(projectStart, { weekStartsOn: 1 })
+
+      while (isBefore(currentWeek, projectEnd) || currentWeek.getTime() === projectEnd.getTime()) {
+        allWeeks.push(new Date(currentWeek))
+        currentWeek = addWeeks(currentWeek, 1)
       }
-      numberOfWeeks = weekBoundaries.length
+
+      // If we have ≤40 weeks: select all
+      // If we have >40 weeks: select 40 distributed equally
+      let selectedWeeks: Date[]
+      if (allWeeks.length <= MAX_LABELS) {
+        selectedWeeks = allWeeks
+      } else {
+        selectedWeeks = []
+        const step = allWeeks.length / MAX_LABELS
+        for (let i = 0; i < MAX_LABELS; i++) {
+          const index = Math.floor(i * step)
+          selectedWeeks.push(allWeeks[index])
+        }
+      }
+
+      // Store selected weeks in Set for fast lookup (format: "YYYY-Wnn")
+      selectedWeeks.forEach(week => {
+        const key = `${format(week, 'yyyy')}-W${getWeek(week)}`
+        selectedWeeksSet.add(key)
+      })
     }
 
     // Determine axis configuration based on format
     let minInterval: number | undefined
     let maxInterval: number | undefined
     let splitNumber: number | undefined
-    let axisLabelInterval: number | 'auto' = 'auto'
 
     if (xAxisFormat === 'month') {
       minInterval = MONTH_MS
       maxInterval = undefined
       splitNumber = undefined
-      axisLabelInterval = 'auto'
     } else if (xAxisFormat === 'week') {
-      // Force exactly 7 days between ticks
+      // Generate enough ticks to cover all weeks
       minInterval = WEEK_MS
       maxInterval = WEEK_MS
       splitNumber = undefined
-      // Calculate label interval to show max MAX_LABELS
-      if (numberOfWeeks <= MAX_LABELS) {
-        axisLabelInterval = 0 // Show all
-      } else {
-        // Show every Nth label where N = ceil(numberOfWeeks / MAX_LABELS)
-        axisLabelInterval = Math.ceil(numberOfWeeks / MAX_LABELS) - 1
-      }
     } else { // day
       minInterval = DAY_MS
       maxInterval = undefined
       splitNumber = Math.min(projectDuration, MAX_LABELS)
-      axisLabelInterval = 'auto'
     }
 
     // X-axis formatter based on selected format
@@ -214,8 +227,14 @@ const GanttChart = () => {
       switch (xAxisFormat) {
         case 'month':
           return format(date, 'MMM yyyy')
-        case 'week':
-          return `W${getWeek(date)}`
+        case 'week': {
+          // Only show label if this week is in our selected set
+          const key = `${format(date, 'yyyy')}-W${getWeek(date)}`
+          if (selectedWeeksSet.has(key)) {
+            return `W${getWeek(date)}`
+          }
+          return '' // Hide this label
+        }
         case 'day':
         default:
           return format(date, 'MMM dd')
@@ -269,7 +288,6 @@ const GanttChart = () => {
         splitNumber: splitNumber,
         axisLabel: {
           formatter: getXAxisFormatter,
-          interval: axisLabelInterval,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
           rotate: 45,
