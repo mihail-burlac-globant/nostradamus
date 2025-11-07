@@ -169,21 +169,24 @@ const GanttChart = () => {
 
     // Determine min/max interval and splitNumber based on format
     let minInterval: number | undefined
+    let maxInterval: number | undefined
     let splitNumber: number | undefined
     let axisLabelInterval: number | 'auto' = 'auto'
 
     if (xAxisFormat === 'month') {
       // Show monthly intervals, let ECharts decide count
       minInterval = MONTH_MS
+      maxInterval = undefined
       splitNumber = undefined // Auto
       axisLabelInterval = 'auto'
     } else if (xAxisFormat === 'week') {
-      // Force ticks at week intervals to avoid duplicates
+      // Force ticks at EVERY week boundary (min=max=WEEK_MS generates all weeks)
       minInterval = WEEK_MS
-      splitNumber = undefined // Let ECharts generate all week ticks
+      maxInterval = WEEK_MS // This forces generation of ALL week ticks
+      splitNumber = undefined
       // Calculate label interval to show max MAX_LABELS weeks
       if (numberOfWeeks <= MAX_LABELS) {
-        axisLabelInterval = 0 // Show all
+        axisLabelInterval = 0 // Show all weeks
       } else {
         // Show every Nth week where N = ceil(numberOfWeeks / MAX_LABELS)
         axisLabelInterval = Math.ceil(numberOfWeeks / MAX_LABELS) - 1
@@ -191,6 +194,7 @@ const GanttChart = () => {
     } else { // day
       // Limit to MAX_LABELS days maximum
       minInterval = DAY_MS
+      maxInterval = undefined
       splitNumber = Math.min(projectDuration, MAX_LABELS)
       axisLabelInterval = 'auto'
     }
@@ -253,6 +257,7 @@ const GanttChart = () => {
       xAxis: {
         type: 'time',
         minInterval: minInterval,
+        maxInterval: maxInterval,
         splitNumber: splitNumber,
         axisLabel: {
           formatter: getXAxisFormatter,
