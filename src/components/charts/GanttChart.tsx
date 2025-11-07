@@ -164,6 +164,9 @@ const GanttChart = () => {
     const WEEK_MS = 7 * DAY_MS
     const MONTH_MS = 30 * DAY_MS // Approximate
 
+    // Maximum number of labels that fit comfortably on screen (rotated at 45 degrees)
+    const MAX_LABELS = 40
+
     // Determine min/max interval based on format to control tick density
     let minInterval: number
     let maxInterval: number | undefined
@@ -173,19 +176,29 @@ const GanttChart = () => {
       // Show monthly ticks
       minInterval = MONTH_MS
       maxInterval = MONTH_MS
-      labelInterval = 0 // Show all month labels
+      labelInterval = 0 // Show all month labels (usually ~6-12)
     } else if (xAxisFormat === 'week') {
       // Show weekly ticks
       minInterval = WEEK_MS
       maxInterval = WEEK_MS
-      // Show all week labels if <50 weeks, otherwise 1 out of 2
-      labelInterval = numberOfWeeks > 50 ? 1 : 0
+      // Calculate how many labels to skip to fit MAX_LABELS
+      if (numberOfWeeks <= MAX_LABELS) {
+        labelInterval = 0 // Show all
+      } else {
+        // Show every Nth week where N = ceil(numberOfWeeks / MAX_LABELS)
+        labelInterval = Math.ceil(numberOfWeeks / MAX_LABELS) - 1
+      }
     } else { // day
       // Show daily ticks
       minInterval = DAY_MS
       maxInterval = DAY_MS
-      // Show all day labels if <60 days, otherwise 1 out of 2
-      labelInterval = projectDuration > 60 ? 1 : 0
+      // Calculate how many labels to skip to fit MAX_LABELS
+      if (projectDuration <= MAX_LABELS) {
+        labelInterval = 0 // Show all
+      } else {
+        // Show every Nth day where N = ceil(projectDuration / MAX_LABELS)
+        labelInterval = Math.ceil(projectDuration / MAX_LABELS) - 1
+      }
     }
 
     // X-axis formatter based on selected format
@@ -195,7 +208,8 @@ const GanttChart = () => {
         case 'month':
           return format(date, 'MMM yyyy')
         case 'week':
-          return `W${getWeek(date)}`
+          // Include month to avoid duplicate week numbers across different months
+          return `${format(date, 'MMM')} W${getWeek(date)}`
         case 'day':
         default:
           return format(date, 'MMM dd')
