@@ -159,56 +159,53 @@ const GanttChart = () => {
 
     // Calculate time intervals in milliseconds
     const DAY_MS = 24 * 60 * 60 * 1000
+    const WEEK_MS = 7 * DAY_MS
     const MONTH_MS = 30 * DAY_MS // Approximate
 
     // Maximum number of labels that fit comfortably on screen (rotated at 45 degrees)
     const MAX_LABELS = 40
 
-    // Calculate explicit week starts for week view (to avoid duplicates)
-    const weekTicksSet = new Set<number>()
+    // For week view, calculate explicit week boundaries
+    const weekBoundaries: number[] = []
     if (xAxisFormat === 'week') {
-      // Start from the first Monday on or before project start
-      let currentWeekStart = startOfWeek(projectData.startDate, { weekStartsOn: 1 }) // 1 = Monday
+      let currentWeekStart = startOfWeek(projectData.startDate, { weekStartsOn: 1 })
       const projectEnd = projectData.endDate
 
-      // Generate all week starts within project period
       while (isBefore(currentWeekStart, projectEnd) || currentWeekStart.getTime() === projectEnd.getTime()) {
-        weekTicksSet.add(currentWeekStart.getTime())
+        weekBoundaries.push(currentWeekStart.getTime())
         currentWeekStart = addWeeks(currentWeekStart, 1)
       }
 
-      // If we have more weeks than MAX_LABELS, filter to every Nth week
-      if (weekTicksSet.size > MAX_LABELS) {
-        const allWeeks = Array.from(weekTicksSet).sort((a, b) => a - b)
-        const step = Math.ceil(allWeeks.length / MAX_LABELS)
-        weekTicksSet.clear()
-        allWeeks.forEach((week, index) => {
-          if (index % step === 0) {
-            weekTicksSet.add(week)
-          }
-        })
+      // If too many weeks, keep every Nth
+      if (weekBoundaries.length > MAX_LABELS) {
+        const step = Math.ceil(weekBoundaries.length / MAX_LABELS)
+        const filtered = weekBoundaries.filter((_, index) => index % step === 0)
+        weekBoundaries.length = 0
+        weekBoundaries.push(...filtered)
       }
     }
 
-    // Determine min/max interval and splitNumber based on format
+    // Determine axis configuration based on format
     let minInterval: number | undefined
+    let maxInterval: number | undefined
     let splitNumber: number | undefined
 
     if (xAxisFormat === 'month') {
-      // Show monthly intervals, let ECharts decide count
       minInterval = MONTH_MS
+      maxInterval = undefined
       splitNumber = undefined
     } else if (xAxisFormat === 'week') {
-      // Show approximately MAX_LABELS tick marks
-      minInterval = undefined
-      splitNumber = Math.min(weekTicksSet.size, MAX_LABELS)
+      // Force exactly 7 days between ticks
+      minInterval = WEEK_MS
+      maxInterval = WEEK_MS
+      splitNumber = undefined // Let min/max handle it
     } else { // day
-      // Limit to MAX_LABELS days maximum
       minInterval = DAY_MS
+      maxInterval = undefined
       splitNumber = Math.min(projectDuration, MAX_LABELS)
     }
 
-    // Reset displayed weeks tracker when format changes
+    // Reset displayed weeks tracker when format changes or data changes
     displayedWeeksRef.current.clear()
 
     // X-axis formatter based on selected format
@@ -218,32 +215,17 @@ const GanttChart = () => {
         case 'month':
           return format(date, 'MMM yyyy')
         case 'week': {
-          // Get week number for this date
+          // Calculate week number
           const weekNum = getWeek(date)
 
-          // Only show if we haven't displayed this week yet
+          // Check if already displayed
           if (displayedWeeksRef.current.has(weekNum)) {
-            return '' // Already shown, hide this label
+            return ''
           }
 
-          // Check if this tick is close to one of our calculated week starts (within 3.5 days)
-          const THREE_HALF_DAYS = 3.5 * 24 * 60 * 60 * 1000
-          let isNearWeekStart = false
-
-          weekTicksSet.forEach((weekStart) => {
-            const distance = Math.abs(value - weekStart)
-            if (distance < THREE_HALF_DAYS) {
-              isNearWeekStart = true
-            }
-          })
-
-          // If this tick is close to one of our week starts, show it
-          if (isNearWeekStart) {
-            displayedWeeksRef.current.add(weekNum)
-            return `W${weekNum}`
-          }
-
-          return '' // Hide labels that don't match our week starts
+          // Mark as displayed and return
+          displayedWeeksRef.current.add(weekNum)
+          return `W${weekNum}`
         }
         case 'day':
         default:
@@ -294,15 +276,16 @@ const GanttChart = () => {
       xAxis: {
         type: 'time',
         minInterval: minInterval,
+        maxInterval: maxInterval,
         splitNumber: splitNumber,
         axisLabel: {
           formatter: getXAxisFormatter,
           color: textColor,
           fontFamily: 'Inter, sans-serif',
-          rotate: 45, // Rotate labels at 45 degrees for better fit
+          rotate: 45,
           fontSize: 10,
           margin: 8,
-        } as any, // ECharts supports these properties but TypeScript doesn't recognize them
+        } as any,
         axisLine: {
           lineStyle: {
             color: isDarkMode ? '#5A5A66' : '#D1D1D5',
