@@ -165,7 +165,7 @@ const GanttChart = () => {
     const MONTH_MS = 30 * DAY_MS // Approximate
 
     // Maximum number of labels that fit comfortably on screen (rotated at 45 degrees)
-    const MAX_LABELS = 40
+    const MAX_LABELS = 50
 
     // Determine min/max interval based on format to control tick density
     let minInterval: number
