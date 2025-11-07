@@ -159,16 +159,32 @@ const GanttChart = () => {
     // Calculate number of weeks in project
     const numberOfWeeks = Math.ceil(projectDuration / 7)
 
-    // Determine label interval: show all that fit, if too many show 1 out of 2
+    // Calculate time intervals in milliseconds
+    const DAY_MS = 24 * 60 * 60 * 1000
+    const WEEK_MS = 7 * DAY_MS
+    const MONTH_MS = 30 * DAY_MS // Approximate
+
+    // Determine min/max interval based on format to control tick density
+    let minInterval: number
+    let maxInterval: number | undefined
     let labelInterval = 0
+
     if (xAxisFormat === 'month') {
-      // Show all months - always fits well
-      labelInterval = 0
+      // Show monthly ticks
+      minInterval = MONTH_MS
+      maxInterval = MONTH_MS
+      labelInterval = 0 // Show all month labels
     } else if (xAxisFormat === 'week') {
-      // Show all weeks if <50, otherwise 1 out of 2
+      // Show weekly ticks
+      minInterval = WEEK_MS
+      maxInterval = WEEK_MS
+      // Show all week labels if <50 weeks, otherwise 1 out of 2
       labelInterval = numberOfWeeks > 50 ? 1 : 0
     } else { // day
-      // Show all days if <60, otherwise 1 out of 2
+      // Show daily ticks
+      minInterval = DAY_MS
+      maxInterval = DAY_MS
+      // Show all day labels if <60 days, otherwise 1 out of 2
       labelInterval = projectDuration > 60 ? 1 : 0
     }
 
@@ -228,6 +244,8 @@ const GanttChart = () => {
       },
       xAxis: {
         type: 'time',
+        minInterval: minInterval,
+        maxInterval: maxInterval,
         axisLabel: {
           formatter: getXAxisFormatter,
           color: textColor,
