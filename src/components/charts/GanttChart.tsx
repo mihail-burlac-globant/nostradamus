@@ -151,22 +151,20 @@ const GanttChart = () => {
       (projectData.endDate.getTime() - projectData.startDate.getTime()) / (1000 * 60 * 60 * 24)
     )
 
-    // More aggressive label display - show more labels
+    // Calculate number of weeks in project
+    const numberOfWeeks = Math.ceil(projectDuration / 7)
+
+    // Determine label interval: show all that fit, if too many show 1 out of 2
     let labelInterval = 0
     if (xAxisFormat === 'month') {
-      labelInterval = 0 // Show all months
+      // Show all months - always fits well
+      labelInterval = 0
     } else if (xAxisFormat === 'week') {
-      labelInterval = projectDuration > 90 ? 1 : 0 // Show all weeks unless >3 months
+      // Show all weeks if <50, otherwise 1 out of 2
+      labelInterval = numberOfWeeks > 50 ? 1 : 0
     } else { // day
-      if (projectDuration > 180) {
-        labelInterval = Math.floor(projectDuration / 40) // ~40 labels for long projects
-      } else if (projectDuration > 90) {
-        labelInterval = Math.floor(projectDuration / 30) // ~30 labels for 3-6 months
-      } else if (projectDuration > 30) {
-        labelInterval = 1 // Every other day for 1-3 months
-      } else {
-        labelInterval = 0 // All days for <1 month
-      }
+      // Show all days if <60, otherwise 1 out of 2
+      labelInterval = projectDuration > 60 ? 1 : 0
     }
 
     // X-axis formatter based on selected format
