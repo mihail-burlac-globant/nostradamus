@@ -61,6 +61,20 @@ export const parseCSVToProjectData = (rows: CSVRow[]): ProjectData => {
     if (isNaN(hours) || hours < 0) {
       throw new Error(`Invalid number '${row.remaining_estimate_hours}' for 'remaining_estimate_hours' in row ${rowNum}. Must be non-negative number.`)
     }
+
+    // Validate resource_allocation if provided (optional field)
+    if (row.resource_allocation !== undefined && row.resource_allocation !== null && row.resource_allocation !== '') {
+      const allocation = parseFloat(row.resource_allocation)
+      if (isNaN(allocation) || allocation <= 0) {
+        throw new Error(`Invalid number '${row.resource_allocation}' for 'resource_allocation' in row ${rowNum}. Must be positive number > 0.`)
+      }
+      if (allocation > 1000) {
+        throw new Error(`Invalid number '${row.resource_allocation}' for 'resource_allocation' in row ${rowNum}. Maximum value is 1000.`)
+      }
+      if (allocation < 0.01) {
+        throw new Error(`Invalid number '${row.resource_allocation}' for 'resource_allocation' in row ${rowNum}. Minimum value is 0.01.`)
+      }
+    }
   })
 
   // Validate dependency references
@@ -116,6 +130,7 @@ export const parseCSVToProjectData = (rows: CSVRow[]): ProjectData => {
     const assignee = row.assignee?.trim() || undefined
     const profile_type = row.profile_type.trim()
     const remaining_estimate_hours = parseFloat(row.remaining_estimate_hours)
+    const resource_allocation = row.resource_allocation ? parseFloat(row.resource_allocation) : 1.0
     const dependency = row.dependency?.trim() || undefined
 
     return {
@@ -128,6 +143,7 @@ export const parseCSVToProjectData = (rows: CSVRow[]): ProjectData => {
       assignee,
       profile_type,
       remaining_estimate_hours,
+      resource_allocation,
       dependency,
     }
   })
@@ -228,8 +244,10 @@ const resolveDependencies = (tasks: Task[]): void => {
 
     // Calculate endDate if not provided
     if (!task.endDate || task.endDate.getTime() === new Date().getTime()) {
-      // Estimate: 8 hours per working day
-      const estimatedDays = Math.ceil((task.remaining_estimate_hours || 0) / 8)
+      // Calculate duration considering resource allocation
+      const resourceAllocation = task.resource_allocation || 1.0
+      const effectiveHours = (task.remaining_estimate_hours || 0) / resourceAllocation
+      const estimatedDays = Math.ceil(effectiveHours / 8)
       task.endDate = addDays(task.startDate, estimatedDays)
     }
 
