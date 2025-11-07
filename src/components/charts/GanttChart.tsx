@@ -165,7 +165,7 @@ const GanttChart = () => {
     const MONTH_MS = 30 * DAY_MS // Approximate
 
     // Maximum number of labels that fit comfortably on screen (rotated at 45 degrees)
-    const MAX_LABELS = 50
+    const MAX_LABELS = 45
 
     // Determine min/max interval and splitNumber based on format
     let minInterval: number | undefined
@@ -192,8 +192,8 @@ const GanttChart = () => {
         case 'month':
           return format(date, 'MMM yyyy')
         case 'week':
-          // Include month to avoid duplicate week numbers across different months
-          return `${format(date, 'MMM')} W${getWeek(date)}`
+          // Show date with week number to ensure uniqueness (splitNumber may create multiple ticks in same week)
+          return `${format(date, 'MMM dd')} (W${getWeek(date)})`
         case 'day':
         default:
           return format(date, 'MMM dd')
