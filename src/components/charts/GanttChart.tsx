@@ -10,6 +10,7 @@ const GanttChart = () => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const [xAxisFormat, setXAxisFormat] = useState<XAxisFormat>('day')
+  const displayedWeeksRef = useRef<Set<number>>(new Set())
 
   const handleExportPNG = () => {
     if (!chartInstance.current) return
@@ -207,10 +208,10 @@ const GanttChart = () => {
       splitNumber = Math.min(projectDuration, MAX_LABELS)
     }
 
-    // X-axis formatter based on selected format
-    // Track which weeks have been displayed to avoid duplicates
-    const displayedWeeks = new Set<number>()
+    // Reset displayed weeks tracker when format changes
+    displayedWeeksRef.current.clear()
 
+    // X-axis formatter based on selected format
     const getXAxisFormatter = (value: number) => {
       const date = new Date(value)
       switch (xAxisFormat) {
@@ -221,7 +222,7 @@ const GanttChart = () => {
           const weekNum = getWeek(date)
 
           // Only show if we haven't displayed this week yet
-          if (displayedWeeks.has(weekNum)) {
+          if (displayedWeeksRef.current.has(weekNum)) {
             return '' // Already shown, hide this label
           }
 
@@ -238,7 +239,7 @@ const GanttChart = () => {
 
           // If this tick is close to one of our week starts, show it
           if (isNearWeekStart) {
-            displayedWeeks.add(weekNum)
+            displayedWeeksRef.current.add(weekNum)
             return `W${weekNum}`
           }
 
