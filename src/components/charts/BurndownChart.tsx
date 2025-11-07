@@ -18,12 +18,19 @@ const BurndownChart = () => {
     const currentOptions = chartInstance.current.getOption()
 
     // Force dark text colors for export on white background
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const xAxis = currentOptions.xAxis as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const yAxis = currentOptions.yAxis as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const legend = currentOptions.legend as any
+
     const exportOptions = {
       ...currentOptions,
       xAxis: {
-        ...currentOptions.xAxis,
+        ...xAxis,
         axisLabel: {
-          ...(currentOptions.xAxis as any)?.axisLabel,
+          ...xAxis?.axisLabel,
           color: '#2E2E36',
         },
         axisLine: {
@@ -33,9 +40,9 @@ const BurndownChart = () => {
         },
       },
       yAxis: {
-        ...currentOptions.yAxis,
+        ...yAxis,
         axisLabel: {
-          ...(currentOptions.yAxis as any)?.axisLabel,
+          ...yAxis?.axisLabel,
           color: '#2E2E36',
         },
         nameTextStyle: {
@@ -53,9 +60,9 @@ const BurndownChart = () => {
         },
       },
       legend: {
-        ...(currentOptions.legend as any),
+        ...legend,
         textStyle: {
-          ...(currentOptions.legend as any)?.textStyle,
+          ...legend?.textStyle,
           color: '#2E2E36',
         },
       },
@@ -176,8 +183,10 @@ const BurndownChart = () => {
     const option: echarts.EChartsOption = {
       tooltip: {
         trigger: 'axis',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
           let result = `<strong>${params[0].name}</strong><br/>`
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           params.forEach((param: any) => {
             const hours = param.value.toFixed(1)
             result += `${param.marker} ${param.seriesName}: ${hours}h<br/>`

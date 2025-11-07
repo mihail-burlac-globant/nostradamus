@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { useProjectStore } from '../../stores/projectStore'
-import { CSVRow, Task, ProjectData } from '../../types/project.types'
+import { CSVRow } from '../../types/project.types'
 import { parseCSVToProjectData } from '../../utils/csvParser'
 
 const CSVUploader = () => {

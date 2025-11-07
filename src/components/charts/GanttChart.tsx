@@ -18,12 +18,17 @@ const GanttChart = () => {
     const currentOptions = chartInstance.current.getOption()
 
     // Force dark text colors for export on white background
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const xAxis = currentOptions.xAxis as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const yAxis = currentOptions.yAxis as any
+
     const exportOptions = {
       ...currentOptions,
       xAxis: {
-        ...currentOptions.xAxis,
+        ...xAxis,
         axisLabel: {
-          ...(currentOptions.xAxis as any)?.axisLabel,
+          ...xAxis?.axisLabel,
           color: '#2E2E36',
         },
         axisLine: {
@@ -33,9 +38,9 @@ const GanttChart = () => {
         },
       },
       yAxis: {
-        ...currentOptions.yAxis,
+        ...yAxis,
         axisLabel: {
-          ...(currentOptions.yAxis as any)?.axisLabel,
+          ...yAxis?.axisLabel,
           color: '#2E2E36',
         },
         axisLine: {
@@ -190,6 +195,7 @@ const GanttChart = () => {
 
     const option: echarts.EChartsOption = {
       tooltip: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
           const task = projectData.tasks[params.dataIndex]
           let tooltip = `<strong>${task.name}</strong><br/>`
