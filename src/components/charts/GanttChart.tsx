@@ -208,30 +208,40 @@ const GanttChart = () => {
     }
 
     // X-axis formatter based on selected format
+    // Track which weeks have been displayed to avoid duplicates
+    const displayedWeeks = new Set<number>()
+
     const getXAxisFormatter = (value: number) => {
       const date = new Date(value)
       switch (xAxisFormat) {
         case 'month':
           return format(date, 'MMM yyyy')
         case 'week': {
-          // Only show labels for week start dates in our calculated set
-          // Find the closest week start (within 3.5 days)
+          // Get week number for this date
+          const weekNum = getWeek(date)
+
+          // Only show if we haven't displayed this week yet
+          if (displayedWeeks.has(weekNum)) {
+            return '' // Already shown, hide this label
+          }
+
+          // Check if this tick is close to one of our calculated week starts (within 3.5 days)
           const THREE_HALF_DAYS = 3.5 * 24 * 60 * 60 * 1000
-          let closestWeek: number | null = null
-          let minDistance = THREE_HALF_DAYS
+          let isNearWeekStart = false
 
           weekTicksSet.forEach((weekStart) => {
             const distance = Math.abs(value - weekStart)
-            if (distance < minDistance) {
-              minDistance = distance
-              closestWeek = weekStart
+            if (distance < THREE_HALF_DAYS) {
+              isNearWeekStart = true
             }
           })
 
-          // If this tick is close to one of our week starts, show the week number
-          if (closestWeek !== null) {
-            return `W${getWeek(new Date(closestWeek))}`
+          // If this tick is close to one of our week starts, show it
+          if (isNearWeekStart) {
+            displayedWeeks.add(weekNum)
+            return `W${weekNum}`
           }
+
           return '' // Hide labels that don't match our week starts
         }
         case 'day':
