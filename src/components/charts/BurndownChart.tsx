@@ -254,7 +254,8 @@ const BurndownChart = () => {
       },
       series: [
         // Stacked area charts for each profile type
-        ...profileTypesArray.map((profileType, index) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(profileTypesArray.map((profileType, index) => ({
           name: profileType,
           type: 'line',
           stack: 'profile',
@@ -271,7 +272,7 @@ const BurndownChart = () => {
           emphasis: {
             focus: 'series',
           },
-        })),
+        })) as any),
         // Ideal burndown line (converted to hours)
         {
           name: 'Ideal Burndown',

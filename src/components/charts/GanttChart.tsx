@@ -236,7 +236,7 @@ const GanttChart = () => {
           rotate: 45, // Rotate labels at 45 degrees for better fit
           fontSize: 10,
           margin: 8,
-        },
+        } as any, // ECharts supports these properties but TypeScript doesn't recognize them
         axisLine: {
           lineStyle: {
             color: isDarkMode ? '#5A5A66' : '#D1D1D5',
@@ -253,7 +253,7 @@ const GanttChart = () => {
           width: 120,
           overflow: 'truncate',
           ellipsis: '...',
-        },
+        } as any, // ECharts supports these properties but TypeScript doesn't recognize them
         axisLine: {
           lineStyle: {
             color: isDarkMode ? '#5A5A66' : '#D1D1D5',
@@ -267,7 +267,8 @@ const GanttChart = () => {
             const categoryIndex = api.value(0) as number
             const start = api.coord([api.value(1), categoryIndex])
             const end = api.coord([api.value(2), categoryIndex])
-            const height = api.size!([0, 1])[1] * 0.6
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const height = (api.size!([0, 1]) as any)[1] * 0.6
             const progress = api.value(3) as number
 
             const totalWidth = end[0] - start[0]
