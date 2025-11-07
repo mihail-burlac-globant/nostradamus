@@ -54,10 +54,7 @@ export const parseCSVToProjectData = (rows: CSVRow[]): ProjectData => {
       throw new Error(`Missing required field 'remaining_estimate_hours' in row ${rowNum}`)
     }
 
-    // Validate status enum - use parseStatus which is lenient
-    const parsedStatus = parseStatus(row.status)
-    // parseStatus always returns a valid status, so we just use it
-    // No additional validation needed here
+    // Note: parseStatus handles status validation and normalization later
 
     // Validate remaining_estimate_hours is non-negative number
     const hours = parseFloat(row.remaining_estimate_hours)
