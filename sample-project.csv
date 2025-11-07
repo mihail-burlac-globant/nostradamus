@@ -1,23 +1,23 @@
-id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
-task-1,Product Discovery & Requirements,2025-08-01,2025-08-14,100,completed,Sarah Chen,product,0,
-task-2,Technical Architecture Design,2025-08-08,2025-08-21,100,completed,Marcus Rodriguez,backend,0,task-1
-task-3,Infrastructure Setup & CI/CD,2025-08-15,2025-08-28,100,completed,David Kim,devops,0,task-2
-task-4,Database Schema Design,2025-08-22,2025-09-04,100,completed,Marcus Rodriguez,backend,0,task-2
-task-5,User Authentication Service,2025-08-29,2025-09-18,100,completed,Elena Popov,backend,0,task-3
-task-6,Product Catalog API,2025-09-05,2025-09-25,100,completed,Marcus Rodriguez,backend,0,task-4
-task-7,Shopping Cart Service,2025-09-19,2025-10-09,85,in-progress,Elena Popov,backend,24,task-5
-task-8,Design System & Component Library,2025-09-11,2025-10-02,100,completed,Julia Wang,frontend,0,task-1
-task-9,User Dashboard UI,2025-09-26,2025-10-16,90,in-progress,Thomas Berg,frontend,16,task-8
-task-10,Product Catalog UI,2025-10-03,2025-10-23,75,in-progress,Julia Wang,frontend,40,task-6
-task-11,Shopping Cart UI,2025-10-10,2025-10-30,60,in-progress,Thomas Berg,frontend,64,task-7
-task-12,Payment Gateway Integration,2025-10-17,2025-11-06,45,in-progress,Marcus Rodriguez,backend,88,task-7
-task-13,Order Management System,2025-10-24,2025-11-13,30,in-progress,Elena Popov,backend,112,task-12
-task-14,API Testing & Automation,2025-10-31,2025-11-20,40,in-progress,Aisha Mohammed,qa,96,task-6
-task-15,UI/UX Testing,2025-11-07,2025-11-27,25,in-progress,Aisha Mohammed,qa,120,task-11
-task-16,Performance Testing & Optimization,2025-11-14,2025-12-04,15,in-progress,David Kim,devops,136,task-13
-task-17,Security Audit & Fixes,2025-11-21,2025-12-11,10,not-started,Marcus Rodriguez,backend,144,task-13
-task-18,Mobile Responsive Testing,2025-11-28,2025-12-18,5,not-started,Aisha Mohammed,qa,152,task-15
-task-19,Production Deployment Pipeline,2025-12-05,2025-12-25,0,not-started,David Kim,devops,160,task-16
-task-20,User Acceptance Testing,2025-12-12,2026-01-02,0,not-started,Sarah Chen,product,168,task-18
-task-21,Documentation & Training,2025-12-19,2026-01-09,0,not-started,Julia Wang,frontend,176,task-20
-task-22,Launch Preparation & Monitoring,2026-01-03,2026-01-23,0,not-started,David Kim,devops,184,task-19
+id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,resource_allocation,dependency
+task-1,Product Discovery & Requirements,2025-08-01,2025-08-14,100,completed,Sarah Chen,product,0,1.0,
+task-2,Technical Architecture Design,2025-08-08,2025-08-21,100,completed,Marcus Rodriguez,backend,0,1.0,task-1
+task-3,Infrastructure Setup & CI/CD,2025-08-15,2025-08-28,100,completed,David Kim,devops,0,1.0,task-2
+task-4,Database Schema Design,2025-08-22,2025-09-04,100,completed,Marcus Rodriguez,backend,0,1.0,task-2
+task-5,User Authentication Service,2025-08-29,2025-09-18,100,completed,Elena Popov,backend,0,1.5,task-3
+task-6,Product Catalog API,2025-09-05,2025-09-25,100,completed,Marcus Rodriguez,backend,0,1.0,task-4
+task-7,Shopping Cart Service,2025-09-19,2025-10-09,85,in-progress,Elena Popov,backend,24,1.0,task-5
+task-8,Design System & Component Library,2025-09-11,2025-10-02,100,completed,Julia Wang,frontend,0,2.0,task-1
+task-9,User Dashboard UI,2025-09-26,2025-10-16,90,in-progress,Thomas Berg,frontend,16,1.0,task-8
+task-10,Product Catalog UI,2025-10-03,2025-10-23,75,in-progress,Julia Wang,frontend,40,2.0,task-6
+task-11,Shopping Cart UI,2025-10-10,2025-10-30,60,in-progress,Thomas Berg,frontend,64,1.5,task-7
+task-12,Payment Gateway Integration,2025-10-17,2025-11-06,45,in-progress,Marcus Rodriguez,backend,88,1.0,task-7
+task-13,Order Management System,2025-10-24,2025-11-13,30,in-progress,Elena Popov,backend,112,1.0,task-12
+task-14,API Testing & Automation,2025-10-31,2025-11-20,40,in-progress,Aisha Mohammed,qa,96,0.5,task-6
+task-15,UI/UX Testing,2025-11-07,2025-11-27,25,in-progress,Aisha Mohammed,qa,120,0.5,task-11
+task-16,Performance Testing & Optimization,2025-11-14,2025-12-04,15,in-progress,David Kim,devops,136,1.0,task-13
+task-17,Security Audit & Fixes,2025-11-21,2025-12-11,10,not-started,Marcus Rodriguez,backend,144,1.0,task-13
+task-18,Mobile Responsive Testing,2025-11-28,2025-12-18,5,not-started,Aisha Mohammed,qa,152,0.5,task-15
+task-19,Production Deployment Pipeline,2025-12-05,2025-12-25,0,not-started,David Kim,devops,160,1.0,task-16
+task-20,User Acceptance Testing,2025-12-12,2026-01-02,0,not-started,Sarah Chen,product,168,1.0,task-18
+task-21,Documentation & Training,2025-12-19,2026-01-09,0,not-started,Julia Wang,frontend,176,2.0,task-20
+task-22,Launch Preparation & Monitoring,2026-01-03,2026-01-23,0,not-started,David Kim,devops,184,1.0,task-19

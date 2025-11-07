@@ -8,6 +8,7 @@ export interface Task {
   assignee?: string
   profile_type?: string
   remaining_estimate_hours?: number
+  resource_allocation?: number
   dependency?: string
 }
 

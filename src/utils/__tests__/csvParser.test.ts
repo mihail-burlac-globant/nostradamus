@@ -158,5 +158,76 @@ task-2,Task 2,2024-01-15,2024-02-20,50,in-progress,Jane,frontend,40,task-1`, {
 
       expect(() => parseCSVToProjectData(csvData.data)).toThrow('Circular dependency')
     })
+
+    it('should parse resource_allocation correctly', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,resource_allocation,dependency
+task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,John,backend,40,2.0,`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      const result = parseCSVToProjectData(csvData.data)
+
+      expect(result.tasks[0].resource_allocation).toBe(2.0)
+    })
+
+    it('should default resource_allocation to 1.0 when not provided', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
+task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,John,backend,40,`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      const result = parseCSVToProjectData(csvData.data)
+
+      expect(result.tasks[0].resource_allocation).toBe(1.0)
+    })
+
+    it('should validate resource_allocation minimum value', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,resource_allocation,dependency
+task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,John,backend,40,0.005,`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      expect(() => parseCSVToProjectData(csvData.data)).toThrow('Minimum value is 0.01')
+    })
+
+    it('should validate resource_allocation maximum value', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,resource_allocation,dependency
+task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,John,backend,40,1001,`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      expect(() => parseCSVToProjectData(csvData.data)).toThrow('Maximum value is 1000')
+    })
+
+    it('should validate resource_allocation is positive', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,resource_allocation,dependency
+task-1,Task 1,2024-01-01,2024-01-10,50,in-progress,John,backend,40,-1,`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      expect(() => parseCSVToProjectData(csvData.data)).toThrow('Must be positive number > 0')
+    })
+
+    it('should use resource_allocation in duration calculation', () => {
+      const csvData = Papa.parse<CSVRow>(`id,name,status,profile_type,remaining_estimate_hours,resource_allocation,dependency
+task-1,Task 1,not-started,backend,80,2.0,`, {
+        header: true,
+        skipEmptyLines: true,
+      })
+
+      const result = parseCSVToProjectData(csvData.data)
+
+      // 80 hours with 2.0 allocation = 40 effective hours = 5 days (40/8)
+      const task = result.tasks[0]
+      const durationMs = task.endDate.getTime() - task.startDate.getTime()
+      const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24))
+
+      expect(durationDays).toBe(5)
+    })
   })
 })

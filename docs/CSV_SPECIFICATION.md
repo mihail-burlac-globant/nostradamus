@@ -30,10 +30,11 @@ The following columns are **required** and must contain values for each row:
 | Column | Type | Description | Default Value |
 |--------|------|-------------|---------------|
 | `startDate` | Date | Planned start date | Calculated from dependencies or project start |
-| `endDate` | Date | Planned end date | Calculated from startDate + remaining hours |
+| `endDate` | Date | Planned end date | Calculated from startDate + remaining hours / resource_allocation |
 | `progress` | Number | Completion percentage (0-100) | 0 if not provided |
 | `assignee` | String | Person assigned to task | Empty/unassigned |
 | `dependency` | String | Task ID this task depends on | None |
+| `resource_allocation` | Number | Team capacity/parallel workers | 1.0 (one full-time person) |
 
 ## Detailed Column Logic
 
@@ -340,6 +341,72 @@ task-3,Write Tests,task-2
 
 ---
 
+### 2.11 `resource_allocation` - Team Capacity / Parallel Workers
+
+**Purpose**: Represents team capacity allocated to this task (number of parallel workers or resource availability)
+
+**Type**: Number (positive decimal)
+
+**Rules**:
+- **Optional** field (default: 1.0)
+- Represents effective team capacity:
+  - `1.0` = one full-time person
+  - `0.5` = half-time person or 50% availability
+  - `2.0` = two people working in parallel
+  - `0.1` = 10% of a person's time
+- Affects task duration calculation
+- Minimum: 0.01 (1% capacity)
+- Maximum: 1000 (large team)
+
+**Validation**:
+```
+- If provided: must be positive number > 0
+- If not provided: defaults to 1.0
+- Recommended range: 0.01 to 1000
+- Check: resource_allocation > 0
+```
+
+**Duration Calculation**:
+```javascript
+// Task duration affected by resource allocation
+const workHours = task.remaining_estimate_hours  // e.g., 80h
+const capacity = task.resource_allocation || 1.0  // e.g., 2.0 (two people)
+
+// Calculate working days needed
+const effectiveHours = workHours / capacity  // 80 / 2.0 = 40h
+const workingDays = Math.ceil(effectiveHours / 8)  // 40 / 8 = 5 days
+
+task.endDate = addDays(task.startDate, workingDays)
+```
+
+**Examples**:
+
+| remaining_estimate_hours | resource_allocation | Calculation | Duration |
+|-------------------------|---------------------|-------------|----------|
+| 80h | 1.0 (default) | 80 / 1.0 / 8 | 10 days |
+| 80h | 2.0 (two people) | 80 / 2.0 / 8 | 5 days |
+| 80h | 0.5 (part-time) | 80 / 0.5 / 8 | 20 days |
+| 120h | 4.0 (team of 4) | 120 / 4.0 / 8 | 4 days |
+| 40h | 0.25 (25% time) | 40 / 0.25 / 8 | 20 days |
+
+**Use Cases**:
+- **Team parallelization**: Multiple people working simultaneously
+- **Part-time allocation**: Person working 50% on this, 50% on other tasks
+- **Capacity planning**: Model different team size scenarios
+- **Bottleneck analysis**: Identify tasks with low resource allocation
+
+**CSV Example**:
+```csv
+id,name,profile_type,remaining_estimate_hours,resource_allocation
+task-1,API Design,backend,40,1.0
+task-2,Frontend Dev,frontend,80,2.0
+task-3,Code Review,qa,20,0.5
+```
+
+**Example**: `1.0`, `2.5`, `0.5`, `4.0`
+
+---
+
 ## Validation Rules Summary
 
 ### File-Level Validation
@@ -373,12 +440,12 @@ task-3,Write Tests,task-2
 ## Example Valid CSV
 
 ```csv
-id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,dependency
-task-1,Product Discovery,2025-08-01,2025-08-14,100,completed,Sarah Chen,product,0,
-task-2,API Design,2025-08-15,2025-08-28,100,completed,Mike Johnson,backend,0,task-1
-task-3,Database Schema,2025-08-15,2025-08-21,100,completed,Mike Johnson,backend,0,task-1
-task-4,Auth Service,2025-08-29,2025-09-18,85,in-progress,Elena Popov,backend,24,task-2
-task-5,User Dashboard,2025-09-01,2025-09-25,60,in-progress,Tom Wilson,frontend,96,task-2
+id,name,startDate,endDate,progress,status,assignee,profile_type,remaining_estimate_hours,resource_allocation,dependency
+task-1,Product Discovery,2025-08-01,2025-08-14,100,completed,Sarah Chen,product,0,1.0,
+task-2,API Design,2025-08-15,2025-08-28,100,completed,Mike Johnson,backend,0,1.0,task-1
+task-3,Database Schema,2025-08-15,2025-08-21,100,completed,Mike Johnson,backend,0,1.0,task-1
+task-4,Auth Service,2025-08-29,2025-09-18,85,in-progress,Elena Popov,backend,24,1.5,task-2
+task-5,User Dashboard,2025-09-01,2025-09-25,60,in-progress,Tom Wilson,frontend,96,2.0,task-2
 ```
 
 ## Business Logic Flow
@@ -423,7 +490,10 @@ function resolveDependencies(tasks) {
     }
 
     if (!task.endDate) {
-      const days = Math.ceil(task.remaining_estimate_hours / 8)
+      // Calculate duration considering resource allocation
+      const resourceAllocation = task.resource_allocation || 1.0
+      const effectiveHours = task.remaining_estimate_hours / resourceAllocation
+      const days = Math.ceil(effectiveHours / 8)
       task.endDate = addBusinessDays(task.actualStartDate, days)
     }
 
