@@ -164,7 +164,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
         splitLine: {
           lineStyle: {
             color: gridColor,
-            type: 'dashed',
+            type: 'dashed' as const,
           },
         },
       },
@@ -177,7 +177,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
           lineStyle: {
             color: '#94a3b8',
             width: 2,
-            type: 'dashed',
+            type: 'dashed' as const,
           },
           itemStyle: {
             color: '#94a3b8',
@@ -214,16 +214,16 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
                 xAxis: allDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd')),
                 label: {
                   show: true,
-                  position: 'insideEndTop',
+                  position: 'insideEndTop' as const,
                   formatter: 'Today',
                   color: '#ef4444',
                   fontSize: 12,
-                  fontWeight: 'bold',
+                  fontWeight: 'bold' as const,
                 },
                 lineStyle: {
                   color: '#ef4444',
                   width: 3,
-                  type: 'solid',
+                  type: 'solid' as const,
                 },
               },
               // Milestone markers
@@ -236,16 +236,16 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
                   xAxis: index >= 0 ? index : dateStr,
                   label: {
                     show: true,
-                    position: 'insideEndTop',
+                    position: 'insideEndTop' as const,
                     formatter: milestone.title,
                     color: '#9333ea',
                     fontSize: 11,
-                    fontWeight: 600,
+                    fontWeight: 600 as const,
                   },
                   lineStyle: {
                     color: '#9333ea',
                     width: 2,
-                    type: 'dashed',
+                    type: 'dashed' as const,
                   },
                 }
               }),
