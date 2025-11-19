@@ -68,10 +68,11 @@ const SeedPage = () => {
             <ul className="text-blue-700 dark:text-blue-400 text-sm space-y-1">
               <li>• 2 Sample Projects (E-Commerce Platform, Mobile App Redesign)</li>
               <li>• 4 Resource Types (React Dev, Node.js Dev, UX Designer, QA Engineer)</li>
-              <li>• 2 Configurations (Sprint 1, Sprint 2)</li>
-              <li>• 8 Tasks with dependencies</li>
-              <li>• Resource assignments for all tasks</li>
-              <li>• One configuration per project (enforced)</li>
+              <li>• 2 Configurations (Agile Sprint, Design Sprint)</li>
+              <li>• 55 Tasks spanning 6 months (30 for E-Commerce, 25 for Mobile App)</li>
+              <li>• Tasks with realistic dates starting from 1 week ago</li>
+              <li>• Resource assignments and task dependencies</li>
+              <li>• Automatic status based on dates (Done/In Progress/Todo)</li>
             </ul>
           </div>
         </div>
