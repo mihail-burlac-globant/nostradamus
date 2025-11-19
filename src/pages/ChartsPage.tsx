@@ -76,9 +76,9 @@ const ChartsPage = () => {
           <div className="space-y-6">
             {/* Merged Project Selection and Chart Controls */}
             <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center gap-6">
-                {/* Project Selector - Left Side (50% width) */}
-                <div className="w-1/2">
+              <div className="flex items-end gap-6">
+                {/* Project Selector - Left Side */}
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                     Select Project
                   </label>
@@ -96,68 +96,70 @@ const ChartsPage = () => {
                 </div>
 
                 {/* Chart Type Selector - Right Side */}
-                {selectedProject && projectTasks.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-navy-700 dark:text-navy-300">Chart Type:</span>
-                    <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-xl p-1.5 gap-1">
-                      <button
-                        onClick={() => setActiveChart('gantt')}
-                        className={`
-                          px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
-                          flex items-center gap-2
-                          ${
-                            activeChart === 'gantt'
-                              ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-soft'
-                              : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                          }
-                        `}
+                <div className="flex flex-col">
+                  <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                    Chart Type
+                  </label>
+                  <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-xl p-1.5 gap-1">
+                    <button
+                      onClick={() => setActiveChart('gantt')}
+                      disabled={!selectedProject || projectTasks.length === 0}
+                      className={`
+                        px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
+                        flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                        ${
+                          activeChart === 'gantt'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-soft'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
                       >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-                          />
-                        </svg>
-                        <span>Gantt</span>
-                      </button>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                        />
+                      </svg>
+                      <span>Gantt</span>
+                    </button>
 
-                      <button
-                        onClick={() => setActiveChart('burndown')}
-                        className={`
-                          px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
-                          flex items-center gap-2
-                          ${
-                            activeChart === 'burndown'
-                              ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-soft'
-                              : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                          }
-                        `}
+                    <button
+                      onClick={() => setActiveChart('burndown')}
+                      disabled={!selectedProject || projectTasks.length === 0}
+                      className={`
+                        px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
+                        flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                        ${
+                          activeChart === 'burndown'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-soft'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
                       >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-                          />
-                        </svg>
-                        <span>Burndown</span>
-                      </button>
-                    </div>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                        />
+                      </svg>
+                      <span>Burndown</span>
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
 
               {selectedProject && projectTasks.length === 0 && (
