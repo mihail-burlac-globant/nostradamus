@@ -28,14 +28,25 @@ const applyTheme = (theme: Theme) => {
     const systemTheme = getSystemTheme()
     if (systemTheme === 'dark') {
       root.classList.add('dark')
+      console.log('✓ Applied dark theme (system preference)')
     } else {
       root.classList.remove('dark')
+      console.log('✓ Applied light theme (system preference)')
     }
   } else if (theme === 'dark') {
     root.classList.add('dark')
+    console.log('✓ Applied dark theme')
   } else {
     root.classList.remove('dark')
+    console.log('✓ Applied light theme')
   }
+
+  // Log current state for debugging
+  console.log('Theme state:', {
+    theme,
+    hasDarkClass: root.classList.contains('dark'),
+    htmlClasses: root.className
+  })
 }
 
 // Initialize theme immediately on store creation

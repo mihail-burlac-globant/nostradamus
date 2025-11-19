@@ -32,11 +32,16 @@ const Header = () => {
 
   const handleThemeToggle = () => {
     // Cycle through: light -> dark -> system -> light
+    console.log('🎨 Theme toggle clicked. Current theme:', theme)
+
     if (theme === 'light') {
+      console.log('→ Switching to dark theme')
       setTheme('dark')
     } else if (theme === 'dark') {
+      console.log('→ Switching to system theme')
       setTheme('system')
     } else {
+      console.log('→ Switching to light theme')
       setTheme('light')
     }
   }
