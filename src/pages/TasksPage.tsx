@@ -730,9 +730,10 @@ const TasksPage = () => {
 
         {/* Create Task Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
-              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Create New Task</h2>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto py-12">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
+                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Create New Task</h2>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1044,15 +1045,17 @@ const TasksPage = () => {
                   Cancel
                 </button>
               </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Edit Task Modal */}
         {showEditModal && currentTask && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
-              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Edit Task</h2>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto py-12">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
+                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Edit Task</h2>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1309,6 +1312,7 @@ const TasksPage = () => {
                 >
                   Cancel
                 </button>
+              </div>
               </div>
             </div>
           </div>
