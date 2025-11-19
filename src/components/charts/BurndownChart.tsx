@@ -411,8 +411,8 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
     }
   }, [projectId, projectTitle, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies])
 
-  // Show message if no tasks have dates
-  const validTasks = tasks.filter(t => t.startDate && t.endDate)
+  // Show message if no tasks have start dates (end dates are auto-calculated)
+  const validTasks = tasks.filter(t => t.startDate)
   if (validTasks.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -422,7 +422,7 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
           </svg>
           <p className="text-navy-600 dark:text-navy-400 text-lg mb-2">No Task Dates Available</p>
           <p className="text-navy-500 dark:text-navy-500 text-sm">
-            Tasks need start and end dates to display in the Burndown chart.
+            Tasks need a start date to display in the Burndown chart. End dates are auto-calculated from resource estimates.
           </p>
         </div>
       </div>

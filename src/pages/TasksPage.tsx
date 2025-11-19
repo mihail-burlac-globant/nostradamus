@@ -74,6 +74,7 @@ const TasksPage = () => {
     icon: 'flag',
     color: '#9333ea',
   })
+  const [activeModalTab, setActiveModalTab] = useState<'basic' | 'dependencies' | 'resources'>('basic')
   const [activeTab, setActiveTab] = useState<'tasks' | 'milestones'>(() => {
     const saved = localStorage.getItem('nostradamus_tasks_active_tab')
     return (saved as 'tasks' | 'milestones') || 'tasks'
@@ -304,6 +305,7 @@ const TasksPage = () => {
         focusFactor: r.focusFactor,
       })),
     })
+    setActiveModalTab('basic')
     setShowEditModal(true)
   }
 
@@ -416,6 +418,7 @@ const TasksPage = () => {
                     ? selectedProjectFilter
                     : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
                   setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [], resources: [] })
+                  setActiveModalTab('basic')
                   setShowCreateModal(true)
                 }}
                 className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -733,304 +736,355 @@ const TasksPage = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto py-12">
             <div className="flex min-h-full items-center justify-center p-4">
               <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
-                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Create New Task</h2>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Project *</label>
-                    <select
-                      value={formData.projectId}
-                      onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Create New Task</h2>
+
+                {/* Tabs */}
+                <div className="border-b border-navy-200 dark:border-navy-700 mb-4">
+                  <div className="flex gap-6">
+                    <button
+                      onClick={() => setActiveModalTab('basic')}
+                      className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeModalTab === 'basic'
+                          ? 'border-salmon-600 text-salmon-600'
+                          : 'border-transparent text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                      }`}
                     >
-                      <option value="">Select a project</option>
-                      {activeProjects.map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Title *</label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
-                      placeholder="Enter task title"
-                    />
+                      Basic Info
+                    </button>
+                    <button
+                      onClick={() => setActiveModalTab('dependencies')}
+                      className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeModalTab === 'dependencies'
+                          ? 'border-salmon-600 text-salmon-600'
+                          : 'border-transparent text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                      }`}
+                    >
+                      Dependencies {formData.dependencies.length > 0 && `(${formData.dependencies.length})`}
+                    </button>
+                    <button
+                      onClick={() => setActiveModalTab('resources')}
+                      className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeModalTab === 'resources'
+                          ? 'border-salmon-600 text-salmon-600'
+                          : 'border-transparent text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                      }`}
+                    >
+                      Resources {formData.resources.length > 0 && `(${formData.resources.length})`}
+                    </button>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
-                    placeholder="Enter task description"
-                    rows={2}
-                  />
-                </div>
-                {/* Status and Color in 2 columns */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                    >
-                      <option value="Todo">Todo</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Done">Done</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                        className="w-12 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
-                      />
+
+              {/* Basic Info Tab */}
+              {activeModalTab === 'basic' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Project *</label>
+                      <select
+                        value={formData.projectId}
+                        onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                        className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                      >
+                        <option value="">Select a project</option>
+                        {activeProjects.map((project) => (
+                          <option key={project.id} value={project.id}>
+                            {project.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Title *</label>
                       <input
                         type="text"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
-                        placeholder="#6366f1"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                        placeholder="Enter task title"
                       />
                     </div>
                   </div>
-                </div>
-                {/* Start and End Dates in 2 columns */}
-                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                      placeholder="Enter task description"
+                      rows={2}
+                    />
+                  </div>
+                  {/* Status and Color in 2 columns */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-navy-700 dark:text-navy-300 mb-2">Status</label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                        className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      >
+                        <option value="Todo">Todo</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Done">Done</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={formData.color}
+                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          className="w-12 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={formData.color}
+                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          className="flex-1 px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                          placeholder="#6366f1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Start and End Dates in 2 columns */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-navy-700 dark:text-navy-300 mb-2">
+                        Start Date
+                        {formData.projectId && projects.find(p => p.id === formData.projectId)?.startDate && (
+                          <span className="text-xs text-navy-500 dark:text-navy-400 ml-1">
+                            (defaults to project start: {new Date(projects.find(p => p.id === formData.projectId)!.startDate!).toLocaleDateString()})
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date</label>
+                      <input
+                        type="date"
+                        value={formData.endDate}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-navy-700 dark:text-navy-300 mb-2">
-                      Start Date
-                      {formData.projectId && projects.find(p => p.id === formData.projectId)?.startDate && (
-                        <span className="text-xs text-navy-500 dark:text-navy-400 ml-1">
-                          (defaults to project start: {new Date(projects.find(p => p.id === formData.projectId)!.startDate!).toLocaleDateString()})
-                        </span>
-                      )}
+                      Progress: {formData.progress}%
                     </label>
                     <input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={formData.progress}
+                      onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
+                      className="w-full h-2 bg-navy-200 dark:bg-navy-700 rounded-lg appearance-none cursor-pointer accent-salmon-600"
                     />
+                    <div className="flex justify-between text-xs text-navy-500 dark:text-navy-400 mt-1">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
                   </div>
+                </div>
+              )}
+
+              {/* Dependencies Tab */}
+              {activeModalTab === 'dependencies' && (
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date</label>
-                    <input
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                    />
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Dependencies</label>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
+                      Select tasks from the same project that must be completed before this task can start
+                    </p>
+                    {formData.projectId ? (
+                      <div className="border border-navy-200 dark:border-navy-700 rounded-lg max-h-96 overflow-y-auto">
+                        {tasksWithResources
+                          .filter((t) => t.projectId === formData.projectId)
+                          .map((task) => {
+                            const isSelected = formData.dependencies.includes(task.id)
+                            return (
+                              <label
+                                key={task.id}
+                                className={`flex items-center gap-3 p-3 hover:bg-navy-50 dark:hover:bg-navy-900 cursor-pointer border-b border-navy-100 dark:border-navy-800 last:border-b-0 ${
+                                  isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData({ ...formData, dependencies: [...formData.dependencies, task.id] })
+                                    } else {
+                                      setFormData({
+                                        ...formData,
+                                        dependencies: formData.dependencies.filter((id) => id !== task.id),
+                                      })
+                                    }
+                                  }}
+                                  className="w-4 h-4 text-purple-600 border-navy-300 rounded focus:ring-purple-500"
+                                />
+                                <div className="flex-1">
+                                  <span className="text-navy-800 dark:text-navy-100">{task.title}</span>
+                                  <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
+                                </div>
+                              </label>
+                            )
+                          })}
+                        {tasksWithResources.filter((t) => t.projectId === formData.projectId).length === 0 && (
+                          <p className="p-3 text-sm text-navy-500 dark:text-navy-400">
+                            No other tasks in this project yet
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-navy-500 dark:text-navy-400">
+                        Please select a project first to choose dependencies
+                      </p>
+                    )}
+                    {formData.dependencies.length > 0 && (
+                      <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                        {formData.dependencies.length} {formData.dependencies.length === 1 ? 'dependency' : 'dependencies'} selected
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">
-                    Progress: {formData.progress}%
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formData.progress}
-                    onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
-                    className="w-full h-2 bg-navy-200 dark:bg-navy-700 rounded-lg appearance-none cursor-pointer accent-salmon-600"
-                  />
-                  <div className="flex justify-between text-xs text-navy-500 dark:text-navy-400 mt-1">
-                    <span>0%</span>
-                    <span>50%</span>
-                    <span>100%</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Dependencies</label>
-                  <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
-                    Select tasks from the same project that must be completed before this task can start
-                  </p>
-                  {formData.projectId ? (
-                    <div className="border border-navy-200 dark:border-navy-700 rounded-lg max-h-48 overflow-y-auto">
-                      {tasksWithResources
-                        .filter((t) => t.projectId === formData.projectId)
-                        .map((task) => {
-                          const isSelected = formData.dependencies.includes(task.id)
+              )}
+
+              {/* Resources Tab */}
+              {activeModalTab === 'resources' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Assign Resources</label>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
+                      Assign resources from the project to this task
+                    </p>
+
+                    {/* Current Resources */}
+                    {formData.resources.length > 0 && (
+                      <div className="mb-3 space-y-2">
+                        {formData.resources.map((res, index) => {
+                          const resource = formData.projectId ? getProjectResources(formData.projectId).find(r => r.id === res.resourceId) : null
                           return (
-                            <label
-                              key={task.id}
-                              className={`flex items-center gap-3 p-3 hover:bg-navy-50 dark:hover:bg-navy-900 cursor-pointer border-b border-navy-100 dark:border-navy-800 last:border-b-0 ${
-                                isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setFormData({ ...formData, dependencies: [...formData.dependencies, task.id] })
-                                  } else {
-                                    setFormData({
-                                      ...formData,
-                                      dependencies: formData.dependencies.filter((id) => id !== task.id),
-                                    })
-                                  }
-                                }}
-                                className="w-4 h-4 text-purple-600 border-navy-300 rounded focus:ring-purple-500"
-                              />
+                            <div key={index} className="flex items-center justify-between bg-navy-50 dark:bg-navy-900 p-2 rounded">
                               <div className="flex-1">
-                                <span className="text-navy-800 dark:text-navy-100">{task.title}</span>
-                                <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
+                                <span className="text-navy-800 dark:text-navy-100 font-medium">
+                                  {resource?.title || 'Unknown Resource'}
+                                </span>
+                                <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
+                                  {res.estimatedDays}d @ {res.focusFactor}%
+                                </span>
                               </div>
-                            </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    resources: formData.resources.filter((_, i) => i !== index)
+                                  })
+                                }}
+                                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           )
                         })}
-                      {tasksWithResources.filter((t) => t.projectId === formData.projectId).length === 0 && (
-                        <p className="p-3 text-sm text-navy-500 dark:text-navy-400">
-                          No other tasks in this project yet
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-navy-500 dark:text-navy-400">
-                      Please select a project first to choose dependencies
-                    </p>
-                  )}
-                  {formData.dependencies.length > 0 && (
-                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
-                      {formData.dependencies.length} {formData.dependencies.length === 1 ? 'dependency' : 'dependencies'} selected
-                    </p>
-                  )}
-                </div>
+                      </div>
+                    )}
 
-                {/* Resource Management */}
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Assign Resources</label>
-                  <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
-                    Assign resources from the project to this task
-                  </p>
-
-                  {/* Current Resources */}
-                  {formData.resources.length > 0 && (
-                    <div className="mb-3 space-y-2">
-                      {formData.resources.map((res, index) => {
-                        const resource = formData.projectId ? getProjectResources(formData.projectId).find(r => r.id === res.resourceId) : null
-                        return (
-                          <div key={index} className="flex items-center justify-between bg-navy-50 dark:bg-navy-900 p-2 rounded">
-                            <div className="flex-1">
-                              <span className="text-navy-800 dark:text-navy-100 font-medium">
-                                {resource?.title || 'Unknown Resource'}
-                              </span>
-                              <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
-                                {res.estimatedDays}d @ {res.focusFactor}%
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFormData({
-                                  ...formData,
-                                  resources: formData.resources.filter((_, i) => i !== index)
-                                })
-                              }}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
-                            >
-                              Remove
-                            </button>
+                    {/* Add Resource Form */}
+                    {formData.projectId ? (
+                      <div className="border border-navy-200 dark:border-navy-700 rounded-lg p-3 space-y-3">
+                        <div>
+                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
+                          <select
+                            value={resourceFormData.resourceId}
+                            onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
+                            className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
+                          >
+                            <option value="">Select a resource</option>
+                            {getProjectResources(formData.projectId)
+                              .filter(r => !formData.resources.some(fr => fr.resourceId === r.id))
+                              .map((resource) => (
+                                <option key={resource.id} value={resource.id}>
+                                  {resource.title}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                              Days: {resourceFormData.estimatedDays}
+                            </label>
+                            <input
+                              type="range"
+                              min="0.5"
+                              max="100"
+                              step="0.5"
+                              value={resourceFormData.estimatedDays}
+                              onChange={(e) => setResourceFormData({ ...resourceFormData, estimatedDays: parseFloat(e.target.value) })}
+                              className="w-full"
+                            />
                           </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Add Resource Form */}
-                  {formData.projectId ? (
-                    <div className="border border-navy-200 dark:border-navy-700 rounded-lg p-3 space-y-3">
-                      <div>
-                        <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
-                        <select
-                          value={resourceFormData.resourceId}
-                          onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
-                          className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
+                          <div>
+                            <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                              Focus: {resourceFormData.focusFactor}%
+                            </label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="5"
+                              value={resourceFormData.focusFactor}
+                              onChange={(e) => setResourceFormData({ ...resourceFormData, focusFactor: parseInt(e.target.value) })}
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (resourceFormData.resourceId) {
+                              setFormData({
+                                ...formData,
+                                resources: [...formData.resources, { ...resourceFormData }]
+                              })
+                              setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+                            }
+                          }}
+                          disabled={!resourceFormData.resourceId}
+                          className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-navy-300 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
                         >
-                          <option value="">Select a resource</option>
-                          {getProjectResources(formData.projectId)
-                            .filter(r => !formData.resources.some(fr => fr.resourceId === r.id))
-                            .map((resource) => (
-                              <option key={resource.id} value={resource.id}>
-                                {resource.title}
-                              </option>
-                            ))}
-                        </select>
+                          Add Resource
+                        </button>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
-                            Days: {resourceFormData.estimatedDays}
-                          </label>
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="100"
-                            step="0.5"
-                            value={resourceFormData.estimatedDays}
-                            onChange={(e) => setResourceFormData({ ...resourceFormData, estimatedDays: parseFloat(e.target.value) })}
-                            className="w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
-                            Focus: {resourceFormData.focusFactor}%
-                          </label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value={resourceFormData.focusFactor}
-                            onChange={(e) => setResourceFormData({ ...resourceFormData, focusFactor: parseInt(e.target.value) })}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (resourceFormData.resourceId) {
-                            setFormData({
-                              ...formData,
-                              resources: [...formData.resources, { ...resourceFormData }]
-                            })
-                            setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
-                          }
-                        }}
-                        disabled={!resourceFormData.resourceId}
-                        className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-navy-300 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
-                      >
-                        Add Resource
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-navy-500 dark:text-navy-400">
-                      Please select a project first to assign resources
-                    </p>
-                  )}
-                  {formData.resources.length === 0 && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      Warning: Task has no resources assigned
-                    </p>
-                  )}
+                    ) : (
+                      <p className="text-sm text-navy-500 dark:text-navy-400">
+                        Please select a project first to assign resources
+                      </p>
+                    )}
+                    {formData.resources.length === 0 && (
+                      <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Warning: Task has no resources assigned
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
               <div className="flex gap-4 mt-6">
                 <button
                   onClick={handleCreateTask}
@@ -1055,7 +1109,46 @@ const TasksPage = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto py-12">
             <div className="flex min-h-full items-center justify-center p-4">
               <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
-                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Edit Task</h2>
+                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Edit Task</h2>
+
+                {/* Tabs */}
+                <div className="border-b border-navy-200 dark:border-navy-700 mb-4">
+                  <div className="flex gap-6">
+                    <button
+                      onClick={() => setActiveModalTab('basic')}
+                      className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeModalTab === 'basic'
+                          ? 'border-salmon-600 text-salmon-600'
+                          : 'border-transparent text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                      }`}
+                    >
+                      Basic Info
+                    </button>
+                    <button
+                      onClick={() => setActiveModalTab('dependencies')}
+                      className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeModalTab === 'dependencies'
+                          ? 'border-salmon-600 text-salmon-600'
+                          : 'border-transparent text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                      }`}
+                    >
+                      Dependencies {formData.dependencies.length > 0 && `(${formData.dependencies.length})`}
+                    </button>
+                    <button
+                      onClick={() => setActiveModalTab('resources')}
+                      className={`pb-3 px-2 text-sm font-medium border-b-2 transition-colors ${
+                        activeModalTab === 'resources'
+                          ? 'border-salmon-600 text-salmon-600'
+                          : 'border-transparent text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                      }`}
+                    >
+                      Resources {formData.resources.length > 0 && `(${formData.resources.length})`}
+                    </button>
+                  </div>
+                </div>
+
+              {/* Basic Info Tab */}
+              {activeModalTab === 'basic' && (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1173,129 +1266,149 @@ const TasksPage = () => {
                     <span>100%</span>
                   </div>
                 </div>
-
-                {/* Resource Management */}
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Assign Resources</label>
-                  <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
-                    Assign resources from the project to this task
-                  </p>
-
-                  {/* Current Resources */}
-                  {formData.resources.length > 0 && (
-                    <div className="mb-3 space-y-2">
-                      {formData.resources.map((res, index) => {
-                        const resource = formData.projectId ? getProjectResources(formData.projectId).find(r => r.id === res.resourceId) : null
-                        return (
-                          <div key={index} className="flex items-center justify-between bg-navy-50 dark:bg-navy-900 p-2 rounded">
-                            <div className="flex-1">
-                              <span className="text-navy-800 dark:text-navy-100 font-medium">
-                                {resource?.title || 'Unknown Resource'}
-                              </span>
-                              <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
-                                {res.estimatedDays}d @ {res.focusFactor}%
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFormData({
-                                  ...formData,
-                                  resources: formData.resources.filter((_, i) => i !== index)
-                                })
-                              }}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Add Resource Form */}
-                  {formData.projectId ? (
-                    <div className="border border-navy-200 dark:border-navy-700 rounded-lg p-3 space-y-3">
-                      <div>
-                        <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
-                        <select
-                          value={resourceFormData.resourceId}
-                          onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
-                          className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
-                        >
-                          <option value="">Select a resource</option>
-                          {getProjectResources(formData.projectId)
-                            .filter(r => !formData.resources.some(fr => fr.resourceId === r.id))
-                            .map((resource) => (
-                              <option key={resource.id} value={resource.id}>
-                                {resource.title}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
-                            Days: {resourceFormData.estimatedDays}
-                          </label>
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="100"
-                            step="0.5"
-                            value={resourceFormData.estimatedDays}
-                            onChange={(e) => setResourceFormData({ ...resourceFormData, estimatedDays: parseFloat(e.target.value) })}
-                            className="w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
-                            Focus: {resourceFormData.focusFactor}%
-                          </label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value={resourceFormData.focusFactor}
-                            onChange={(e) => setResourceFormData({ ...resourceFormData, focusFactor: parseInt(e.target.value) })}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (resourceFormData.resourceId) {
-                            setFormData({
-                              ...formData,
-                              resources: [...formData.resources, { ...resourceFormData }]
-                            })
-                            setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
-                          }
-                        }}
-                        disabled={!resourceFormData.resourceId}
-                        className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-navy-300 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
-                      >
-                        Add Resource
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-navy-500 dark:text-navy-400">
-                      Please select a project first to assign resources
-                    </p>
-                  )}
-                  {formData.resources.length === 0 && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      Warning: Task has no resources assigned
-                    </p>
-                  )}
-                </div>
               </div>
+              )}
+
+              {/* Dependencies Tab */}
+              {activeModalTab === 'dependencies' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Dependencies</label>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
+                      Dependencies are managed separately through the Dependencies modal
+                    </p>
+                    <p className="text-sm text-navy-500 dark:text-navy-400 p-4 bg-navy-50 dark:bg-navy-900 rounded-lg">
+                      Use the "Dependencies" button on the task card to add or remove dependencies for this task.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Resources Tab */}
+              {activeModalTab === 'resources' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Assign Resources</label>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
+                      Assign resources from the project to this task
+                    </p>
+
+                    {/* Current Resources */}
+                    {formData.resources.length > 0 && (
+                      <div className="mb-3 space-y-2">
+                        {formData.resources.map((res, index) => {
+                          const resource = formData.projectId ? getProjectResources(formData.projectId).find(r => r.id === res.resourceId) : null
+                          return (
+                            <div key={index} className="flex items-center justify-between bg-navy-50 dark:bg-navy-900 p-2 rounded">
+                              <div className="flex-1">
+                                <span className="text-navy-800 dark:text-navy-100 font-medium">
+                                  {resource?.title || 'Unknown Resource'}
+                                </span>
+                                <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
+                                  {res.estimatedDays}d @ {res.focusFactor}%
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    resources: formData.resources.filter((_, i) => i !== index)
+                                  })
+                                }}
+                                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Add Resource Form */}
+                    {formData.projectId ? (
+                      <div className="border border-navy-200 dark:border-navy-700 rounded-lg p-3 space-y-3">
+                        <div>
+                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
+                          <select
+                            value={resourceFormData.resourceId}
+                            onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
+                            className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
+                          >
+                            <option value="">Select a resource</option>
+                            {getProjectResources(formData.projectId)
+                              .filter(r => !formData.resources.some(fr => fr.resourceId === r.id))
+                              .map((resource) => (
+                                <option key={resource.id} value={resource.id}>
+                                  {resource.title}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                              Days: {resourceFormData.estimatedDays}
+                            </label>
+                            <input
+                              type="range"
+                              min="0.5"
+                              max="100"
+                              step="0.5"
+                              value={resourceFormData.estimatedDays}
+                              onChange={(e) => setResourceFormData({ ...resourceFormData, estimatedDays: parseFloat(e.target.value) })}
+                              className="w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                              Focus: {resourceFormData.focusFactor}%
+                            </label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="5"
+                              value={resourceFormData.focusFactor}
+                              onChange={(e) => setResourceFormData({ ...resourceFormData, focusFactor: parseInt(e.target.value) })}
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (resourceFormData.resourceId) {
+                              setFormData({
+                                ...formData,
+                                resources: [...formData.resources, { ...resourceFormData }]
+                              })
+                              setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+                            }
+                          }}
+                          disabled={!resourceFormData.resourceId}
+                          className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-navy-300 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                        >
+                          Add Resource
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-navy-500 dark:text-navy-400">
+                        Please select a project first to assign resources
+                      </p>
+                    )}
+                    {formData.resources.length === 0 && (
+                      <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Warning: Task has no resources assigned
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="flex gap-4 mt-6">
                 <button
                   onClick={handleEditTask}
