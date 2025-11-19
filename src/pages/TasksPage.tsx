@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Task, Resource, TaskStatus, Milestone } from '../types/entities.types'
 import { getIconById } from '../utils/resourceIcons'
+import { exportToJSON, exportToCSV, exportToExcel } from '../utils/taskExporter'
 
 interface TaskWithResources extends Task {
   resources: (Resource & { estimatedDays: number; focusFactor: number })[]
@@ -48,6 +49,7 @@ const TasksPage = () => {
   const [showDependenciesModal, setShowDependenciesModal] = useState(false)
   const [showMilestoneModal, setShowMilestoneModal] = useState(false)
   const [showDeleteMilestoneModal, setShowDeleteMilestoneModal] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const [currentTask, setCurrentTask] = useState<Task | null>(null)
   const [currentMilestone, setCurrentMilestone] = useState<Milestone | null>(null)
   const [tasksWithResources, setTasksWithResources] = useState<TaskWithResources[]>([])
@@ -214,6 +216,55 @@ const TasksPage = () => {
     removeTask(currentTask.id)
     setCurrentTask(null)
     setShowDeleteModal(false)
+  }
+
+  // Export handlers
+  const handleExport = (format: 'json' | 'csv' | 'excel') => {
+    if (selectedProjectFilter === 'all') {
+      alert('Please select a specific project to export')
+      return
+    }
+
+    const project = projects.find(p => p.id === selectedProjectFilter)
+    if (!project) {
+      alert('Project not found')
+      return
+    }
+
+    const projectTasks = filteredTasks.filter(t => t.projectId === selectedProjectFilter)
+
+    // Build task resources map
+    const taskResourcesMap = new Map()
+    projectTasks.forEach(task => {
+      taskResourcesMap.set(task.id, getTaskResources(task.id))
+    })
+
+    // Build task dependencies map
+    const taskDependenciesMap = new Map()
+    projectTasks.forEach(task => {
+      taskDependenciesMap.set(task.id, getTaskDependencies(task.id))
+    })
+
+    const exportData = {
+      project,
+      tasks: projectTasks,
+      taskResources: taskResourcesMap,
+      taskDependencies: taskDependenciesMap,
+    }
+
+    switch (format) {
+      case 'json':
+        exportToJSON(exportData)
+        break
+      case 'csv':
+        exportToCSV(exportData)
+        break
+      case 'excel':
+        exportToExcel(exportData)
+        break
+    }
+
+    setShowExportMenu(false)
   }
 
   const handleAddResource = () => {
@@ -412,20 +463,71 @@ const TasksPage = () => {
           <>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100">Tasks</h2>
-              <button
-                onClick={() => {
-                  // Pre-select project based on filter, or use last selected, or first active project
-                  const defaultProjectId = selectedProjectFilter !== 'all'
-                    ? selectedProjectFilter
-                    : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
-                  setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [], resources: [] })
-                  setActiveModalTab('basic')
-                  setShowCreateModal(true)
-                }}
-                className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                + Add Task
-              </button>
+              <div className="flex gap-3">
+                {/* Export Button with Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowExportMenu(!showExportMenu)}
+                    className="px-6 py-3 bg-navy-600 hover:bg-navy-700 dark:bg-navy-700 dark:hover:bg-navy-600 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export
+                  </button>
+
+                  {/* Export Dropdown Menu */}
+                  {showExportMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowExportMenu(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-lg shadow-xl border border-navy-200 dark:border-navy-700 z-20">
+                        <div className="py-2">
+                          <button
+                            onClick={() => handleExport('json')}
+                            className="w-full px-4 py-2 text-left text-navy-700 dark:text-navy-300 hover:bg-navy-50 dark:hover:bg-navy-700 flex items-center gap-3"
+                          >
+                            <span className="text-lg">📄</span>
+                            <span>Export as JSON</span>
+                          </button>
+                          <button
+                            onClick={() => handleExport('csv')}
+                            className="w-full px-4 py-2 text-left text-navy-700 dark:text-navy-300 hover:bg-navy-50 dark:hover:bg-navy-700 flex items-center gap-3"
+                          >
+                            <span className="text-lg">📊</span>
+                            <span>Export as CSV</span>
+                          </button>
+                          <button
+                            onClick={() => handleExport('excel')}
+                            className="w-full px-4 py-2 text-left text-navy-700 dark:text-navy-300 hover:bg-navy-50 dark:hover:bg-navy-700 flex items-center gap-3"
+                          >
+                            <span className="text-lg">📗</span>
+                            <span>Export as Excel</span>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Add Task Button */}
+                <button
+                  onClick={() => {
+                    // Pre-select project based on filter, or use last selected, or first active project
+                    const defaultProjectId = selectedProjectFilter !== 'all'
+                      ? selectedProjectFilter
+                      : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
+                    setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [], resources: [] })
+                    setActiveModalTab('basic')
+                    setShowCreateModal(true)
+                  }}
+                  className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  + Add Task
+                </button>
+              </div>
             </div>
 
             {/* Filters */}
