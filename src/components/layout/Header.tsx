@@ -31,6 +31,46 @@ const Header = () => {
             </div>
           </div>
 
+          {/* Navigation Menu */}
+          <nav className="hidden md:flex items-center gap-2">
+            <a
+              href="#charts"
+              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
+                       hover:text-salmon-600 dark:hover:text-salmon-400
+                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
+                       rounded-lg transition-all duration-200"
+            >
+              Charts
+            </a>
+            <a
+              href="#projects"
+              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
+                       hover:text-salmon-600 dark:hover:text-salmon-400
+                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
+                       rounded-lg transition-all duration-200"
+            >
+              Projects
+            </a>
+            <a
+              href="#resources"
+              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
+                       hover:text-salmon-600 dark:hover:text-salmon-400
+                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
+                       rounded-lg transition-all duration-200"
+            >
+              Resources
+            </a>
+            <a
+              href="#configurations"
+              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
+                       hover:text-salmon-600 dark:hover:text-salmon-400
+                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
+                       rounded-lg transition-all duration-200"
+            >
+              Configurations
+            </a>
+          </nav>
+
           {/* Project Info & Actions */}
           {projectData && (
             <div className="flex items-center gap-3">
