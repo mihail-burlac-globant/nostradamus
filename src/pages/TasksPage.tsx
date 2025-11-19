@@ -58,6 +58,8 @@ const TasksPage = () => {
     status: 'Todo' as TaskStatus,
     progress: 0,
     color: '#6366f1',
+    startDate: '',
+    endDate: '',
     dependencies: [] as string[],
   })
   const [resourceFormData, setResourceFormData] = useState({
@@ -158,7 +160,7 @@ const TasksPage = () => {
 
     // Save the last selected project for future use
     localStorage.setItem('nostradamus_tasks_last_project', formData.projectId)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [] })
     setShowCreateModal(false)
   }
 
@@ -166,7 +168,7 @@ const TasksPage = () => {
     if (!currentTask || !formData.title.trim()) return
 
     editTask(currentTask.id, formData)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [] })
     setCurrentTask(null)
     setShowEditModal(false)
   }
@@ -259,6 +261,8 @@ const TasksPage = () => {
       status: task.status,
       progress: task.progress,
       color: task.color || '#6366f1',
+      startDate: task.startDate || '',
+      endDate: task.endDate || '',
       dependencies: [], // Edit mode doesn't modify dependencies
     })
     setShowEditModal(true)
@@ -372,7 +376,7 @@ const TasksPage = () => {
                   const defaultProjectId = selectedProjectFilter !== 'all'
                     ? selectedProjectFilter
                     : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
-                  setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
+                  setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [] })
                   setShowCreateModal(true)
                 }}
                 className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -751,6 +755,27 @@ const TasksPage = () => {
                     </div>
                   </div>
                 </div>
+                {/* Start and End Dates in 2 columns */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date</label>
+                    <input
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-navy-700 dark:text-navy-300 mb-2">
                     Progress: {formData.progress}%
@@ -917,6 +942,27 @@ const TasksPage = () => {
                         placeholder="#6366f1"
                       />
                     </div>
+                  </div>
+                </div>
+                {/* Start and End Dates in 2 columns */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date</label>
+                    <input
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    />
                   </div>
                 </div>
                 <div>
