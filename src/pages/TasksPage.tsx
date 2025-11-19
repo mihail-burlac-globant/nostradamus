@@ -23,7 +23,10 @@ const TasksPage = () => {
     isInitialized,
   } = useEntitiesStore()
 
-  const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>('all')
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>(() => {
+    const saved = localStorage.getItem('nostradamus_tasks_project_filter')
+    return saved || 'all'
+  })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -60,6 +63,11 @@ const TasksPage = () => {
     setTasksWithResources(tasksWithResourcesData)
   }, [tasks, getTaskResources])
 
+  useEffect(() => {
+    // Save filter selection to localStorage
+    localStorage.setItem('nostradamus_tasks_project_filter', selectedProjectFilter)
+  }, [selectedProjectFilter])
+
   const activeProjects = projects.filter((p) => p.status === 'Active')
 
   const filteredTasks =
@@ -82,6 +90,8 @@ const TasksPage = () => {
     if (!formData.title.trim() || !formData.projectId) return
 
     addTask(formData)
+    // Save the last selected project for future use
+    localStorage.setItem('nostradamus_tasks_last_project', formData.projectId)
     setFormData({ title: '', description: '', projectId: '', status: 'Todo' })
     setShowCreateModal(false)
   }
@@ -177,7 +187,11 @@ const TasksPage = () => {
           <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">Tasks</h1>
           <button
             onClick={() => {
-              setFormData({ title: '', description: '', projectId: '', status: 'Todo' })
+              // Pre-select project based on filter, or use last selected, or first active project
+              const defaultProjectId = selectedProjectFilter !== 'all'
+                ? selectedProjectFilter
+                : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
+              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo' })
               setShowCreateModal(true)
             }}
             className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
