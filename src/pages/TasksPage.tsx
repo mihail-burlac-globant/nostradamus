@@ -71,6 +71,10 @@ const TasksPage = () => {
     icon: 'flag',
     color: '#9333ea',
   })
+  const [activeTab, setActiveTab] = useState<'tasks' | 'milestones'>(() => {
+    const saved = localStorage.getItem('nostradamus_tasks_active_tab')
+    return (saved as 'tasks' | 'milestones') || 'tasks'
+  })
 
   useEffect(() => {
     if (!isInitialized) {
@@ -99,6 +103,11 @@ const TasksPage = () => {
     // Save view mode to localStorage
     localStorage.setItem('nostradamus_tasks_view_mode', viewMode)
   }, [viewMode])
+
+  useEffect(() => {
+    // Save active tab to localStorage
+    localStorage.setItem('nostradamus_tasks_active_tab', activeTab)
+  }, [activeTab])
 
   useEffect(() => {
     // Load milestones when project filter changes
@@ -316,24 +325,63 @@ const TasksPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-gray-950 dark:to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">Tasks</h1>
-          <button
-            onClick={() => {
-              // Pre-select project based on filter, or use last selected, or first active project
-              const defaultProjectId = selectedProjectFilter !== 'all'
-                ? selectedProjectFilter
-                : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
-              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
-              setShowCreateModal(true)
-            }}
-            className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            + Add Task
-          </button>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">Tasks & Milestones</h1>
         </div>
 
-        {/* Filters */}
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`
+                px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
+                ${
+                  activeTab === 'tasks'
+                    ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                    : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                }
+              `}
+            >
+              Tasks
+            </button>
+            <button
+              onClick={() => setActiveTab('milestones')}
+              className={`
+                px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
+                ${
+                  activeTab === 'milestones'
+                    ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                    : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                }
+              `}
+            >
+              Milestones
+            </button>
+          </div>
+        </div>
+
+        {/* Tasks Tab Content */}
+        {activeTab === 'tasks' && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100">Tasks</h2>
+              <button
+                onClick={() => {
+                  // Pre-select project based on filter, or use last selected, or first active project
+                  const defaultProjectId = selectedProjectFilter !== 'all'
+                    ? selectedProjectFilter
+                    : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
+                  setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
+                  setShowCreateModal(true)
+                }}
+                className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                + Add Task
+              </button>
+            </div>
+
+            {/* Filters */}
         <div className="mb-6 flex gap-6 items-center flex-wrap">
           <div className="flex gap-4 items-center">
             <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
@@ -384,84 +432,7 @@ const TasksPage = () => {
           </div>
         </div>
 
-        {/* Milestones Section */}
-        {selectedProjectFilter !== 'all' && (
-          <div className="mb-6 bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-navy-800 dark:text-navy-100">Project Milestones</h3>
-              <button
-                onClick={() => {
-                  setCurrentMilestone(null)
-                  setMilestoneFormData({ title: '', date: '', icon: 'flag', color: '#9333ea' })
-                  setShowMilestoneModal(true)
-                }}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md text-sm"
-              >
-                + Add Milestone
-              </button>
-            </div>
-            {filteredMilestones.length === 0 ? (
-              <p className="text-navy-500 dark:text-navy-400 text-sm">
-                No milestones yet. Add milestones to track key dates in your project timeline.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {filteredMilestones
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                  .map((milestone) => (
-                    <div
-                      key={milestone.id}
-                      className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-3 rounded-lg border border-navy-200 dark:border-navy-700"
-                    >
-                      <div className="flex items-center gap-3">
-                        <svg
-                          className="w-5 h-5 text-purple-600 dark:text-purple-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
-                          />
-                        </svg>
-                        <div>
-                          <span className="font-semibold text-navy-800 dark:text-navy-100">
-                            {milestone.title}
-                          </span>
-                          <span className="ml-3 text-sm text-navy-600 dark:text-navy-400">
-                            {new Date(milestone.date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEditMilestoneModal(milestone)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => openDeleteMilestoneModal(milestone)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tasks grouped by project */}
+            {/* Tasks grouped by project */}
         <div className="space-y-8">
           {Object.entries(groupedTasks).length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
@@ -605,6 +576,106 @@ const TasksPage = () => {
             ))
           )}
         </div>
+          </>
+        )}
+
+        {/* Milestones Tab Content */}
+        {activeTab === 'milestones' && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100">Milestones</h2>
+              {selectedProjectFilter !== 'all' && (
+                <button
+                  onClick={() => {
+                    setCurrentMilestone(null)
+                    setMilestoneFormData({ title: '', date: '', icon: 'flag', color: '#9333ea' })
+                    setShowMilestoneModal(true)
+                  }}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  + Add Milestone
+                </button>
+              )}
+            </div>
+
+            {/* Project Filter for Milestones */}
+            <div className="mb-6">
+              <label className="text-navy-700 dark:text-navy-300 font-medium mr-4">Filter by Project:</label>
+              <select
+                value={selectedProjectFilter}
+                onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+              >
+                <option value="all">All Projects</option>
+                {activeProjects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedProjectFilter === 'all' ? (
+              <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
+                <p className="text-navy-500 dark:text-navy-400 text-center">
+                  Please select a specific project to view and manage milestones.
+                </p>
+              </div>
+            ) : filteredMilestones.length === 0 ? (
+              <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
+                <p className="text-navy-500 dark:text-navy-400 text-center">
+                  No milestones yet. Add milestones to track key dates in your project timeline.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
+                <div className="space-y-3">
+                  {filteredMilestones
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .map((milestone) => (
+                      <div
+                        key={milestone.id}
+                        className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-4 rounded-lg border border-navy-200 dark:border-navy-700 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: milestone.color }}
+                          />
+                          <div>
+                            <span className="font-semibold text-navy-800 dark:text-navy-100 text-lg">
+                              {milestone.title}
+                            </span>
+                            <p className="text-navy-500 dark:text-navy-400 text-sm mt-1">
+                              {new Date(milestone.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditMilestoneModal(milestone)}
+                            className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 rounded font-medium text-sm transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => openDeleteMilestoneModal(milestone)}
+                            className="px-3 py-1.5 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-300 rounded font-medium text-sm transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Create Task Modal */}
         {showCreateModal && (
