@@ -459,11 +459,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                     xAxis: index,
                     label: {
                       show: true,
-                      position: 'insideEndTop' as const,
+                      position: 'start' as const,
                       formatter: `${iconSymbol} ${milestone.title}`,
                       color: milestone.color,
                       fontSize: 11,
                       fontWeight: 600 as const,
+                      distance: -30,
+                      rotate: 0,
                     },
                     lineStyle: {
                       color: milestone.color,
@@ -473,6 +475,26 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                   }
                 })
                 .filter((marker): marker is NonNullable<typeof marker> => marker !== null),
+              // Project completion milestone (when all work is done)
+              ...(completionDayIndex > -1 ? [{
+                name: 'Project Complete',
+                xAxis: completionDayIndex,
+                label: {
+                  show: true,
+                  position: 'start' as const,
+                  formatter: '🎉 Project Complete',
+                  color: '#10b981',
+                  fontSize: 11,
+                  fontWeight: 600 as const,
+                  distance: -30,
+                  rotate: 0,
+                },
+                lineStyle: {
+                  color: '#10b981',
+                  width: 3,
+                  type: 'solid' as const,
+                },
+              }] : []),
             ],
           },
         },
