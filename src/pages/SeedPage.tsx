@@ -44,7 +44,7 @@ const SeedPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-navy-900 dark:to-salmon-900 p-6 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-gray-950 dark:to-gray-900 p-6 flex items-center justify-center">
       <div className="max-w-2xl w-full bg-white dark:bg-navy-800 rounded-lg shadow-lg p-8">
         <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100 mb-4">
           Database Seeding

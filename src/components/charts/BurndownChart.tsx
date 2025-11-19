@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, eachDayOfInterval, isAfter } from 'date-fns'
+import { format, eachDayOfInterval, isAfter, subWeeks, startOfDay } from 'date-fns'
 
 interface BurndownChartProps {
   projectId: string
@@ -37,11 +37,16 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
       new Date(t.startDate!),
       new Date(t.endDate!)
     ])
-    const projectStart = new Date(Math.min(...allDates.map(d => d.getTime())))
     const projectEnd = new Date(Math.max(...allDates.map(d => d.getTime())))
 
-    // Generate all days in project
-    const allDays = eachDayOfInterval({ start: projectStart, end: projectEnd })
+    // Show last 2 weeks + future (from today to projectEnd)
+    const today = startOfDay(new Date())
+    const twoWeeksAgo = subWeeks(today, 2)
+    const chartStart = twoWeeksAgo
+    const chartEnd = projectEnd
+
+    // Generate days for the burndown chart (last 2 weeks + future)
+    const allDays = eachDayOfInterval({ start: chartStart, end: chartEnd })
 
     // Calculate total work (number of tasks)
     const totalTasks = validTasks.length
@@ -197,33 +202,53 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
           },
           symbol: 'circle',
           symbolSize: 6,
-          markLine: milestones.length > 0 ? {
+          markLine: {
             silent: false,
             symbol: ['none', 'none'],
-            label: {
-              show: true,
-              position: 'insideEndTop',
-              formatter: '{b}',
-              color: '#9333ea',
-              fontSize: 11,
-              fontWeight: 600,
-            },
-            lineStyle: {
-              color: '#9333ea',
-              width: 2,
-              type: 'dashed',
-            },
-            data: milestones.map(milestone => {
-              // Find the index of the date in our data
-              const milestoneDate = new Date(milestone.date)
-              const dateStr = format(milestoneDate, 'MMM dd')
-              const index = allDays.findIndex(day => format(day, 'MMM dd') === dateStr)
-              return {
-                name: milestone.title,
-                xAxis: index >= 0 ? index : dateStr,
-              }
-            }),
-          } : undefined,
+            data: [
+              // Today marker
+              {
+                name: 'Today',
+                xAxis: allDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd')),
+                label: {
+                  show: true,
+                  position: 'insideEndTop',
+                  formatter: 'Today',
+                  color: '#ef4444',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                },
+                lineStyle: {
+                  color: '#ef4444',
+                  width: 3,
+                  type: 'solid',
+                },
+              },
+              // Milestone markers
+              ...milestones.map(milestone => {
+                const milestoneDate = new Date(milestone.date)
+                const dateStr = format(milestoneDate, 'MMM dd')
+                const index = allDays.findIndex(day => format(day, 'MMM dd') === dateStr)
+                return {
+                  name: milestone.title,
+                  xAxis: index >= 0 ? index : dateStr,
+                  label: {
+                    show: true,
+                    position: 'insideEndTop',
+                    formatter: milestone.title,
+                    color: '#9333ea',
+                    fontSize: 11,
+                    fontWeight: 600,
+                  },
+                  lineStyle: {
+                    color: '#9333ea',
+                    width: 2,
+                    type: 'dashed',
+                  },
+                }
+              }),
+            ],
+          },
         },
       ],
     }
