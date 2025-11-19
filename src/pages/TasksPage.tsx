@@ -730,43 +730,45 @@ const TasksPage = () => {
 
         {/* Create Task Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Create New Task</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Project *</label>
-                  <select
-                    value={formData.projectId}
-                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  >
-                    <option value="">Select a project</option>
-                    {activeProjects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.title}
-                      </option>
-                    ))}
-                  </select>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Create New Task</h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Project *</label>
+                    <select
+                      value={formData.projectId}
+                      onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                    >
+                      <option value="">Select a project</option>
+                      {activeProjects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Title *</label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                      placeholder="Enter task title"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Title *</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                    placeholder="Enter task title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Description</label>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Description</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
                     placeholder="Enter task description"
-                    rows={3}
+                    rows={2}
                   />
                 </div>
                 {/* Status and Color in 2 columns */}
@@ -1048,43 +1050,45 @@ const TasksPage = () => {
 
         {/* Edit Task Modal */}
         {showEditModal && currentTask && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-2xl w-full">
-              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Edit Task</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Project *</label>
-                  <select
-                    value={formData.projectId}
-                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  >
-                    <option value="">Select a project</option>
-                    {activeProjects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.title}
-                      </option>
-                    ))}
-                  </select>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">Edit Task</h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Project *</label>
+                    <select
+                      value={formData.projectId}
+                      onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                    >
+                      <option value="">Select a project</option>
+                      {activeProjects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Title *</label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                      placeholder="Enter task title"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Title *</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                    placeholder="Enter task title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Description</label>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-1.5 text-sm font-medium">Description</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
                     placeholder="Enter task description"
-                    rows={3}
+                    rows={2}
                   />
                 </div>
                 {/* Status and Color in 2 columns */}
