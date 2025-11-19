@@ -442,13 +442,25 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                     return null
                   }
 
+                  // Map icon names to Unicode symbols
+                  const iconSymbols: Record<string, string> = {
+                    flag: '🚩',
+                    star: '⭐',
+                    trophy: '🏆',
+                    target: '🎯',
+                    check: '✅',
+                    calendar: '📅',
+                    rocket: '🚀',
+                  }
+                  const iconSymbol = iconSymbols[milestone.icon] || '📍'
+
                   return {
                     name: milestone.title,
                     xAxis: index,
                     label: {
                       show: true,
                       position: 'insideEndTop' as const,
-                      formatter: milestone.title,
+                      formatter: `${iconSymbol} ${milestone.title}`,
                       color: milestone.color,
                       fontSize: 11,
                       fontWeight: 600 as const,

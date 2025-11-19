@@ -251,6 +251,7 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
             const completedWidth = totalWidth * progress
 
             // Create group of shapes to show progress
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const children: any[] = [
               // Background bar (remaining work) with reduced opacity
               {
@@ -342,23 +343,37 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
                   const milestoneDate = new Date(milestone.date)
                   return milestoneDate >= minDate && milestoneDate <= maxDate
                 })
-                .map(milestone => ({
-                  name: milestone.title,
-                  xAxis: new Date(milestone.date).getTime(),
-                  label: {
-                    show: true,
-                    position: 'insideEndTop' as const,
-                    formatter: milestone.title,
-                    color: milestone.color,
-                    fontSize: 11,
-                    fontWeight: 600 as const,
-                  },
-                  lineStyle: {
-                    color: milestone.color,
-                    width: 2,
-                    type: 'dashed' as const,
-                  },
-                })),
+                .map(milestone => {
+                  // Map icon names to Unicode symbols
+                  const iconSymbols: Record<string, string> = {
+                    flag: '🚩',
+                    star: '⭐',
+                    trophy: '🏆',
+                    target: '🎯',
+                    check: '✅',
+                    calendar: '📅',
+                    rocket: '🚀',
+                  }
+                  const iconSymbol = iconSymbols[milestone.icon] || '📍'
+
+                  return {
+                    name: milestone.title,
+                    xAxis: new Date(milestone.date).getTime(),
+                    label: {
+                      show: true,
+                      position: 'insideEndTop' as const,
+                      formatter: `${iconSymbol} ${milestone.title}`,
+                      color: milestone.color,
+                      fontSize: 11,
+                      fontWeight: 600 as const,
+                    },
+                    lineStyle: {
+                      color: milestone.color,
+                      width: 2,
+                      type: 'dashed' as const,
+                    },
+                  }
+                }),
             ],
           },
         },
