@@ -76,33 +76,23 @@ const ChartsPage = () => {
           <div className="space-y-6">
             {/* Merged Project Selection and Chart Controls */}
             <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                {/* Project Selector - Left Side */}
-                <div className="flex-1 w-full lg:w-auto">
+              <div className="flex items-center gap-6">
+                {/* Project Selector - Left Side (50% width) */}
+                <div className="w-1/2">
                   <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                     Select Project
                   </label>
-                  <div className="flex items-center gap-4">
-                    <select
-                      value={selectedProjectId}
-                      onChange={(e) => setSelectedProjectId(e.target.value)}
-                      className="flex-1 px-4 py-2.5 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                    >
-                      {activeProjects.map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.title} ({tasks.filter(t => t.projectId === project.id).length} tasks)
-                        </option>
-                      ))}
-                    </select>
-                    {selectedProject && (
-                      <div className="text-right">
-                        <p className="text-sm text-navy-600 dark:text-navy-400">Tasks</p>
-                        <p className="text-2xl font-bold text-salmon-600 dark:text-salmon-400">
-                          {projectTasks.length}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                  >
+                    {activeProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Chart Type Selector - Right Side */}
