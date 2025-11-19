@@ -111,10 +111,10 @@ const TasksPage = () => {
 
   useEffect(() => {
     // Load milestones when project filter changes
-    if (selectedProjectFilter !== 'all') {
+    if (isInitialized && selectedProjectFilter !== 'all') {
       loadMilestones(selectedProjectFilter)
     }
-  }, [selectedProjectFilter, loadMilestones])
+  }, [isInitialized, selectedProjectFilter, loadMilestones])
 
   const activeProjects = projects.filter((p) => p.status === 'Active')
 
