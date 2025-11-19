@@ -103,34 +103,42 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Navigation Menu */}
-          <nav className="hidden md:flex items-center gap-2">
-            <NavLink to="/charts" className={navLinkClass}>
-              Charts
-            </NavLink>
-            <NavLink to="/projects" className={navLinkClass}>
-              Projects
-            </NavLink>
-            <NavLink to="/tasks" className={navLinkClass}>
-              Tasks
-            </NavLink>
-            <NavLink to="/resources" className={navLinkClass}>
-              Resources
-            </NavLink>
-            <NavLink to="/configurations" className={navLinkClass}>
-              Configurations
-            </NavLink>
+          {/* Navigation & Theme Toggle */}
+          <div className="flex items-center gap-3">
+            {/* Navigation Menu */}
+            <nav className="hidden md:flex items-center gap-2">
+              <NavLink to="/charts" className={navLinkClass}>
+                Charts
+              </NavLink>
+              <NavLink to="/projects" className={navLinkClass}>
+                Projects
+              </NavLink>
+              <NavLink to="/tasks" className={navLinkClass}>
+                Tasks
+              </NavLink>
+              <NavLink to="/resources" className={navLinkClass}>
+                Resources
+              </NavLink>
+              <NavLink to="/configurations" className={navLinkClass}>
+                Configurations
+              </NavLink>
+            </nav>
 
-            {/* Theme Selector */}
+            {/* Theme Selector - Always Visible */}
             <button
               onClick={handleThemeToggle}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-navy-700 dark:text-navy-300 hover:text-salmon-600 dark:hover:text-salmon-400 hover:bg-salmon-50 dark:hover:bg-salmon-900/20"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
+                         text-navy-700 dark:text-navy-300
+                         bg-navy-50 dark:bg-navy-800
+                         hover:text-salmon-600 dark:hover:text-salmon-400
+                         hover:bg-salmon-50 dark:hover:bg-salmon-900/30
+                         border border-navy-200 dark:border-navy-700"
               title={`Current theme: ${getThemeLabel()}. Click to cycle through themes.`}
             >
               {getThemeIcon()}
-              <span className="hidden lg:inline">{getThemeLabel()}</span>
+              <span className="hidden sm:inline">{getThemeLabel()}</span>
             </button>
-          </nav>
+          </div>
 
           {/* Project Info & Actions */}
           {projectData && (
