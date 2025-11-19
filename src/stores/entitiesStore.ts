@@ -54,9 +54,9 @@ interface EntitiesState {
   removeConfiguration: (id: string) => void
 
   // Relationship actions
-  assignResourceToProject: (projectId: string, resourceId: string, role?: string) => void
+  assignResourceToProject: (projectId: string, resourceId: string, numberOfResources?: number, focusFactor?: number) => void
   removeResourceFromProject: (projectId: string, resourceId: string) => void
-  getProjectResources: (projectId: string) => (Resource & { role?: string })[]
+  getProjectResources: (projectId: string) => (Resource & { numberOfResources: number; focusFactor: number })[]
   assignConfigurationToProject: (projectId: string, configurationId: string) => void
   removeConfigurationFromProject: (projectId: string, configurationId: string) => void
   getProjectConfigurations: (projectId: string) => Configuration[]
@@ -162,8 +162,8 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   },
 
   // Relationship actions
-  assignResourceToProject: (projectId, resourceId, role) => {
-    assignResourceToProject(projectId, resourceId, role)
+  assignResourceToProject: (projectId, resourceId, numberOfResources, focusFactor) => {
+    assignResourceToProject(projectId, resourceId, numberOfResources, focusFactor)
   },
 
   removeResourceFromProject: (projectId, resourceId) => {

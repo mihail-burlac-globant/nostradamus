@@ -61,7 +61,8 @@ const createTables = (database: Database) => {
     CREATE TABLE IF NOT EXISTS project_resources (
       projectId TEXT NOT NULL,
       resourceId TEXT NOT NULL,
-      role TEXT,
+      numberOfResources INTEGER NOT NULL DEFAULT 1 CHECK(numberOfResources > 0),
+      focusFactor REAL NOT NULL DEFAULT 80 CHECK(focusFactor >= 0 AND focusFactor <= 100),
       assignedAt TEXT NOT NULL,
       PRIMARY KEY (projectId, resourceId),
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
@@ -391,13 +392,18 @@ export const deleteConfiguration = (id: string): boolean => {
 }
 
 // Project-Resource relationship operations
-export const assignResourceToProject = (projectId: string, resourceId: string, role?: string): void => {
+export const assignResourceToProject = (
+  projectId: string,
+  resourceId: string,
+  numberOfResources: number = 1,
+  focusFactor: number = 80
+): void => {
   const database = getDatabase()
   const now = new Date().toISOString()
 
   database.run(
-    'INSERT OR REPLACE INTO project_resources (projectId, resourceId, role, assignedAt) VALUES (?, ?, ?, ?)',
-    [projectId, resourceId, role || null, now]
+    'INSERT OR REPLACE INTO project_resources (projectId, resourceId, numberOfResources, focusFactor, assignedAt) VALUES (?, ?, ?, ?, ?)',
+    [projectId, resourceId, numberOfResources, focusFactor, now]
   )
 
   saveDatabase(database)
@@ -409,10 +415,10 @@ export const removeResourceFromProject = (projectId: string, resourceId: string)
   saveDatabase(database)
 }
 
-export const getProjectResources = (projectId: string): (Resource & { role?: string })[] => {
+export const getProjectResources = (projectId: string): (Resource & { numberOfResources: number; focusFactor: number })[] => {
   const database = getDatabase()
   const stmt = database.prepare(`
-    SELECT r.*, pr.role
+    SELECT r.*, pr.numberOfResources, pr.focusFactor
     FROM resources r
     INNER JOIN project_resources pr ON r.id = pr.resourceId
     WHERE pr.projectId = ?
@@ -420,11 +426,11 @@ export const getProjectResources = (projectId: string): (Resource & { role?: str
   `)
   stmt.bind([projectId])
 
-  const results: (Resource & { role?: string })[] = []
+  const results: (Resource & { numberOfResources: number; focusFactor: number })[] = []
 
   while (stmt.step()) {
     const row = stmt.getAsObject()
-    results.push(row as unknown as Resource & { role?: string })
+    results.push(row as unknown as Resource & { numberOfResources: number; focusFactor: number })
   }
 
   stmt.free()
