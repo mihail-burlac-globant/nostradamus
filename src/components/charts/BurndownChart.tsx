@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, eachDayOfInterval, isAfter, subDays, startOfDay } from 'date-fns'
+import { format, eachDayOfInterval, isAfter, startOfDay } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 
 interface BurndownChartProps {
@@ -93,21 +93,24 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       chartInstance.current = echarts.init(chartRef.current)
     }
 
-    // Calculate project bounds
-    const allDates = validTasks.flatMap(t => [
-      new Date(t.startDate!),
-      new Date(t.endDate!)
-    ])
-    const projectEnd = new Date(Math.max(...allDates.map(d => d.getTime())))
+    // Calculate project bounds - start from earliest task start date
+    const allStartDates = validTasks.map(t => new Date(t.startDate!))
+    const projectStart = new Date(Math.min(...allStartDates.map(d => d.getTime())))
 
-    // Show last 5 days + future (from today - 5 days to projectEnd)
     const today = startOfDay(new Date())
-    const fiveDaysAgo = subDays(today, 5)
-    const chartStart = fiveDaysAgo
-    const chartEnd = projectEnd
+    const chartStart = projectStart
 
-    // Generate days for the burndown chart (last 5 days + future)
-    const allDays = eachDayOfInterval({ start: chartStart, end: chartEnd })
+    // We'll determine chartEnd dynamically after simulation to ensure we show until work is complete
+    // For now, use a far future date
+    const allEndDates = validTasks.map(t => new Date(t.endDate!))
+    const latestTaskEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())))
+
+    // Add buffer to ensure we capture all work completion
+    const initialChartEnd = new Date(latestTaskEnd)
+    initialChartEnd.setDate(initialChartEnd.getDate() + 30) // Add 30 days buffer
+
+    // Generate days for the burndown chart (from project start to far future)
+    const allDays = eachDayOfInterval({ start: chartStart, end: initialChartEnd })
 
     // Get project resources to calculate daily capacity
     const projectResources = getProjectResources(projectId)
@@ -175,8 +178,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     })
 
     const simulationCompletedTasks = new Set(completedTasks)
+    let completionDayIndex = -1
 
-    allDays.forEach((date) => {
+    allDays.forEach((date, dayIndex) => {
       const isFuture = isAfter(date, today)
 
       if (!isFuture) {
@@ -235,8 +239,31 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           const idx = validTasks.indexOf(task)
           taskRemainingByDay[idx].data.push(taskRemainingSimulation.get(task.id) || 0)
         })
+
+        // Check if all work is complete
+        const totalRemaining = validTasks.reduce((sum, task) => {
+          return sum + (taskRemainingSimulation.get(task.id) || 0)
+        }, 0)
+
+        if (totalRemaining <= 0.01 && completionDayIndex === -1) {
+          completionDayIndex = dayIndex
+        }
       }
     })
+
+    // Truncate data to completion day if found, otherwise keep all data
+    let finalDays = allDays
+    if (completionDayIndex > -1) {
+      // Add a few days buffer after completion for visibility
+      const endIndex = Math.min(completionDayIndex + 5, allDays.length)
+      finalDays = allDays.slice(0, endIndex)
+      taskRemainingByDay.forEach(taskData => {
+        taskData.data = taskData.data.slice(0, endIndex)
+      })
+    }
+
+    // Track which days are in the past for opacity
+    const todayIndex = finalDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd'))
 
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
@@ -317,11 +344,11 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       },
       xAxis: {
         type: 'category',
-        data: allDays.map(d => format(d, 'MMM dd')),
+        data: finalDays.map(d => format(d, 'MMM dd')),
         axisLabel: {
           color: textColor,
           rotate: 45,
-          interval: Math.floor(allDays.length / 10), // Show ~10 labels
+          interval: Math.floor(finalDays.length / 10), // Show ~10 labels
         },
         axisLine: {
           lineStyle: {
@@ -356,7 +383,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           name: taskData.task.title,
           type: 'bar' as const,
           stack: 'total',
-          data: taskData.data,
+          data: taskData.data.map((value, index) => ({
+            value,
+            itemStyle: {
+              // Apply opacity to past days
+              opacity: index <= todayIndex ? 0.4 : 1,
+            },
+          })),
           itemStyle: {
             color: taskData.color,
           },
@@ -376,7 +409,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
               // Today marker
               {
                 name: 'Today',
-                xAxis: allDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd')),
+                xAxis: todayIndex,
                 label: {
                   show: true,
                   position: 'insideEndTop' as const,
@@ -395,12 +428,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
               ...milestones
                 .filter(milestone => {
                   const milestoneDate = new Date(milestone.date)
-                  return milestoneDate >= chartStart && milestoneDate <= chartEnd
+                  const finalChartEnd = finalDays[finalDays.length - 1]
+                  return milestoneDate >= chartStart && milestoneDate <= finalChartEnd
                 })
                 .map(milestone => {
                   const milestoneDate = new Date(milestone.date)
                   const dateStr = format(milestoneDate, 'MMM dd')
-                  const index = allDays.findIndex(day => format(day, 'MMM dd') === dateStr)
+                  const index = finalDays.findIndex(day => format(day, 'MMM dd') === dateStr)
 
                   // Skip if we can't find the index
                   if (index < 0) {
