@@ -718,17 +718,38 @@ const TasksPage = () => {
                     rows={3}
                   />
                 </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  >
-                    <option value="Todo">Todo</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Done">Done</option>
-                  </select>
+                {/* Status and Color in 2 columns */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Status</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    >
+                      <option value="Todo">Todo</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Done">Done</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        className="w-12 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        className="flex-1 px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                        placeholder="#6366f1"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-navy-700 dark:text-navy-300 mb-2">
@@ -747,27 +768,6 @@ const TasksPage = () => {
                     <span>50%</span>
                     <span>100%</span>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="color"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="w-16 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                      placeholder="#6366f1"
-                    />
-                  </div>
-                  <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-                    This color will be used in charts and task visualization
-                  </p>
                 </div>
                 <div>
                   <label className="block text-navy-700 dark:text-navy-300 mb-2">Dependencies</label>
@@ -886,17 +886,38 @@ const TasksPage = () => {
                     rows={3}
                   />
                 </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
-                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  >
-                    <option value="Todo">Todo</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Done">Done</option>
-                  </select>
+                {/* Status and Color in 2 columns */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Status</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    >
+                      <option value="Todo">Todo</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Done">Done</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        className="w-12 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        className="flex-1 px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-sm"
+                        placeholder="#6366f1"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-navy-700 dark:text-navy-300 mb-2">
@@ -915,27 +936,6 @@ const TasksPage = () => {
                     <span>50%</span>
                     <span>100%</span>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="color"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="w-16 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                      placeholder="#6366f1"
-                    />
-                  </div>
-                  <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-                    This color will be used in charts and task visualization
-                  </p>
                 </div>
               </div>
               <div className="flex gap-4 mt-6">
