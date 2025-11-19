@@ -68,7 +68,7 @@ interface EntitiesState {
 
   // Task actions
   loadTasks: (projectId?: string) => void
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Task
   editTask: (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => void
   removeTask: (id: string) => void
 
@@ -199,8 +199,9 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   },
 
   addTask: (task) => {
-    createTask(task)
+    const newTask = createTask(task)
     get().loadTasks()
+    return newTask
   },
 
   editTask: (id, updates) => {

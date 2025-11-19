@@ -44,6 +44,7 @@ const TasksPage = () => {
     projectId: '',
     status: 'Todo' as TaskStatus,
     color: '#6366f1',
+    dependencies: [] as string[],
   })
   const [resourceFormData, setResourceFormData] = useState({
     resourceId: '',
@@ -95,10 +96,23 @@ const TasksPage = () => {
   const handleCreateTask = () => {
     if (!formData.title.trim() || !formData.projectId) return
 
-    addTask(formData)
+    const newTask = addTask(formData)
+
+    // Add dependencies if any were selected
+    if (formData.dependencies.length > 0 && newTask) {
+      formData.dependencies.forEach((depId) => {
+        try {
+          addTaskDependency(newTask.id, depId)
+        } catch (error) {
+          console.error('Failed to add dependency:', error)
+        }
+      })
+      loadTasks() // Reload to show dependencies
+    }
+
     // Save the last selected project for future use
     localStorage.setItem('nostradamus_tasks_last_project', formData.projectId)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1' })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1', dependencies: [] })
     setShowCreateModal(false)
   }
 
@@ -106,7 +120,7 @@ const TasksPage = () => {
     if (!currentTask || !formData.title.trim()) return
 
     editTask(currentTask.id, formData)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1' })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1', dependencies: [] })
     setCurrentTask(null)
     setShowEditModal(false)
   }
@@ -146,6 +160,7 @@ const TasksPage = () => {
       projectId: task.projectId,
       status: task.status,
       color: task.color || '#6366f1',
+      dependencies: [], // Edit mode doesn't modify dependencies
     })
     setShowEditModal(true)
   }
@@ -219,7 +234,7 @@ const TasksPage = () => {
               const defaultProjectId = selectedProjectFilter !== 'all'
                 ? selectedProjectFilter
                 : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
-              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', color: '#6366f1' })
+              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', color: '#6366f1', dependencies: [] })
               setShowCreateModal(true)
             }}
             className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -389,7 +404,7 @@ const TasksPage = () => {
         {/* Create Task Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-md w-full">
+            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Create New Task</h2>
               <div className="space-y-4">
                 <div>
@@ -460,6 +475,63 @@ const TasksPage = () => {
                     This color will be used in charts and task visualization
                   </p>
                 </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Dependencies</label>
+                  <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
+                    Select tasks from the same project that must be completed before this task can start
+                  </p>
+                  {formData.projectId ? (
+                    <div className="border border-navy-200 dark:border-navy-700 rounded-lg max-h-48 overflow-y-auto">
+                      {tasksWithResources
+                        .filter((t) => t.projectId === formData.projectId)
+                        .map((task) => {
+                          const isSelected = formData.dependencies.includes(task.id)
+                          return (
+                            <label
+                              key={task.id}
+                              className={`flex items-center gap-3 p-3 hover:bg-navy-50 dark:hover:bg-navy-900 cursor-pointer border-b border-navy-100 dark:border-navy-800 last:border-b-0 ${
+                                isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData({ ...formData, dependencies: [...formData.dependencies, task.id] })
+                                  } else {
+                                    setFormData({
+                                      ...formData,
+                                      dependencies: formData.dependencies.filter((id) => id !== task.id),
+                                    })
+                                  }
+                                }}
+                                className="w-4 h-4 text-purple-600 border-navy-300 rounded focus:ring-purple-500"
+                              />
+                              <div className="flex-1">
+                                <span className="text-navy-800 dark:text-navy-100">{task.title}</span>
+                                <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      {tasksWithResources.filter((t) => t.projectId === formData.projectId).length === 0 && (
+                        <p className="p-3 text-sm text-navy-500 dark:text-navy-400">
+                          No other tasks in this project yet
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-navy-500 dark:text-navy-400">
+                      Please select a project first to choose dependencies
+                    </p>
+                  )}
+                  {formData.dependencies.length > 0 && (
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                      {formData.dependencies.length} {formData.dependencies.length === 1 ? 'dependency' : 'dependencies'} selected
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="flex gap-4 mt-6">
                 <button
@@ -482,7 +554,7 @@ const TasksPage = () => {
         {/* Edit Task Modal */}
         {showEditModal && currentTask && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-md w-full">
+            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-2xl w-full">
               <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Edit Task</h2>
               <div className="space-y-4">
                 <div>
