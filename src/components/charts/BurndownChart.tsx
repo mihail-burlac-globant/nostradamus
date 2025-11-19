@@ -72,9 +72,18 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
       taskInitialEffort.set(task.id, effort)
     })
 
+    // Calculate current remaining effort for each task (based on progress)
+    const taskCurrentRemaining = new Map<string, number>()
+    validTasks.forEach(task => {
+      const initialEffort = taskInitialEffort.get(task.id) || 0
+      // Use progress to calculate remaining effort
+      const remaining = initialEffort * (1 - task.progress / 100)
+      taskCurrentRemaining.set(task.id, remaining)
+    })
+
     // Calculate remaining effort for each task on each day
     const taskRemainingByDay = validTasks.map(task => {
-      const initialEffort = taskInitialEffort.get(task.id) || 0
+      const currentRemaining = taskCurrentRemaining.get(task.id) || 0
       const taskResources = getTaskResources(task.id)
       const taskStart = new Date(task.startDate!)
       const taskEnd = new Date(task.endDate!)
@@ -83,23 +92,17 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
         task,
         color: taskColors[validTasks.indexOf(task) % taskColors.length],
         data: allDays.map((date) => {
-          const isPast = !isAfter(date, today)
+          const isFuture = isAfter(date, today)
 
-          // If task is done, remaining effort is 0
-          if (task.status === 'Done') {
-            const doneDate = new Date(task.endDate!)
-            return date >= doneDate ? 0 : initialEffort
+          // For past dates and today: show current remaining effort (flat baseline)
+          if (!isFuture) {
+            return currentRemaining
           }
 
-          // For past dates, if task hasn't started or is in progress, show initial effort
-          if (isPast) {
-            return initialEffort
-          }
-
-          // For future dates, project burndown based on resource capacity
+          // For future dates: project burndown from current remaining effort
           // Only burn down if the task is active on this date
           if (date < taskStart || date > taskEnd) {
-            return initialEffort // Not started yet or already finished
+            return currentRemaining // Task not active on this date
           }
 
           // Calculate daily capacity for this task from project resources
@@ -117,7 +120,7 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
           const daysFromToday = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
           const workDone = daysFromToday * dailyCapacity
 
-          return Math.max(0, initialEffort - workDone)
+          return Math.max(0, currentRemaining - workDone)
         })
       }
     })
@@ -275,29 +278,42 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
                   type: 'solid' as const,
                 },
               },
-              // Milestone markers
-              ...milestones.map(milestone => {
-                const milestoneDate = new Date(milestone.date)
-                const dateStr = format(milestoneDate, 'MMM dd')
-                const index = allDays.findIndex(day => format(day, 'MMM dd') === dateStr)
-                return {
-                  name: milestone.title,
-                  xAxis: index >= 0 ? index : dateStr,
-                  label: {
-                    show: true,
-                    position: 'insideEndTop' as const,
-                    formatter: milestone.title,
-                    color: '#9333ea',
-                    fontSize: 11,
-                    fontWeight: 600 as const,
-                  },
-                  lineStyle: {
-                    color: '#9333ea',
-                    width: 2,
-                    type: 'dashed' as const,
-                  },
-                }
-              }),
+              // Milestone markers (only show those within the visible date range)
+              ...milestones
+                .filter(milestone => {
+                  const milestoneDate = new Date(milestone.date)
+                  return milestoneDate >= chartStart && milestoneDate <= chartEnd
+                })
+                .map(milestone => {
+                  const milestoneDate = new Date(milestone.date)
+                  const dateStr = format(milestoneDate, 'MMM dd')
+                  const index = allDays.findIndex(day => format(day, 'MMM dd') === dateStr)
+
+                  // Skip if we can't find the index
+                  if (index < 0) {
+                    console.warn(`Milestone "${milestone.title}" date not found in chart range`)
+                    return null
+                  }
+
+                  return {
+                    name: milestone.title,
+                    xAxis: index,
+                    label: {
+                      show: true,
+                      position: 'insideEndTop' as const,
+                      formatter: milestone.title,
+                      color: '#9333ea',
+                      fontSize: 11,
+                      fontWeight: 600 as const,
+                    },
+                    lineStyle: {
+                      color: '#9333ea',
+                      width: 2,
+                      type: 'dashed' as const,
+                    },
+                  }
+                })
+                .filter((marker): marker is NonNullable<typeof marker> => marker !== null),
             ],
           },
         },

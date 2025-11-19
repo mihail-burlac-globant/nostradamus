@@ -230,24 +230,29 @@ const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) =
                   type: 'solid' as const,
                 },
               },
-              // Milestone markers
-              ...milestones.map(milestone => ({
-                name: milestone.title,
-                xAxis: new Date(milestone.date).getTime(),
-                label: {
-                  show: true,
-                  position: 'insideEndTop' as const,
-                  formatter: milestone.title,
-                  color: '#9333ea',
-                  fontSize: 11,
-                  fontWeight: 600 as const,
-                },
-                lineStyle: {
-                  color: '#9333ea',
-                  width: 2,
-                  type: 'dashed' as const,
-                },
-              })),
+              // Milestone markers (only show those within the visible date range)
+              ...milestones
+                .filter(milestone => {
+                  const milestoneDate = new Date(milestone.date)
+                  return milestoneDate >= minDate && milestoneDate <= maxDate
+                })
+                .map(milestone => ({
+                  name: milestone.title,
+                  xAxis: new Date(milestone.date).getTime(),
+                  label: {
+                    show: true,
+                    position: 'insideEndTop' as const,
+                    formatter: milestone.title,
+                    color: '#9333ea',
+                    fontSize: 11,
+                    fontWeight: 600 as const,
+                  },
+                  lineStyle: {
+                    color: '#9333ea',
+                    width: 2,
+                    type: 'dashed' as const,
+                  },
+                })),
             ],
           },
         },
