@@ -645,6 +645,7 @@ export const assignConfigurationToProject = (projectId: string, configurationId:
   saveDatabase(database)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const removeConfigurationFromProject = (projectId: string, _configurationId?: string): void => {
   const database = getDatabase()
   // Since only one config per project, we can just remove by projectId

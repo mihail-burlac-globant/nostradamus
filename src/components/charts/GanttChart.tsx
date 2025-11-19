@@ -87,6 +87,7 @@ const GanttChart = ({ projectTitle, tasks }: GanttChartProps) => {
         },
       },
       tooltip: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (params: any) {
           const task = validTasks[params.dataIndex]
           const start = format(new Date(params.value[0]), 'MMM dd, yyyy')
@@ -153,6 +154,7 @@ const GanttChart = ({ projectTitle, tasks }: GanttChartProps) => {
       series: [
         {
           type: 'custom',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           renderItem: (params: any, api: any) => {
             const categoryIndex = api.value(2)
             const start = api.coord([api.value(0), categoryIndex])
