@@ -129,6 +129,13 @@ export const seedDatabase = (): void => {
       return 'Todo'
     }
 
+    // Task progress based on status
+    const getProgress = (status: 'Done' | 'In Progress' | 'Todo'): number => {
+      if (status === 'Done') return 100
+      if (status === 'In Progress') return randomInt(20, 80)
+      return 0
+    }
+
     // Create Tasks for Project 1: E-Commerce Platform (30 tasks over 6 months)
     console.log('Creating tasks for E-Commerce Platform...')
 
@@ -225,12 +232,14 @@ export const seedDatabase = (): void => {
       const startDate = addDays(today, currentDay)
       const endDate = addDays(today, currentDay + taskDef.duration)
       const status = getStatus(currentDay)
+      const progress = getProgress(status)
 
       const task = createTask({
         projectId: project1.id,
         title: taskDef.title,
         description: taskDef.description,
         status,
+        progress,
         color: colors[i % colors.length],
         startDate,
         endDate,
@@ -262,12 +271,14 @@ export const seedDatabase = (): void => {
       const startDate = addDays(today, currentDay)
       const endDate = addDays(today, currentDay + taskDef.duration)
       const status = getStatus(currentDay)
+      const progress = getProgress(status)
 
       const task = createTask({
         projectId: project2.id,
         title: taskDef.title,
         description: taskDef.description,
         status,
+        progress,
         color: colors[i % colors.length],
         startDate,
         endDate,

@@ -5,7 +5,7 @@ let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
 const DB_VERSION_KEY = 'nostradamus_db_version'
-const CURRENT_DB_VERSION = 7 // Incremented for project startDate
+const CURRENT_DB_VERSION = 8 // Incremented for task progress field
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -96,6 +96,7 @@ const createTables = (database: Database) => {
       title TEXT NOT NULL,
       description TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('Todo', 'In Progress', 'Done')),
+      progress INTEGER NOT NULL DEFAULT 0 CHECK(progress >= 0 AND progress <= 100),
       color TEXT NOT NULL DEFAULT '#6366f1',
       startDate TEXT,
       endDate TEXT,
@@ -486,10 +487,11 @@ export const createTask = (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): 
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
   const color = task.color || '#6366f1'
+  const progress = task.progress !== undefined ? task.progress : 0
 
   database.run(
-    'INSERT INTO tasks (id, projectId, title, description, status, color, startDate, endDate, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, task.projectId, task.title, task.description, task.status, color, task.startDate || null, task.endDate || null, now, now]
+    'INSERT INTO tasks (id, projectId, title, description, status, progress, color, startDate, endDate, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, task.projectId, task.title, task.description, task.status, progress, color, task.startDate || null, task.endDate || null, now, now]
   )
 
   saveDatabase(database)
@@ -560,6 +562,10 @@ export const updateTask = (id: string, updates: Partial<Omit<Task, 'id' | 'creat
   if (updates.status !== undefined) {
     fields.push('status = ?')
     values.push(updates.status || '')
+  }
+  if (updates.progress !== undefined) {
+    fields.push('progress = ?')
+    values.push(updates.progress.toString())
   }
   if (updates.color !== undefined) {
     fields.push('color = ?')
