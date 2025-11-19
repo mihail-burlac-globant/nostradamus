@@ -12,7 +12,7 @@ const STORAGE_KEY = 'nostradamus_theme'
 
 // Helper to get system preference
 const getSystemTheme = (): 'light' | 'dark' => {
-  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark'
   }
   return 'light'
@@ -20,6 +20,8 @@ const getSystemTheme = (): 'light' | 'dark' => {
 
 // Helper to apply theme to document
 const applyTheme = (theme: Theme) => {
+  if (typeof window === 'undefined') return
+
   const root = document.documentElement
 
   if (theme === 'system') {
@@ -36,8 +38,19 @@ const applyTheme = (theme: Theme) => {
   }
 }
 
+// Initialize theme immediately on store creation
+const getInitialTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'system'
+  const savedTheme = localStorage.getItem(STORAGE_KEY) as Theme | null
+  return savedTheme || 'system'
+}
+
+// Apply theme immediately when the module loads
+const initialTheme = getInitialTheme()
+applyTheme(initialTheme)
+
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: 'system',
+  theme: initialTheme,
 
   setTheme: (theme: Theme) => {
     set({ theme })
@@ -46,13 +59,6 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   },
 
   initializeTheme: () => {
-    // Load theme from localStorage or default to system
-    const savedTheme = localStorage.getItem(STORAGE_KEY) as Theme | null
-    const initialTheme = savedTheme || 'system'
-
-    set({ theme: initialTheme })
-    applyTheme(initialTheme)
-
     // Listen for system theme changes if using system preference
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleSystemThemeChange = () => {

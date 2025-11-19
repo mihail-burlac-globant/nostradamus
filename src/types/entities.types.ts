@@ -53,6 +53,8 @@ export interface Task {
   description: string
   status: TaskStatus
   color: string // Hex color for the task, default: '#6366f1'
+  startDate?: string // ISO date string for task start date (optional)
+  endDate?: string // ISO date string for task end date (optional)
   createdAt: string
   updatedAt: string
 }
