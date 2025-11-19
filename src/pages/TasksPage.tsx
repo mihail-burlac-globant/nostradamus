@@ -61,6 +61,7 @@ const TasksPage = () => {
     startDate: '',
     endDate: '',
     dependencies: [] as string[],
+    resources: [] as { resourceId: string; estimatedDays: number; focusFactor: number }[],
   })
   const [resourceFormData, setResourceFormData] = useState({
     resourceId: '',
@@ -146,6 +147,13 @@ const TasksPage = () => {
 
     const newTask = addTask(formData)
 
+    // Add resources if any were selected
+    if (formData.resources.length > 0 && newTask) {
+      formData.resources.forEach((res) => {
+        assignResourceToTask(newTask.id, res.resourceId, res.estimatedDays, res.focusFactor)
+      })
+    }
+
     // Add dependencies if any were selected
     if (formData.dependencies.length > 0 && newTask) {
       formData.dependencies.forEach((depId) => {
@@ -155,12 +163,13 @@ const TasksPage = () => {
           console.error('Failed to add dependency:', error)
         }
       })
-      loadTasks() // Reload to show dependencies
     }
+
+    loadTasks() // Reload to show changes
 
     // Save the last selected project for future use
     localStorage.setItem('nostradamus_tasks_last_project', formData.projectId)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [] })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [], resources: [] })
     setShowCreateModal(false)
   }
 
@@ -168,7 +177,31 @@ const TasksPage = () => {
     if (!currentTask || !formData.title.trim()) return
 
     editTask(currentTask.id, formData)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [] })
+
+    // Update resources - remove old ones and add new ones
+    const currentResources = getTaskResources(currentTask.id)
+    const currentResourceIds = currentResources.map(r => r.id)
+    const newResourceIds = formData.resources.map(r => r.resourceId)
+
+    // Remove resources that are not in the new list
+    currentResourceIds.forEach(resId => {
+      if (!newResourceIds.includes(resId)) {
+        removeResourceFromTask(currentTask.id, resId)
+      }
+    })
+
+    // Add or update resources
+    formData.resources.forEach((res) => {
+      // Remove first then add to update
+      if (currentResourceIds.includes(res.resourceId)) {
+        removeResourceFromTask(currentTask.id, res.resourceId)
+      }
+      assignResourceToTask(currentTask.id, res.resourceId, res.estimatedDays, res.focusFactor)
+    })
+
+    loadTasks() // Reload to show changes
+
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [], resources: [] })
     setCurrentTask(null)
     setShowEditModal(false)
   }
@@ -254,6 +287,7 @@ const TasksPage = () => {
 
   const openEditModal = (task: Task) => {
     setCurrentTask(task)
+    const taskResources = getTaskResources(task.id)
     setFormData({
       title: task.title,
       description: task.description,
@@ -264,6 +298,11 @@ const TasksPage = () => {
       startDate: task.startDate || '',
       endDate: task.endDate || '',
       dependencies: [], // Edit mode doesn't modify dependencies
+      resources: taskResources.map(r => ({
+        resourceId: r.id,
+        estimatedDays: r.estimatedDays,
+        focusFactor: r.focusFactor,
+      })),
     })
     setShowEditModal(true)
   }
@@ -376,7 +415,7 @@ const TasksPage = () => {
                   const defaultProjectId = selectedProjectFilter !== 'all'
                     ? selectedProjectFilter
                     : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
-                  setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [] })
+                  setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [], resources: [] })
                   setShowCreateModal(true)
                 }}
                 className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -470,6 +509,14 @@ const TasksPage = () => {
                               <h3 className="text-xl font-semibold text-navy-800 dark:text-navy-100">
                                 {task.title}
                               </h3>
+                              {task.resources.length === 0 && (
+                                <span className="px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 text-xs rounded-full flex items-center gap-1" title="No resources assigned">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  No resources
+                                </span>
+                              )}
                               {!canStart && (
                                 <span className="px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 text-xs rounded-full">
                                   Blocked
@@ -758,7 +805,14 @@ const TasksPage = () => {
                 {/* Start and End Dates in 2 columns */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Start Date</label>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">
+                      Start Date
+                      {formData.projectId && projects.find(p => p.id === formData.projectId)?.startDate && (
+                        <span className="text-xs text-navy-500 dark:text-navy-400 ml-1">
+                          (defaults to project start: {new Date(projects.find(p => p.id === formData.projectId)!.startDate!).toLocaleDateString()})
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="date"
                       value={formData.startDate}
@@ -848,6 +902,128 @@ const TasksPage = () => {
                   {formData.dependencies.length > 0 && (
                     <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
                       {formData.dependencies.length} {formData.dependencies.length === 1 ? 'dependency' : 'dependencies'} selected
+                    </p>
+                  )}
+                </div>
+
+                {/* Resource Management */}
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Assign Resources</label>
+                  <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
+                    Assign resources from the project to this task
+                  </p>
+
+                  {/* Current Resources */}
+                  {formData.resources.length > 0 && (
+                    <div className="mb-3 space-y-2">
+                      {formData.resources.map((res, index) => {
+                        const resource = formData.projectId ? getProjectResources(formData.projectId).find(r => r.id === res.resourceId) : null
+                        return (
+                          <div key={index} className="flex items-center justify-between bg-navy-50 dark:bg-navy-900 p-2 rounded">
+                            <div className="flex-1">
+                              <span className="text-navy-800 dark:text-navy-100 font-medium">
+                                {resource?.title || 'Unknown Resource'}
+                              </span>
+                              <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
+                                {res.estimatedDays}d @ {res.focusFactor}%
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  resources: formData.resources.filter((_, i) => i !== index)
+                                })
+                              }}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Add Resource Form */}
+                  {formData.projectId ? (
+                    <div className="border border-navy-200 dark:border-navy-700 rounded-lg p-3 space-y-3">
+                      <div>
+                        <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
+                        <select
+                          value={resourceFormData.resourceId}
+                          onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
+                          className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
+                        >
+                          <option value="">Select a resource</option>
+                          {getProjectResources(formData.projectId)
+                            .filter(r => !formData.resources.some(fr => fr.resourceId === r.id))
+                            .map((resource) => (
+                              <option key={resource.id} value={resource.id}>
+                                {resource.title}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                            Days: {resourceFormData.estimatedDays}
+                          </label>
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="100"
+                            step="0.5"
+                            value={resourceFormData.estimatedDays}
+                            onChange={(e) => setResourceFormData({ ...resourceFormData, estimatedDays: parseFloat(e.target.value) })}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                            Focus: {resourceFormData.focusFactor}%
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={resourceFormData.focusFactor}
+                            onChange={(e) => setResourceFormData({ ...resourceFormData, focusFactor: parseInt(e.target.value) })}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (resourceFormData.resourceId) {
+                            setFormData({
+                              ...formData,
+                              resources: [...formData.resources, { ...resourceFormData }]
+                            })
+                            setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+                          }
+                        }}
+                        disabled={!resourceFormData.resourceId}
+                        className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-navy-300 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                      >
+                        Add Resource
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-navy-500 dark:text-navy-400">
+                      Please select a project first to assign resources
+                    </p>
+                  )}
+                  {formData.resources.length === 0 && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      Warning: Task has no resources assigned
                     </p>
                   )}
                 </div>
@@ -947,7 +1123,14 @@ const TasksPage = () => {
                 {/* Start and End Dates in 2 columns */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-2">Start Date</label>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">
+                      Start Date
+                      {formData.projectId && projects.find(p => p.id === formData.projectId)?.startDate && (
+                        <span className="text-xs text-navy-500 dark:text-navy-400 ml-1">
+                          (defaults to project start: {new Date(projects.find(p => p.id === formData.projectId)!.startDate!).toLocaleDateString()})
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="date"
                       value={formData.startDate}
@@ -982,6 +1165,128 @@ const TasksPage = () => {
                     <span>50%</span>
                     <span>100%</span>
                   </div>
+                </div>
+
+                {/* Resource Management */}
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Assign Resources</label>
+                  <p className="text-xs text-navy-500 dark:text-navy-400 mb-2">
+                    Assign resources from the project to this task
+                  </p>
+
+                  {/* Current Resources */}
+                  {formData.resources.length > 0 && (
+                    <div className="mb-3 space-y-2">
+                      {formData.resources.map((res, index) => {
+                        const resource = formData.projectId ? getProjectResources(formData.projectId).find(r => r.id === res.resourceId) : null
+                        return (
+                          <div key={index} className="flex items-center justify-between bg-navy-50 dark:bg-navy-900 p-2 rounded">
+                            <div className="flex-1">
+                              <span className="text-navy-800 dark:text-navy-100 font-medium">
+                                {resource?.title || 'Unknown Resource'}
+                              </span>
+                              <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
+                                {res.estimatedDays}d @ {res.focusFactor}%
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  resources: formData.resources.filter((_, i) => i !== index)
+                                })
+                              }}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Add Resource Form */}
+                  {formData.projectId ? (
+                    <div className="border border-navy-200 dark:border-navy-700 rounded-lg p-3 space-y-3">
+                      <div>
+                        <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
+                        <select
+                          value={resourceFormData.resourceId}
+                          onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
+                          className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
+                        >
+                          <option value="">Select a resource</option>
+                          {getProjectResources(formData.projectId)
+                            .filter(r => !formData.resources.some(fr => fr.resourceId === r.id))
+                            .map((resource) => (
+                              <option key={resource.id} value={resource.id}>
+                                {resource.title}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                            Days: {resourceFormData.estimatedDays}
+                          </label>
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="100"
+                            step="0.5"
+                            value={resourceFormData.estimatedDays}
+                            onChange={(e) => setResourceFormData({ ...resourceFormData, estimatedDays: parseFloat(e.target.value) })}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                            Focus: {resourceFormData.focusFactor}%
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={resourceFormData.focusFactor}
+                            onChange={(e) => setResourceFormData({ ...resourceFormData, focusFactor: parseInt(e.target.value) })}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (resourceFormData.resourceId) {
+                            setFormData({
+                              ...formData,
+                              resources: [...formData.resources, { ...resourceFormData }]
+                            })
+                            setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+                          }
+                        }}
+                        disabled={!resourceFormData.resourceId}
+                        className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-navy-300 disabled:cursor-not-allowed text-white rounded text-sm transition-colors"
+                      >
+                        Add Resource
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-navy-500 dark:text-navy-400">
+                      Please select a project first to assign resources
+                    </p>
+                  )}
+                  {formData.resources.length === 0 && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      Warning: Task has no resources assigned
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-4 mt-6">
