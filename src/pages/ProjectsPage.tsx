@@ -21,7 +21,10 @@ const ProjectsPage = () => {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [viewingProject, setViewingProject] = useState<Project | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Archived'>('all')
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
+    const saved = localStorage.getItem('nostradamus_projects_view_mode')
+    return (saved === 'list' || saved === 'card') ? saved : 'card'
+  })
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [formData, setFormData] = useState({
     title: '',
@@ -34,6 +37,10 @@ const ProjectsPage = () => {
       initialize()
     }
   }, [isInitialized, initialize])
+
+  useEffect(() => {
+    localStorage.setItem('nostradamus_projects_view_mode', viewMode)
+  }, [viewMode])
 
   const filteredProjects = projects.filter((p) =>
     filterStatus === 'all' ? true : p.status === filterStatus
