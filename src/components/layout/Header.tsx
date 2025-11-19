@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom'
 import { useProjectStore } from '../../stores/projectStore'
 import { exportProjectToCSV } from '../../utils/csvExporter'
 
@@ -9,6 +10,13 @@ const Header = () => {
       exportProjectToCSV(projectData)
     }
   }
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+      isActive
+        ? 'text-salmon-600 dark:text-salmon-400 bg-salmon-50 dark:bg-salmon-900/20'
+        : 'text-navy-700 dark:text-navy-300 hover:text-salmon-600 dark:hover:text-salmon-400 hover:bg-salmon-50 dark:hover:bg-salmon-900/20'
+    }`
 
   return (
     <header className="bg-white dark:bg-navy-900 border-b border-navy-100 dark:border-navy-700 backdrop-blur-sm">
@@ -33,42 +41,18 @@ const Header = () => {
 
           {/* Navigation Menu */}
           <nav className="hidden md:flex items-center gap-2">
-            <a
-              href="#charts"
-              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
-                       hover:text-salmon-600 dark:hover:text-salmon-400
-                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
-                       rounded-lg transition-all duration-200"
-            >
+            <NavLink to="/charts" className={navLinkClass}>
               Charts
-            </a>
-            <a
-              href="#projects"
-              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
-                       hover:text-salmon-600 dark:hover:text-salmon-400
-                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
-                       rounded-lg transition-all duration-200"
-            >
+            </NavLink>
+            <NavLink to="/projects" className={navLinkClass}>
               Projects
-            </a>
-            <a
-              href="#resources"
-              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
-                       hover:text-salmon-600 dark:hover:text-salmon-400
-                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
-                       rounded-lg transition-all duration-200"
-            >
+            </NavLink>
+            <NavLink to="/resources" className={navLinkClass}>
               Resources
-            </a>
-            <a
-              href="#configurations"
-              className="px-4 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
-                       hover:text-salmon-600 dark:hover:text-salmon-400
-                       hover:bg-salmon-50 dark:hover:bg-salmon-900/20
-                       rounded-lg transition-all duration-200"
-            >
+            </NavLink>
+            <NavLink to="/configurations" className={navLinkClass}>
               Configurations
-            </a>
+            </NavLink>
           </nav>
 
           {/* Project Info & Actions */}
