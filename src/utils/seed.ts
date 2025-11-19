@@ -7,6 +7,7 @@ import {
   assignConfigurationToProject,
   assignResourceToTask,
   addTaskDependency,
+  createMilestone,
 } from '../services/database'
 
 // Helper function to add days to a date
@@ -312,6 +313,67 @@ export const seedDatabase = (): void => {
       addTaskDependency(project2TaskObjects[13].id, project2TaskObjects[12].id) // Components depend on setup
     }
 
+    // Create Milestones for Project 1: E-Commerce Platform
+    console.log('Creating milestones for E-Commerce Platform...')
+    createMilestone({
+      projectId: project1.id,
+      title: 'Architecture Complete',
+      date: addDays(today, 12), // End of Planning & Setup Phase
+    })
+    createMilestone({
+      projectId: project1.id,
+      title: 'Auth System Live',
+      date: addDays(today, 26), // End of Authentication Phase
+    })
+    createMilestone({
+      projectId: project1.id,
+      title: 'Product Catalog Ready',
+      date: addDays(today, 49), // End of Product Catalog Phase
+    })
+    createMilestone({
+      projectId: project1.id,
+      title: 'Checkout Flow Complete',
+      date: addDays(today, 70), // End of Shopping Cart & Checkout Phase
+    })
+    createMilestone({
+      projectId: project1.id,
+      title: 'Admin Panel Ready',
+      date: addDays(today, 90), // End of Admin Panel Phase
+    })
+    createMilestone({
+      projectId: project1.id,
+      title: 'Production Launch',
+      date: addDays(today, 120), // Final Launch
+    })
+
+    // Create Milestones for Project 2: Mobile App Redesign
+    console.log('Creating milestones for Mobile App Redesign...')
+    createMilestone({
+      projectId: project2.id,
+      title: 'Research Complete',
+      date: addDays(today, 12), // End of Research & Discovery
+    })
+    createMilestone({
+      projectId: project2.id,
+      title: 'Design System Ready',
+      date: addDays(today, 30), // After Design System
+    })
+    createMilestone({
+      projectId: project2.id,
+      title: 'Prototype Validated',
+      date: addDays(today, 48), // After Usability Testing
+    })
+    createMilestone({
+      projectId: project2.id,
+      title: 'Beta Release',
+      date: addDays(today, 100), // Before Beta Testing
+    })
+    createMilestone({
+      projectId: project2.id,
+      title: 'App Store Launch',
+      date: addDays(today, 125), // Final Launch
+    })
+
     console.log('✅ Database seeding completed successfully!')
     console.log(`Created:
   - 2 Projects
@@ -319,6 +381,8 @@ export const seedDatabase = (): void => {
   - 2 Configurations
   - ${project1Tasks.length} tasks for E-Commerce Platform
   - ${project2Tasks.length} tasks for Mobile App Redesign
+  - 6 milestones for E-Commerce Platform
+  - 5 milestones for Mobile App Redesign
   - Multiple resource assignments
   - Task dependencies
   - Tasks spanning 6 months from ${addDays(today, -7)} to ${addDays(today, currentDay)}`)
