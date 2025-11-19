@@ -175,9 +175,17 @@ const ChartsPage = () => {
 
                 <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
                   {activeChart === 'gantt' ? (
-                    <GanttChart />
+                    <GanttChart
+                      projectId={selectedProjectId}
+                      projectTitle={selectedProject.title}
+                      tasks={projectTasks}
+                    />
                   ) : (
-                    <BurndownChart />
+                    <BurndownChart
+                      projectId={selectedProjectId}
+                      projectTitle={selectedProject.title}
+                      tasks={projectTasks}
+                    />
                   )}
                 </div>
               </div>
