@@ -7,11 +7,12 @@ import { useEntitiesStore } from '../../stores/entitiesStore'
 interface BurndownChartProps {
   projectId: string
   projectTitle: string
+  projectStartDate?: string
   tasks: Task[]
   milestones?: Milestone[]
 }
 
-const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: BurndownChartProps) => {
+const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, milestones = [] }: BurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const { getTaskResources, getProjectResources, getTaskDependencies } = useEntitiesStore()
@@ -21,23 +22,61 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
 
     console.log('📈 BurndownChart received milestones:', milestones)
 
-    // Filter and process tasks - calculate end dates if missing
-    const validTasks = tasks.filter(t => t.startDate).map(task => {
-      if (task.endDate) return task
+    // Calculate effective start and end dates for each task
+    const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
+      // Check if already calculated
+      if (taskDateMap.has(task.id)) {
+        return taskDateMap.get(task.id)!
+      }
 
-      // Auto-calculate end date from start date + resource estimates
+      // Get dependencies
+      const dependencies = getTaskDependencies(task.id)
+
+      // Calculate earliest start date based on dependencies
+      let earliestStart: Date
+      if (dependencies.length > 0) {
+        // Task can't start until all dependencies are complete
+        // Recursively calculate dependency end dates
+        const dependencyEndDates = dependencies.map(dep => {
+          const depDates = calculateTaskDates(dep, taskDateMap)
+          return depDates.end
+        })
+        earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
+        // Add 1 day buffer after dependency completes
+        earliestStart.setDate(earliestStart.getDate() + 1)
+      } else {
+        // No dependencies - use task start date or project start date
+        if (task.startDate) {
+          earliestStart = new Date(task.startDate)
+        } else if (projectStartDate) {
+          earliestStart = new Date(projectStartDate)
+        } else {
+          earliestStart = new Date() // Fallback to today
+        }
+      }
+
+      // Calculate duration from resource estimates
       const resources = getTaskResources(task.id)
       const totalDays = resources.reduce((sum, r) => sum + (r.estimatedDays * (r.focusFactor / 100)), 0)
-
-      // If no resources, default to 1 day duration
       const durationDays = totalDays > 0 ? Math.ceil(totalDays) : 1
-      const startDate = new Date(task.startDate!)
-      const calculatedEndDate = new Date(startDate)
-      calculatedEndDate.setDate(calculatedEndDate.getDate() + durationDays)
 
+      // Calculate end date
+      const endDate = new Date(earliestStart)
+      endDate.setDate(endDate.getDate() + durationDays)
+
+      const result = { start: earliestStart, end: endDate }
+      taskDateMap.set(task.id, result)
+      return result
+    }
+
+    // Calculate dates for all tasks
+    const taskDateMap = new Map<string, { start: Date; end: Date }>()
+    const validTasks = tasks.map(task => {
+      const dates = calculateTaskDates(task, taskDateMap)
       return {
         ...task,
-        endDate: calculatedEndDate.toISOString().split('T')[0]
+        startDate: dates.start.toISOString().split('T')[0],
+        endDate: dates.end.toISOString().split('T')[0]
       }
     })
 
@@ -409,25 +448,7 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
         chartInstance.current = null
       }
     }
-  }, [projectId, projectTitle, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies])
-
-  // Show message if no tasks have start dates (end dates are auto-calculated)
-  const validTasks = tasks.filter(t => t.startDate)
-  if (validTasks.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <svg className="w-16 h-16 mx-auto mb-4 text-navy-300 dark:text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p className="text-navy-600 dark:text-navy-400 text-lg mb-2">No Task Dates Available</p>
-          <p className="text-navy-500 dark:text-navy-500 text-sm">
-            Tasks need a start date to display in the Burndown chart. End dates are auto-calculated from resource estimates.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies])
 
   return (
     <div className="w-full">

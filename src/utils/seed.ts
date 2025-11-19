@@ -224,13 +224,13 @@ export const seedDatabase = (): void => {
     const resources = [reactDev, nodeDev, uxDesigner, qaEngineer]
 
     // Create tasks for Project 1
-    let currentDay = -7 // Start 1 week in the past
+    // Note: Start and end dates are no longer set explicitly - they will be calculated
+    // based on project start date, dependencies, and resource estimates
+    let currentDay = -7 // Start 1 week in the past (for status calculation only)
     const project1TaskObjects = []
 
     for (let i = 0; i < project1Tasks.length; i++) {
       const taskDef = project1Tasks[i]
-      const startDate = addDays(today, currentDay)
-      const endDate = addDays(today, currentDay + taskDef.duration)
       const status = getStatus(currentDay)
       const progress = getProgress(status)
 
@@ -241,8 +241,7 @@ export const seedDatabase = (): void => {
         status,
         progress,
         color: colors[i % colors.length],
-        startDate,
-        endDate,
+        // No startDate or endDate - calculated dynamically from project start + dependencies + estimates
       })
 
       project1TaskObjects.push(task)
@@ -263,13 +262,13 @@ export const seedDatabase = (): void => {
     }
 
     // Create tasks for Project 2
-    currentDay = -7 // Reset for second project
+    // Note: Start and end dates are no longer set explicitly - they will be calculated
+    // based on project start date, dependencies, and resource estimates
+    currentDay = -7 // Reset for second project (for status calculation only)
     const project2TaskObjects = []
 
     for (let i = 0; i < project2Tasks.length; i++) {
       const taskDef = project2Tasks[i]
-      const startDate = addDays(today, currentDay)
-      const endDate = addDays(today, currentDay + taskDef.duration)
       const status = getStatus(currentDay)
       const progress = getProgress(status)
 
@@ -280,8 +279,7 @@ export const seedDatabase = (): void => {
         status,
         progress,
         color: colors[i % colors.length],
-        startDate,
-        endDate,
+        // No startDate or endDate - calculated dynamically from project start + dependencies + estimates
       })
 
       project2TaskObjects.push(task)
