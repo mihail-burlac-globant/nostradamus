@@ -412,12 +412,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                 xAxis: todayIndex,
                 label: {
                   show: true,
-                  position: 'start' as const,
+                  position: 'end' as const,
                   formatter: 'Today',
                   color: '#ef4444',
                   fontSize: 12,
                   fontWeight: 'bold' as const,
-                  distance: -30,
+                  distance: 5,
                   rotate: 0,
                 },
                 lineStyle: {
@@ -461,12 +461,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                     xAxis: index,
                     label: {
                       show: true,
-                      position: 'start' as const,
+                      position: 'end' as const,
                       formatter: `${iconSymbol} ${milestone.title}`,
                       color: milestone.color,
                       fontSize: 11,
                       fontWeight: 600 as const,
-                      distance: -30,
+                      distance: 5,
                       rotate: 0,
                     },
                     lineStyle: {
@@ -483,12 +483,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                 xAxis: completionDayIndex,
                 label: {
                   show: true,
-                  position: 'start' as const,
+                  position: 'end' as const,
                   formatter: '🎉 Project Complete',
                   color: '#10b981',
                   fontSize: 11,
                   fontWeight: 600 as const,
-                  distance: -30,
+                  distance: 5,
                   rotate: 0,
                 },
                 lineStyle: {

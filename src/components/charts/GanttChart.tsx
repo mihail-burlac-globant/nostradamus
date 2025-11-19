@@ -325,12 +325,12 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
                 xAxis: new Date().setHours(0, 0, 0, 0),
                 label: {
                   show: true,
-                  position: 'start' as const,
+                  position: 'end' as const,
                   formatter: 'Today',
                   color: '#ef4444',
                   fontSize: 12,
                   fontWeight: 'bold' as const,
-                  distance: -30,
+                  distance: 5,
                   rotate: 0,
                 },
                 lineStyle: {
@@ -363,12 +363,12 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
                     xAxis: new Date(milestone.date).getTime(),
                     label: {
                       show: true,
-                      position: 'start' as const,
+                      position: 'end' as const,
                       formatter: `${iconSymbol} ${milestone.title}`,
                       color: milestone.color,
                       fontSize: 11,
                       fontWeight: 600 as const,
-                      distance: -30,
+                      distance: 5,
                       rotate: 0,
                     },
                     lineStyle: {
