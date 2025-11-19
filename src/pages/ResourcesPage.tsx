@@ -15,7 +15,10 @@ const ResourcesPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingResource, setEditingResource] = useState<Resource | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Archived'>('all')
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
+    const saved = localStorage.getItem('nostradamus_resources_view_mode')
+    return (saved === 'list' || saved === 'card') ? saved : 'card'
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [formData, setFormData] = useState({
@@ -30,6 +33,10 @@ const ResourcesPage = () => {
       initialize()
     }
   }, [isInitialized, initialize])
+
+  useEffect(() => {
+    localStorage.setItem('nostradamus_resources_view_mode', viewMode)
+  }, [viewMode])
 
   const filteredResources = resources.filter((r) => {
     const matchesStatus = filterStatus === 'all' ? true : r.status === filterStatus
