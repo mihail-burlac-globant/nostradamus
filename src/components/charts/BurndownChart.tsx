@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, eachDayOfInterval, isAfter, subWeeks, startOfDay } from 'date-fns'
+import { format, eachDayOfInterval, isAfter, subDays, startOfDay } from 'date-fns'
+import { useEntitiesStore } from '../../stores/entitiesStore'
 
 interface BurndownChartProps {
   projectId: string
@@ -13,6 +14,7 @@ interface BurndownChartProps {
 const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
+  const { getTaskResources } = useEntitiesStore()
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -39,40 +41,95 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
     ])
     const projectEnd = new Date(Math.max(...allDates.map(d => d.getTime())))
 
-    // Show last 2 weeks + future (from today to projectEnd)
+    // Show last 5 days + future (from today - 5 days to projectEnd)
     const today = startOfDay(new Date())
-    const twoWeeksAgo = subWeeks(today, 2)
-    const chartStart = twoWeeksAgo
+    const fiveDaysAgo = subDays(today, 5)
+    const chartStart = fiveDaysAgo
     const chartEnd = projectEnd
 
-    // Generate days for the burndown chart (last 2 weeks + future)
+    // Generate days for the burndown chart (last 5 days + future)
     const allDays = eachDayOfInterval({ start: chartStart, end: chartEnd })
 
-    // Calculate total work (number of tasks)
-    const totalTasks = validTasks.length
+    // Calculate total effort in person-days across all tasks
+    const totalEffort = validTasks.reduce((sum, task) => {
+      const resources = getTaskResources(task.id)
+      const taskEffort = resources.reduce((taskSum, resource) => {
+        // estimatedDays * focusFactor (as decimal)
+        return taskSum + (resource.estimatedDays * (resource.focusFactor / 100))
+      }, 0)
+      return sum + taskEffort
+    }, 0)
 
-    // Calculate ideal burndown (linear)
+    // Calculate ideal burndown (linear from start to end)
     const idealData = allDays.map((date, index) => {
       const progress = index / (allDays.length - 1)
-      const remaining = totalTasks * (1 - progress)
+      const remaining = totalEffort * (1 - progress)
       return {
         date: format(date, 'MMM dd'),
         value: Math.max(0, remaining),
       }
     })
 
-    // Calculate actual burndown (based on task completion)
+    // Calculate actual/projected burndown
     const actualData = allDays.map((date) => {
-      // Count tasks that are NOT done and have started by this date
-      const remaining = validTasks.filter(task => {
-        const taskStart = new Date(task.startDate!)
-        // Task has started and is not done
-        return !isAfter(taskStart, date) && task.status !== 'Done'
-      }).length
+      const isPast = !isAfter(date, today)
 
-      return {
-        date: format(date, 'MMM dd'),
-        value: remaining,
+      if (isPast) {
+        // For past dates: calculate actual remaining work based on completed tasks
+        const completedEffort = validTasks.reduce((sum, task) => {
+          if (task.status === 'Done' && new Date(task.endDate!) <= date) {
+            const resources = getTaskResources(task.id)
+            const taskEffort = resources.reduce((taskSum, resource) => {
+              return taskSum + (resource.estimatedDays * (resource.focusFactor / 100))
+            }, 0)
+            return sum + taskEffort
+          }
+          return sum
+        }, 0)
+        return {
+          date: format(date, 'MMM dd'),
+          value: Math.max(0, totalEffort - completedEffort),
+        }
+      } else {
+        // For future dates: project based on resource capacity
+        // Calculate daily capacity (sum of all resources working on active tasks)
+        const dailyCapacity = validTasks
+          .filter(task => task.status !== 'Done')
+          .reduce((sum, task) => {
+            const taskStart = new Date(task.startDate!)
+            const taskEnd = new Date(task.endDate!)
+
+            // Only count if task is active on this date
+            if (date >= taskStart && date <= taskEnd) {
+              const resources = getTaskResources(task.id)
+              const taskCapacity = resources.reduce((taskSum, resource) => {
+                return taskSum + (resource.focusFactor / 100)
+              }, 0)
+              return sum + taskCapacity
+            }
+            return sum
+          }, 0)
+
+        // Calculate remaining work from today
+        const completedEffortToday = validTasks.reduce((sum, task) => {
+          if (task.status === 'Done') {
+            const resources = getTaskResources(task.id)
+            const taskEffort = resources.reduce((taskSum, resource) => {
+              return taskSum + (resource.estimatedDays * (resource.focusFactor / 100))
+            }, 0)
+            return sum + taskEffort
+          }
+          return sum
+        }, 0)
+
+        const remainingFromToday = totalEffort - completedEffortToday
+        const daysFromToday = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        const workDone = daysFromToday * dailyCapacity
+
+        return {
+          date: format(date, 'MMM dd'),
+          value: Math.max(0, remainingFromToday - workDone),
+        }
       }
     })
 
@@ -111,7 +168,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
             result += `
               <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color};"></span>
-                <span style="font-size: 12px;">${name}: ${value} tasks</span>
+                <span style="font-size: 12px;">${name}: ${value} person-days</span>
               </div>
             `
           })
@@ -121,7 +178,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
         },
       },
       legend: {
-        data: ['Ideal Burndown', 'Actual Progress'],
+        data: ['Ideal Burndown', 'Actual/Projected Progress'],
         top: 40,
         textStyle: {
           color: textColor,
@@ -149,7 +206,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
       },
       yAxis: {
         type: 'value',
-        name: 'Remaining Tasks',
+        name: 'Remaining Effort (person-days)',
         nameTextStyle: {
           color: textColor,
         },
@@ -185,7 +242,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
           symbol: 'none',
         },
         {
-          name: 'Actual Progress',
+          name: 'Actual/Projected Progress',
           type: 'line',
           data: actualData.map(d => d.value),
           smooth: true,
