@@ -12,16 +12,21 @@ const SeedPage = () => {
 
   const handleSeed = async () => {
     setStatus('seeding')
-    setMessage('Clearing database and seeding...')
+    setMessage('Initializing database...')
 
     try {
+      // Initialize database first
+      await initialize()
+
+      setMessage('Clearing existing data...')
       // Clear existing data
       clearDatabase()
 
+      setMessage('Seeding database with sample data...')
       // Run seed
       seedDatabase()
 
-      // Reinitialize store
+      // Reload store with new data
       await initialize()
 
       setStatus('success')
