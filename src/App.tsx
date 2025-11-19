@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
@@ -7,8 +8,15 @@ import TasksPage from './pages/TasksPage'
 import ResourcesPage from './pages/ResourcesPage'
 import ConfigurationsPage from './pages/ConfigurationsPage'
 import SeedPage from './pages/SeedPage'
+import { useThemeStore } from './stores/themeStore'
 
 function App() {
+  const { initializeTheme } = useThemeStore()
+
+  useEffect(() => {
+    initializeTheme()
+  }, [initializeTheme])
+
   return (
     <Router>
       <div className="min-h-screen bg-salmon-50 dark:bg-navy-900 flex flex-col">
