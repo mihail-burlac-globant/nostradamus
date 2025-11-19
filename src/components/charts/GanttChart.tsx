@@ -323,7 +323,6 @@ const GanttChart = () => {
           fontFamily: 'Inter, sans-serif',
           width: 120,
           overflow: 'truncate' as const,
-          ellipsis: '...',
         },
         axisLine: {
           lineStyle: {
