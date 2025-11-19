@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Task, Resource, TaskStatus } from '../types/entities.types'
+import { getIconById } from '../utils/resourceIcons'
 
 interface TaskWithResources extends Task {
   resources: (Resource & { estimatedDays: number; focusFactor: number })[]
@@ -361,15 +362,19 @@ const TasksPage = () => {
                             <div className="space-y-2">
                               {task.resources.map((resource) => {
                                 const adjustedEstimate = resource.estimatedDays * (resource.focusFactor / 100)
+                                const ResourceIcon = getIconById(resource.icon || 'generic')
                                 return (
                                   <div
                                     key={resource.id}
                                     className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-3 rounded"
                                   >
                                     <div className="flex-1">
-                                      <span className="font-medium text-navy-800 dark:text-navy-100">
-                                        {resource.title}
-                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <ResourceIcon className="w-5 h-5 text-navy-600 dark:text-navy-400" />
+                                        <span className="font-medium text-navy-800 dark:text-navy-100">
+                                          {resource.title}
+                                        </span>
+                                      </div>
                                       <div className="text-sm text-navy-600 dark:text-navy-400 mt-1">
                                         Estimated: {resource.estimatedDays} days | Focus Factor: {resource.focusFactor}% |
                                         Adjusted: {adjustedEstimate.toFixed(2)} days

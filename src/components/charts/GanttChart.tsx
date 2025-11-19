@@ -159,6 +159,10 @@ const GanttChart = ({ projectTitle, tasks }: GanttChartProps) => {
             const end = api.coord([api.value(1), categoryIndex])
             const height = api.size([0, 1])[1] * 0.6
 
+            // Get color from the data item using dataIndex
+            const dataItem = chartData[params.dataIndex]
+            const color = dataItem?.itemStyle?.color || '#B3B3BA'
+
             return {
               type: 'rect',
               shape: {
@@ -167,9 +171,9 @@ const GanttChart = ({ projectTitle, tasks }: GanttChartProps) => {
                 width: end[0] - start[0],
                 height: height,
               },
-              style: api.style({
-                fill: params.itemStyle.color,
-              }),
+              style: {
+                fill: color,
+              },
             }
           },
           encode: {
