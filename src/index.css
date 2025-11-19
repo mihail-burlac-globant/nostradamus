@@ -45,14 +45,12 @@
     letter-spacing: -0.01em;
   }
 
-  /* Professional dark mode */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --color-background: #1A1A1D;
-      --color-surface: #2E2E36;
-      --color-text-primary: #F5F5F6;
-      --color-text-secondary: #B3B3BA;
-    }
+  /* Professional dark mode - responds to .dark class */
+  .dark {
+    --color-background: #1A1A1D;
+    --color-surface: #2E2E36;
+    --color-text-primary: #F5F5F6;
+    --color-text-secondary: #B3B3BA;
   }
 
   /* Enhanced focus states for accessibility */
