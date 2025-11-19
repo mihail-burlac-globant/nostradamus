@@ -11,10 +11,10 @@ interface BurndownChartProps {
   milestones?: Milestone[]
 }
 
-const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartProps) => {
+const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: BurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
-  const { getTaskResources } = useEntitiesStore()
+  const { getTaskResources, getProjectResources } = useEntitiesStore()
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -52,86 +52,73 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
     // Generate days for the burndown chart (last 5 days + future)
     const allDays = eachDayOfInterval({ start: chartStart, end: chartEnd })
 
-    // Calculate total effort in person-days across all tasks
-    const totalEffort = validTasks.reduce((sum, task) => {
-      const resources = getTaskResources(task.id)
-      const taskEffort = resources.reduce((taskSum, resource) => {
-        // estimatedDays * focusFactor (as decimal)
-        return taskSum + (resource.estimatedDays * (resource.focusFactor / 100))
-      }, 0)
-      return sum + taskEffort
-    }, 0)
+    // Get project resources to calculate daily capacity
+    const projectResources = getProjectResources(projectId)
 
-    // Calculate ideal burndown (linear from start to end)
-    const idealData = allDays.map((date, index) => {
-      const progress = index / (allDays.length - 1)
-      const remaining = totalEffort * (1 - progress)
-      return {
-        date: format(date, 'MMM dd'),
-        value: Math.max(0, remaining),
-      }
+    // Task colors (consistent color per task)
+    const taskColors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+      '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#AAB7B8',
+      '#EC7063', '#48C9B0', '#5DADE2', '#F5B041', '#AF7AC5'
+    ]
+
+    // Calculate initial effort for each task
+    const taskInitialEffort = new Map<string, number>()
+    validTasks.forEach(task => {
+      const resources = getTaskResources(task.id)
+      const effort = resources.reduce((sum, resource) => {
+        return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+      }, 0)
+      taskInitialEffort.set(task.id, effort)
     })
 
-    // Calculate actual/projected burndown
-    const actualData = allDays.map((date) => {
-      const isPast = !isAfter(date, today)
+    // Calculate remaining effort for each task on each day
+    const taskRemainingByDay = validTasks.map(task => {
+      const initialEffort = taskInitialEffort.get(task.id) || 0
+      const taskResources = getTaskResources(task.id)
+      const taskStart = new Date(task.startDate!)
+      const taskEnd = new Date(task.endDate!)
 
-      if (isPast) {
-        // For past dates: calculate actual remaining work based on completed tasks
-        const completedEffort = validTasks.reduce((sum, task) => {
-          if (task.status === 'Done' && new Date(task.endDate!) <= date) {
-            const resources = getTaskResources(task.id)
-            const taskEffort = resources.reduce((taskSum, resource) => {
-              return taskSum + (resource.estimatedDays * (resource.focusFactor / 100))
-            }, 0)
-            return sum + taskEffort
+      return {
+        task,
+        color: taskColors[validTasks.indexOf(task) % taskColors.length],
+        data: allDays.map((date) => {
+          const isPast = !isAfter(date, today)
+
+          // If task is done, remaining effort is 0
+          if (task.status === 'Done') {
+            const doneDate = new Date(task.endDate!)
+            return date >= doneDate ? 0 : initialEffort
           }
-          return sum
-        }, 0)
-        return {
-          date: format(date, 'MMM dd'),
-          value: Math.max(0, totalEffort - completedEffort),
-        }
-      } else {
-        // For future dates: project based on resource capacity
-        // Calculate daily capacity (sum of all resources working on active tasks)
-        const dailyCapacity = validTasks
-          .filter(task => task.status !== 'Done')
-          .reduce((sum, task) => {
-            const taskStart = new Date(task.startDate!)
-            const taskEnd = new Date(task.endDate!)
 
-            // Only count if task is active on this date
-            if (date >= taskStart && date <= taskEnd) {
-              const resources = getTaskResources(task.id)
-              const taskCapacity = resources.reduce((taskSum, resource) => {
-                return taskSum + (resource.focusFactor / 100)
-              }, 0)
-              return sum + taskCapacity
-            }
-            return sum
+          // For past dates, if task hasn't started or is in progress, show initial effort
+          if (isPast) {
+            return initialEffort
+          }
+
+          // For future dates, project burndown based on resource capacity
+          // Only burn down if the task is active on this date
+          if (date < taskStart || date > taskEnd) {
+            return initialEffort // Not started yet or already finished
+          }
+
+          // Calculate daily capacity for this task from project resources
+          const dailyCapacity = taskResources.reduce((sum, taskResource) => {
+            // Find the project resource to get numberOfResources
+            const projectResource = projectResources.find(pr => pr.id === taskResource.id)
+            const numberOfResources = projectResource?.numberOfResources || 1
+            const focusFactor = projectResource?.focusFactor || 100
+
+            // Daily capacity = numberOfResources * (focusFactor / 100)
+            return sum + (numberOfResources * (focusFactor / 100))
           }, 0)
 
-        // Calculate remaining work from today
-        const completedEffortToday = validTasks.reduce((sum, task) => {
-          if (task.status === 'Done') {
-            const resources = getTaskResources(task.id)
-            const taskEffort = resources.reduce((taskSum, resource) => {
-              return taskSum + (resource.estimatedDays * (resource.focusFactor / 100))
-            }, 0)
-            return sum + taskEffort
-          }
-          return sum
-        }, 0)
+          // Calculate days elapsed since today
+          const daysFromToday = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+          const workDone = daysFromToday * dailyCapacity
 
-        const remainingFromToday = totalEffort - completedEffortToday
-        const daysFromToday = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-        const workDone = daysFromToday * dailyCapacity
-
-        return {
-          date: format(date, 'MMM dd'),
-          value: Math.max(0, remainingFromToday - workDone),
-        }
+          return Math.max(0, initialEffort - workDone)
+        })
       }
     })
 
@@ -155,34 +142,54 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
       tooltip: {
         trigger: 'axis',
         axisPointer: {
-          type: 'cross',
+          type: 'shadow',
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (params: any) {
-          const date = params[0].axisValue
-          let result = `<div style="padding: 8px;"><div style="font-weight: 600; margin-bottom: 4px;">${date}</div>`
+          const date = params[0]?.axisValue || ''
+          let totalRemaining = 0
+          let result = `<div style="padding: 8px; min-width: 200px;"><div style="font-weight: 600; margin-bottom: 8px;">${date}</div>`
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           params.forEach((param: any) => {
-            const color = param.color
-            const name = param.seriesName
-            const value = param.value.toFixed(1)
-            result += `
-              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color};"></span>
-                <span style="font-size: 12px;">${name}: ${value} person-days</span>
-              </div>
-            `
+            const value = param.value
+            if (value > 0) {
+              totalRemaining += value
+              const color = param.color
+              const name = param.seriesName
+              result += `
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 4px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-block; width: 12px; height: 12px; background-color: ${color};"></span>
+                    <span style="font-size: 12px; color: #374151;">${name}</span>
+                  </div>
+                  <span style="font-size: 12px; font-weight: 600; color: #1f2937;">${value.toFixed(1)}d</span>
+                </div>
+              `
+            }
           })
 
-          result += '</div>'
+          result += `
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+              <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                <span style="font-size: 13px; color: #111827;">Total Remaining:</span>
+                <span style="font-size: 13px; color: #111827;">${totalRemaining.toFixed(1)} person-days</span>
+              </div>
+            </div>
+          </div>`
           return result
         },
       },
       legend: {
-        data: ['Ideal Burndown', 'Actual/Projected Progress'],
+        data: taskRemainingByDay.map(t => t.task.title),
         top: 40,
         textStyle: {
+          color: textColor,
+          fontSize: 11,
+        },
+        type: 'scroll',
+        pageIconColor: textColor,
+        pageTextStyle: {
           color: textColor,
         },
       },
@@ -194,7 +201,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
       },
       xAxis: {
         type: 'category',
-        data: idealData.map(d => d.date),
+        data: allDays.map(d => format(d, 'MMM dd')),
         axisLabel: {
           color: textColor,
           rotate: 45,
@@ -228,41 +235,24 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
         },
       },
       series: [
-        {
-          name: 'Ideal Burndown',
-          type: 'line',
-          data: idealData.map(d => d.value),
-          smooth: false,
-          lineStyle: {
-            color: '#94a3b8',
-            width: 2,
-            type: 'dashed' as const,
-          },
+        // Create a bar series for each task (stacked)
+        ...taskRemainingByDay.map(taskData => ({
+          name: taskData.task.title,
+          type: 'bar' as const,
+          stack: 'total',
+          data: taskData.data,
           itemStyle: {
-            color: '#94a3b8',
+            color: taskData.color,
           },
-          symbol: 'none',
-        },
+          emphasis: {
+            focus: 'series' as const,
+          },
+        })),
+        // Add "Today" and milestone markers using a dummy line series
         {
-          name: 'Actual/Projected Progress',
-          type: 'line',
-          data: actualData.map(d => d.value),
-          smooth: true,
-          lineStyle: {
-            color: '#E8845C',
-            width: 3,
-          },
-          itemStyle: {
-            color: '#E8845C',
-          },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(232, 132, 92, 0.3)' },
-              { offset: 1, color: 'rgba(232, 132, 92, 0.05)' },
-            ]),
-          },
-          symbol: 'circle',
-          symbolSize: 6,
+          name: 'Markers',
+          type: 'line' as const,
+          data: [], // No data, just markers
           markLine: {
             silent: false,
             symbol: ['none', 'none'],
@@ -329,7 +319,7 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
         chartInstance.current = null
       }
     }
-  }, [projectTitle, tasks, milestones])
+  }, [projectId, projectTitle, tasks, milestones, getTaskResources, getProjectResources])
 
   // Show message if no tasks have dates
   const validTasks = tasks.filter(t => t.startDate && t.endDate)
