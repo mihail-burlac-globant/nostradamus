@@ -203,6 +203,29 @@ const TasksPage = () => {
       assignResourceToTask(currentTask.id, res.resourceId, res.estimatedDays, res.focusFactor)
     })
 
+    // Update dependencies - remove old ones and add new ones
+    const currentDependencies = getTaskDependencies(currentTask.id)
+    const currentDependencyIds = currentDependencies.map(d => d.id)
+    const newDependencyIds = formData.dependencies
+
+    // Remove dependencies that are not in the new list
+    currentDependencyIds.forEach(depId => {
+      if (!newDependencyIds.includes(depId)) {
+        removeTaskDependency(currentTask.id, depId)
+      }
+    })
+
+    // Add new dependencies
+    newDependencyIds.forEach((depId) => {
+      if (!currentDependencyIds.includes(depId)) {
+        try {
+          addTaskDependency(currentTask.id, depId)
+        } catch (error) {
+          console.error('Failed to add dependency:', error)
+        }
+      }
+    })
+
     loadTasks() // Reload to show changes
 
     setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', startDate: '', endDate: '', dependencies: [], resources: [] })
@@ -341,6 +364,7 @@ const TasksPage = () => {
   const openEditModal = (task: Task) => {
     setCurrentTask(task)
     const taskResources = getTaskResources(task.id)
+    const taskDependencies = getTaskDependencies(task.id)
     setFormData({
       title: task.title,
       description: task.description,
@@ -350,7 +374,7 @@ const TasksPage = () => {
       color: task.color || '#6366f1',
       startDate: task.startDate || '',
       endDate: task.endDate || '',
-      dependencies: [], // Edit mode doesn't modify dependencies
+      dependencies: taskDependencies.map(d => d.id),
       resources: taskResources.map(r => ({
         resourceId: r.id,
         estimatedDays: r.estimatedDays,
