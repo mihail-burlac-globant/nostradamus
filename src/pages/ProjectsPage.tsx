@@ -562,8 +562,11 @@ const ProjectsPage = () => {
                   ) : (
                     <ul className="space-y-2">
                       {projectResources.map((resource) => (
-                        <li key={resource.id} className="text-sm text-navy-900 dark:text-white">
-                          {resource.title} {resource.role && `(${resource.role})`}
+                        <li key={resource.id} className="text-sm">
+                          <div className="text-navy-900 dark:text-white font-medium">{resource.title}</div>
+                          <div className="text-xs text-navy-600 dark:text-navy-400">
+                            {resource.numberOfResources} resource{resource.numberOfResources > 1 ? 's' : ''} • {resource.focusFactor}% focus
+                          </div>
                         </li>
                       ))}
                     </ul>

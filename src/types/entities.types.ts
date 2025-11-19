@@ -32,6 +32,8 @@ export interface Configuration {
 export interface ProjectResource {
   projectId: string
   resourceId: string
+  numberOfResources: number
+  focusFactor: number
   assignedAt: string
 }
 
