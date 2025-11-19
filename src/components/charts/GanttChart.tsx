@@ -325,11 +325,13 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
                 xAxis: new Date().setHours(0, 0, 0, 0),
                 label: {
                   show: true,
-                  position: 'insideEndTop' as const,
+                  position: 'start' as const,
                   formatter: 'Today',
                   color: '#ef4444',
                   fontSize: 12,
                   fontWeight: 'bold' as const,
+                  distance: -30,
+                  rotate: 0,
                 },
                 lineStyle: {
                   color: '#ef4444',

@@ -412,11 +412,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                 xAxis: todayIndex,
                 label: {
                   show: true,
-                  position: 'insideEndTop' as const,
+                  position: 'start' as const,
                   formatter: 'Today',
                   color: '#ef4444',
                   fontSize: 12,
                   fontWeight: 'bold' as const,
+                  distance: -30,
+                  rotate: 0,
                 },
                 lineStyle: {
                   color: '#ef4444',
