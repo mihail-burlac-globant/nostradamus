@@ -520,8 +520,37 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     }
   }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies])
 
+  const handleExportPNG = () => {
+    if (chartInstance.current) {
+      const url = chartInstance.current.getDataURL({
+        type: 'png',
+        pixelRatio: 2,
+        backgroundColor: '#fff'
+      })
+
+      const link = document.createElement('a')
+      link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '-')}-burndown-chart.png`
+      link.href = url
+      link.click()
+    }
+  }
+
   return (
-    <div className="w-full">
+    <div className="w-full relative">
+      <button
+        onClick={handleExportPNG}
+        className="absolute top-2 right-2 z-10 p-2 bg-white dark:bg-navy-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-navy-200 dark:border-navy-600 group"
+        title="Export as PNG"
+      >
+        <svg
+          className="w-5 h-5 text-navy-600 dark:text-navy-300 group-hover:text-salmon-600 dark:group-hover:text-salmon-500 transition-colors"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      </button>
       <div ref={chartRef} style={{ width: '100%', height: '500px' }} />
     </div>
   )
