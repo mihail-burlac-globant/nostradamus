@@ -79,6 +79,7 @@ const TasksPage = () => {
     const saved = localStorage.getItem('nostradamus_tasks_active_tab')
     return (saved as 'tasks' | 'milestones') || 'tasks'
   })
+  const [dependencySearchTerm, setDependencySearchTerm] = useState('')
 
   useEffect(() => {
     if (!isInitialized) {
@@ -909,46 +910,59 @@ const TasksPage = () => {
                       Select tasks from the same project that must be completed before this task can start
                     </p>
                     {formData.projectId ? (
-                      <div className="border border-navy-200 dark:border-navy-700 rounded-lg max-h-96 overflow-y-auto">
-                        {tasksWithResources
-                          .filter((t) => t.projectId === formData.projectId)
-                          .map((task) => {
-                            const isSelected = formData.dependencies.includes(task.id)
-                            return (
-                              <label
-                                key={task.id}
-                                className={`flex items-center gap-3 p-3 hover:bg-navy-50 dark:hover:bg-navy-900 cursor-pointer border-b border-navy-100 dark:border-navy-800 last:border-b-0 ${
-                                  isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setFormData({ ...formData, dependencies: [...formData.dependencies, task.id] })
-                                    } else {
-                                      setFormData({
-                                        ...formData,
-                                        dependencies: formData.dependencies.filter((id) => id !== task.id),
-                                      })
-                                    }
-                                  }}
-                                  className="w-4 h-4 text-purple-600 border-navy-300 rounded focus:ring-purple-500"
-                                />
-                                <div className="flex-1">
-                                  <span className="text-navy-800 dark:text-navy-100">{task.title}</span>
-                                  <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
-                                </div>
-                              </label>
-                            )
-                          })}
-                        {tasksWithResources.filter((t) => t.projectId === formData.projectId).length === 0 && (
-                          <p className="p-3 text-sm text-navy-500 dark:text-navy-400">
-                            No other tasks in this project yet
-                          </p>
-                        )}
-                      </div>
+                      <>
+                        {/* Search Filter */}
+                        <div className="mb-2">
+                          <input
+                            type="text"
+                            value={dependencySearchTerm}
+                            onChange={(e) => setDependencySearchTerm(e.target.value)}
+                            placeholder="Search tasks..."
+                            className="w-full px-3 py-1.5 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="border border-navy-200 dark:border-navy-700 rounded-lg max-h-80 overflow-y-auto">
+                          {tasksWithResources
+                            .filter((t) => t.projectId === formData.projectId)
+                            .filter((t) => dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))
+                            .map((task) => {
+                              const isSelected = formData.dependencies.includes(task.id)
+                              return (
+                                <label
+                                  key={task.id}
+                                  className={`flex items-center gap-2 px-3 py-1.5 hover:bg-navy-50 dark:hover:bg-navy-900 cursor-pointer border-b border-navy-100 dark:border-navy-800 last:border-b-0 transition-colors ${
+                                    isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setFormData({ ...formData, dependencies: [...formData.dependencies, task.id] })
+                                      } else {
+                                        setFormData({
+                                          ...formData,
+                                          dependencies: formData.dependencies.filter((id) => id !== task.id),
+                                        })
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-purple-600 border-navy-300 rounded focus:ring-purple-500 flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-navy-800 dark:text-navy-100 text-sm">{task.title}</span>
+                                    <span className="ml-2 text-xs text-navy-600 dark:text-navy-400">({task.status})</span>
+                                  </div>
+                                </label>
+                              )
+                            })}
+                          {tasksWithResources.filter((t) => t.projectId === formData.projectId && (dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))).length === 0 && (
+                            <p className="p-3 text-sm text-navy-500 dark:text-navy-400">
+                              {dependencySearchTerm ? 'No tasks match your search' : 'No other tasks in this project yet'}
+                            </p>
+                          )}
+                        </div>
+                      </>
                     ) : (
                       <p className="text-sm text-navy-500 dark:text-navy-400">
                         Please select a project first to choose dependencies
@@ -1519,33 +1533,46 @@ const TasksPage = () => {
               {/* Add Dependency */}
               <div className="border-t border-navy-200 dark:border-navy-700 pt-6">
                 <h3 className="font-semibold text-navy-700 dark:text-navy-300 mb-3">Add Dependency:</h3>
-                <p className="text-sm text-navy-600 dark:text-navy-400 mb-4">
+                <p className="text-sm text-navy-600 dark:text-navy-400 mb-3">
                   Select tasks from the same project that must be completed before this task can start.
                 </p>
-                <div className="space-y-2">
+                {/* Search Filter */}
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={dependencySearchTerm}
+                    onChange={(e) => setDependencySearchTerm(e.target.value)}
+                    placeholder="Search tasks..."
+                    className="w-full px-3 py-1.5 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {tasksWithResources
                     .filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id)
                     .filter((t) => !getTaskDependencies(currentTask.id).some((dep) => dep.id === t.id))
+                    .filter((t) => dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))
                     .map((task) => (
                       <div
                         key={task.id}
-                        className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-3 rounded hover:bg-navy-100 dark:hover:bg-navy-800 transition-colors"
+                        className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 px-3 py-2 rounded hover:bg-navy-100 dark:hover:bg-navy-800 transition-colors"
                       >
-                        <div>
-                          <span className="font-medium text-navy-800 dark:text-navy-100">{task.title}</span>
-                          <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-navy-800 dark:text-navy-100 text-sm">{task.title}</span>
+                          <span className="ml-2 text-xs text-navy-600 dark:text-navy-400">({task.status})</span>
                         </div>
                         <button
                           onClick={() => handleAddDependency(task.id)}
-                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors flex-shrink-0"
                         >
                           Add
                         </button>
                       </div>
                     ))}
                 </div>
-                {tasksWithResources.filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id).length === 0 && (
-                  <p className="text-sm text-navy-500 dark:text-navy-400">No other tasks in this project.</p>
+                {tasksWithResources.filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id && (dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))).length === 0 && (
+                  <p className="text-sm text-navy-500 dark:text-navy-400 mt-2">
+                    {dependencySearchTerm ? 'No tasks match your search' : 'No other tasks in this project.'}
+                  </p>
                 )}
               </div>
 
