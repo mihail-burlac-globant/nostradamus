@@ -317,12 +317,14 @@ const ChartsPage = () => {
                       projectId={selectedProjectId}
                       projectTitle={selectedProject.title}
                       tasks={projectTasks}
+                      milestones={projectMilestones}
                     />
                   ) : (
                     <BurndownChart
                       projectId={selectedProjectId}
                       projectTitle={selectedProject.title}
                       tasks={projectTasks}
+                      milestones={projectMilestones}
                     />
                   )}
                 </div>

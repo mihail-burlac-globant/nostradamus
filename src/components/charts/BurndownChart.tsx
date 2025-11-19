@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
-import type { Task } from '../../types/entities.types'
+import type { Task, Milestone } from '../../types/entities.types'
 import { format, eachDayOfInterval, isAfter } from 'date-fns'
 
 interface BurndownChartProps {
   projectId: string
   projectTitle: string
   tasks: Task[]
+  milestones?: Milestone[]
 }
 
-const BurndownChart = ({ projectTitle, tasks }: BurndownChartProps) => {
+const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
 
@@ -196,6 +197,33 @@ const BurndownChart = ({ projectTitle, tasks }: BurndownChartProps) => {
           },
           symbol: 'circle',
           symbolSize: 6,
+          markLine: milestones.length > 0 ? {
+            silent: false,
+            symbol: ['none', 'none'],
+            label: {
+              show: true,
+              position: 'insideEndTop',
+              formatter: '{b}',
+              color: '#9333ea',
+              fontSize: 11,
+              fontWeight: 600,
+            },
+            lineStyle: {
+              color: '#9333ea',
+              width: 2,
+              type: 'dashed',
+            },
+            data: milestones.map(milestone => {
+              // Find the index of the date in our data
+              const milestoneDate = new Date(milestone.date)
+              const dateStr = format(milestoneDate, 'MMM dd')
+              const index = allDays.findIndex(day => format(day, 'MMM dd') === dateStr)
+              return {
+                name: milestone.title,
+                xAxis: index >= 0 ? index : dateStr,
+              }
+            }),
+          } : undefined,
         },
       ],
     }
@@ -215,7 +243,7 @@ const BurndownChart = ({ projectTitle, tasks }: BurndownChartProps) => {
         chartInstance.current = null
       }
     }
-  }, [projectTitle, tasks])
+  }, [projectTitle, tasks, milestones])
 
   // Show message if no tasks have dates
   const validTasks = tasks.filter(t => t.startDate && t.endDate)

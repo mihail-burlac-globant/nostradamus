@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
-import type { Task } from '../../types/entities.types'
+import type { Task, Milestone } from '../../types/entities.types'
 import { format } from 'date-fns'
 
 interface GanttChartProps {
   projectId: string
   projectTitle: string
   tasks: Task[]
+  milestones?: Milestone[]
 }
 
-const GanttChart = ({ projectTitle, tasks }: GanttChartProps) => {
+const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
 
@@ -186,6 +187,27 @@ const GanttChart = ({ projectTitle, tasks }: GanttChartProps) => {
             ...item,
             value: [item.value[0], item.value[1], index],
           })),
+          markLine: milestones.length > 0 ? {
+            silent: false,
+            symbol: ['none', 'none'],
+            label: {
+              show: true,
+              position: 'insideEndTop',
+              formatter: '{b}',
+              color: '#9333ea',
+              fontSize: 11,
+              fontWeight: 600,
+            },
+            lineStyle: {
+              color: '#9333ea',
+              width: 2,
+              type: 'dashed',
+            },
+            data: milestones.map(milestone => ({
+              name: milestone.title,
+              xAxis: new Date(milestone.date).getTime(),
+            })),
+          } : undefined,
         },
       ],
     }
@@ -205,7 +227,7 @@ const GanttChart = ({ projectTitle, tasks }: GanttChartProps) => {
         chartInstance.current = null
       }
     }
-  }, [projectTitle, tasks])
+  }, [projectTitle, tasks, milestones])
 
   // Show message if no tasks have dates
   const validTasks = tasks.filter(t => t.startDate && t.endDate)
