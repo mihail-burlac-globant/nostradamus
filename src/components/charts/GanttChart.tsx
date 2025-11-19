@@ -274,7 +274,7 @@ const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) =
         chartInstance.current = null
       }
     }
-  }, [projectTitle, tasks, milestones])
+  }, [projectTitle, tasks, milestones, getTaskResources])
 
   // Show message if no tasks have dates
   const validTasks = tasks.filter(t => t.startDate && t.endDate)
