@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
 import { format } from 'date-fns'
+import { useEntitiesStore } from '../../stores/entitiesStore'
 
 interface GanttChartProps {
   projectId: string
@@ -13,6 +14,7 @@ interface GanttChartProps {
 const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
+  const { getTaskResources } = useEntitiesStore()
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -97,15 +99,30 @@ const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) =
           const end = format(new Date(params.value[1]), 'MMM dd, yyyy')
           const duration = Math.ceil((params.value[1] - params.value[0]) / (1000 * 60 * 60 * 24))
 
+          // Get resources for this task
+          const taskResources = getTaskResources(task.id)
+          const resourcesHtml = taskResources.length > 0
+            ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+                <div style="font-weight: 600; margin-bottom: 4px; color: #374151;">Resources:</div>
+                ${taskResources.map(resource => `
+                  <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+                    <span style="color: #6b7280;">• ${resource.title}</span>
+                    <span style="color: #9ca3af; font-size: 11px;">${resource.estimatedDays}d @ ${resource.focusFactor}%</span>
+                  </div>
+                `).join('')}
+              </div>`
+            : ''
+
           return `
-            <div style="padding: 8px;">
-              <div style="font-weight: 600; margin-bottom: 4px;">${task.title}</div>
-              <div style="font-size: 12px; color: #666;">
-                <div>Start: ${start}</div>
-                <div>End: ${end}</div>
-                <div>Duration: ${duration} days</div>
-                <div>Status: ${task.status}</div>
+            <div style="padding: 8px; min-width: 200px;">
+              <div style="font-weight: 600; margin-bottom: 8px; color: #111827;">${task.title}</div>
+              <div style="font-size: 12px; color: #6b7280;">
+                <div style="margin-bottom: 2px;">Start: <strong>${start}</strong></div>
+                <div style="margin-bottom: 2px;">End: <strong>${end}</strong></div>
+                <div style="margin-bottom: 2px;">Duration: <strong>${duration} days</strong></div>
+                <div>Status: <strong style="color: ${task.status === 'Done' ? '#10b981' : task.status === 'In Progress' ? '#f59e0b' : '#6b7280'};">${task.status}</strong></div>
               </div>
+              ${resourcesHtml}
             </div>
           `
         },
