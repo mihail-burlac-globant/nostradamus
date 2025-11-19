@@ -19,6 +19,10 @@ const TasksPage = () => {
     assignResourceToTask,
     removeResourceFromTask,
     getTaskResources,
+    addTaskDependency,
+    removeTaskDependency,
+    getTaskDependencies,
+    canTaskBeStarted,
     initialize,
     isInitialized,
   } = useEntitiesStore()
@@ -31,6 +35,7 @@ const TasksPage = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showResourceModal, setShowResourceModal] = useState(false)
+  const [showDependenciesModal, setShowDependenciesModal] = useState(false)
   const [currentTask, setCurrentTask] = useState<Task | null>(null)
   const [tasksWithResources, setTasksWithResources] = useState<TaskWithResources[]>([])
   const [formData, setFormData] = useState({
@@ -38,6 +43,7 @@ const TasksPage = () => {
     description: '',
     projectId: '',
     status: 'Todo' as TaskStatus,
+    color: '#6366f1',
   })
   const [resourceFormData, setResourceFormData] = useState({
     resourceId: '',
@@ -92,7 +98,7 @@ const TasksPage = () => {
     addTask(formData)
     // Save the last selected project for future use
     localStorage.setItem('nostradamus_tasks_last_project', formData.projectId)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo' })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1' })
     setShowCreateModal(false)
   }
 
@@ -100,7 +106,7 @@ const TasksPage = () => {
     if (!currentTask || !formData.title.trim()) return
 
     editTask(currentTask.id, formData)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo' })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1' })
     setCurrentTask(null)
     setShowEditModal(false)
   }
@@ -139,6 +145,7 @@ const TasksPage = () => {
       description: task.description,
       projectId: task.projectId,
       status: task.status,
+      color: task.color || '#6366f1',
     })
     setShowEditModal(true)
   }
@@ -152,6 +159,27 @@ const TasksPage = () => {
     setCurrentTask(task)
     setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
     setShowResourceModal(true)
+  }
+
+  const openDependenciesModal = (task: Task) => {
+    setCurrentTask(task)
+    setShowDependenciesModal(true)
+  }
+
+  const handleAddDependency = (dependsOnTaskId: string) => {
+    if (!currentTask || !dependsOnTaskId) return
+    try {
+      addTaskDependency(currentTask.id, dependsOnTaskId)
+      loadTasks()
+    } catch (error) {
+      alert((error as Error).message)
+    }
+  }
+
+  const handleRemoveDependency = (dependsOnTaskId: string) => {
+    if (!currentTask) return
+    removeTaskDependency(currentTask.id, dependsOnTaskId)
+    loadTasks()
   }
 
   const getProjectName = (projectId: string) => {
@@ -191,7 +219,7 @@ const TasksPage = () => {
               const defaultProjectId = selectedProjectFilter !== 'all'
                 ? selectedProjectFilter
                 : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
-              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo' })
+              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', color: '#6366f1' })
               setShowCreateModal(true)
             }}
             className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -232,16 +260,31 @@ const TasksPage = () => {
                 <div className="space-y-4">
                   {projectTasks.map((task) => {
                     const totalEstimate = calculateTotalEstimate(task.resources)
+                    const dependencies = getTaskDependencies(task.id)
+                    const canStart = canTaskBeStarted(task.id)
                     return (
                       <div
                         key={task.id}
-                        className="border border-navy-200 dark:border-navy-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        className="border-l-4 border border-navy-200 dark:border-navy-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        style={{ borderLeftColor: task.color || '#6366f1' }}
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-navy-800 dark:text-navy-100 mb-1">
-                              {task.title}
-                            </h3>
+                            <div className="flex items-center gap-3 mb-1">
+                              <div
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: task.color || '#6366f1' }}
+                                title="Task color"
+                              />
+                              <h3 className="text-xl font-semibold text-navy-800 dark:text-navy-100">
+                                {task.title}
+                              </h3>
+                              {!canStart && (
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 text-xs rounded-full">
+                                  Blocked
+                                </span>
+                              )}
+                            </div>
                             <p className="text-navy-600 dark:text-navy-400 mb-2">{task.description}</p>
                             <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(task.status)}`}>
                               {task.status}
@@ -252,7 +295,13 @@ const TasksPage = () => {
                               onClick={() => openResourceModal(task)}
                               className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
                             >
-                              Manage Resources
+                              Resources
+                            </button>
+                            <button
+                              onClick={() => openDependenciesModal(task)}
+                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
+                            >
+                              Dependencies
                             </button>
                             <button
                               onClick={() => openEditModal(task)}
@@ -268,6 +317,25 @@ const TasksPage = () => {
                             </button>
                           </div>
                         </div>
+
+                        {/* Dependencies */}
+                        {dependencies.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-navy-200 dark:border-navy-700">
+                            <h4 className="font-semibold text-navy-700 dark:text-navy-300 mb-2">
+                              Dependencies:
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {dependencies.map((dep) => (
+                                <span
+                                  key={dep.id}
+                                  className="px-3 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-sm rounded-full"
+                                >
+                                  {dep.title} ({dep.status})
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Resources */}
                         {task.resources.length > 0 && (
@@ -371,6 +439,27 @@ const TasksPage = () => {
                     <option value="Done">Done</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="w-16 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="flex-1 px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      placeholder="#6366f1"
+                    />
+                  </div>
+                  <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                    This color will be used in charts and task visualization
+                  </p>
+                </div>
               </div>
               <div className="flex gap-4 mt-6">
                 <button
@@ -443,6 +532,27 @@ const TasksPage = () => {
                     <option value="Done">Done</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="w-16 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="flex-1 px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      placeholder="#6366f1"
+                    />
+                  </div>
+                  <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                    This color will be used in charts and task visualization
+                  </p>
+                </div>
               </div>
               <div className="flex gap-4 mt-6">
                 <button
@@ -488,6 +598,102 @@ const TasksPage = () => {
                   className="flex-1 px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manage Dependencies Modal */}
+        {showDependenciesModal && currentTask && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">
+                Manage Dependencies for "{currentTask.title}"
+              </h2>
+
+              {/* Current Dependencies */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-navy-700 dark:text-navy-300 mb-3">Current Dependencies:</h3>
+                {getTaskDependencies(currentTask.id).length === 0 ? (
+                  <p className="text-navy-500 dark:text-navy-400 text-sm">No dependencies yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {getTaskDependencies(currentTask.id).map((dep) => {
+                      const depResources = getTaskResources(dep.id)
+                      const remainingEstimate = depResources.reduce((total, r) => total + (r.estimatedDays * (r.focusFactor / 100)), 0)
+                      return (
+                        <div
+                          key={dep.id}
+                          className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-3 rounded"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-navy-800 dark:text-navy-100">{dep.title}</span>
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                dep.status === 'Done' || remainingEstimate === 0
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                              }`}>
+                                {dep.status} {remainingEstimate > 0 ? `(${remainingEstimate.toFixed(1)}d remaining)` : '(Complete)'}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveDependency(dep.id)}
+                            className="px-3 py-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Add Dependency */}
+              <div className="border-t border-navy-200 dark:border-navy-700 pt-6">
+                <h3 className="font-semibold text-navy-700 dark:text-navy-300 mb-3">Add Dependency:</h3>
+                <p className="text-sm text-navy-600 dark:text-navy-400 mb-4">
+                  Select tasks from the same project that must be completed before this task can start.
+                </p>
+                <div className="space-y-2">
+                  {tasksWithResources
+                    .filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id)
+                    .filter((t) => !getTaskDependencies(currentTask.id).some((dep) => dep.id === t.id))
+                    .map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-3 rounded hover:bg-navy-100 dark:hover:bg-navy-800 transition-colors"
+                      >
+                        <div>
+                          <span className="font-medium text-navy-800 dark:text-navy-100">{task.title}</span>
+                          <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
+                        </div>
+                        <button
+                          onClick={() => handleAddDependency(task.id)}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    ))}
+                </div>
+                {tasksWithResources.filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id).length === 0 && (
+                  <p className="text-sm text-navy-500 dark:text-navy-400">No other tasks in this project.</p>
+                )}
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-navy-200 dark:border-navy-700">
+                <button
+                  onClick={() => {
+                    setShowDependenciesModal(false)
+                    setCurrentTask(null)
+                  }}
+                  className="w-full px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
+                >
+                  Close
                 </button>
               </div>
             </div>

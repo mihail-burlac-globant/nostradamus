@@ -20,6 +20,8 @@ const ProjectsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [viewingProject, setViewingProject] = useState<Project | null>(null)
+  const [projectResources, setProjectResources] = useState<any[]>([])
+  const [projectConfigs, setProjectConfigs] = useState<any[]>([])
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Archived'>('all')
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
     const saved = localStorage.getItem('nostradamus_projects_view_mode')
@@ -42,9 +44,26 @@ const ProjectsPage = () => {
     localStorage.setItem('nostradamus_projects_view_mode', viewMode)
   }, [viewMode])
 
+  useEffect(() => {
+    if (viewingProject) {
+      const resources = getProjectResources(viewingProject.id)
+      const configs = getProjectConfigurations(viewingProject.id)
+      setProjectResources(resources)
+      setProjectConfigs(configs)
+    }
+  }, [viewingProject, getProjectResources, getProjectConfigurations])
+
   const filteredProjects = projects.filter((p) =>
     filterStatus === 'all' ? true : p.status === filterStatus
   )
+
+  // Get configuration summary for a project
+  const getConfigSummary = (projectId: string): string => {
+    const configs = getProjectConfigurations(projectId)
+    if (configs.length === 0) return 'No configuration'
+    if (configs.length === 1) return configs[0].name
+    return `${configs.length} configurations`
+  }
 
   const handleCreateProject = () => {
     if (!formData.title.trim()) return
@@ -105,9 +124,6 @@ const ProjectsPage = () => {
     setFormData({ title: '', description: '', status: 'Active' })
     setErrorMessage('')
   }
-
-  const projectResources = viewingProject ? getProjectResources(viewingProject.id) : []
-  const projectConfigs = viewingProject ? getProjectConfigurations(viewingProject.id) : []
 
   return (
     <div className="container-wide section-spacing">
@@ -334,6 +350,9 @@ const ProjectsPage = () => {
                   Description
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
+                  Configuration
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
@@ -352,6 +371,11 @@ const ProjectsPage = () => {
                   <td className="px-6 py-4">
                     <div className="text-sm text-navy-600 dark:text-navy-400 line-clamp-2">
                       {project.description}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-navy-600 dark:text-navy-400">
+                      {getConfigSummary(project.id)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
