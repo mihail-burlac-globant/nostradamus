@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
-import type { Project } from '../types/entities.types'
+import type { Project, Resource, Configuration } from '../types/entities.types'
 
 const ProjectsPage = () => {
   const {
@@ -20,8 +20,8 @@ const ProjectsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [viewingProject, setViewingProject] = useState<Project | null>(null)
-  const [projectResources, setProjectResources] = useState<any[]>([])
-  const [projectConfigs, setProjectConfigs] = useState<any[]>([])
+  const [projectResources, setProjectResources] = useState<(Resource & { numberOfResources: number; focusFactor: number })[]>([])
+  const [projectConfigs, setProjectConfigs] = useState<Configuration[]>([])
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Archived'>('all')
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
     const saved = localStorage.getItem('nostradamus_projects_view_mode')
