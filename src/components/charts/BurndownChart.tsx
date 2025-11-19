@@ -59,10 +59,30 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         }
       }
 
-      // Calculate duration from resource estimates
+      // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
       const resources = getTaskResources(task.id)
-      const totalDays = resources.reduce((sum, r) => sum + (r.estimatedDays * (r.focusFactor / 100)), 0)
-      const durationDays = totalDays > 0 ? Math.ceil(totalDays) : 1
+
+      // For each resource type, calculate how long it takes considering team size
+      const resourceDurations: number[] = []
+
+      resources.forEach(taskResource => {
+        // Person-days of work needed
+        const workDays = taskResource.estimatedDays
+
+        // Find how many people of this resource type are available in the project
+        const projectResource = projectResources.find(pr => pr.id === taskResource.id)
+        const numberOfProfiles = projectResource?.numberOfResources || 1
+        const focusFactor = (projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
+
+        // Duration = workDays / (numberOfProfiles * focusFactor)
+        const duration = workDays / (numberOfProfiles * focusFactor)
+        resourceDurations.push(duration)
+      })
+
+      // Task duration is the longest duration among all resource types (they work in parallel)
+      const durationDays = resourceDurations.length > 0
+        ? Math.ceil(Math.max(...resourceDurations))
+        : 1
 
       // Calculate end date
       const endDate = new Date(earliestStart)
