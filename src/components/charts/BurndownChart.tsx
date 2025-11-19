@@ -80,8 +80,10 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
     const isDarkMode = document.documentElement.classList.contains('dark')
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
     const gridColor = isDarkMode ? '#3D3D47' : '#E8E8EA'
+    const backgroundColor = isDarkMode ? '#262629' : '#ffffff'
 
     const option: echarts.EChartsOption = {
+      backgroundColor: backgroundColor,
       title: {
         text: `${projectTitle} - Burndown Chart`,
         left: 'center',

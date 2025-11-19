@@ -32,6 +32,7 @@ const ProjectsPage = () => {
     title: '',
     description: '',
     status: 'Active' as 'Active' | 'Archived',
+    startDate: '',
   })
 
   useEffect(() => {
@@ -79,7 +80,7 @@ const ProjectsPage = () => {
     }
 
     addProject(formData)
-    setFormData({ title: '', description: '', status: 'Active' })
+    setFormData({ title: '', description: '', status: 'Active', startDate: '' })
     setErrorMessage('')
     setShowCreateModal(false)
   }
@@ -99,7 +100,7 @@ const ProjectsPage = () => {
 
     editProject(editingProject.id, formData)
     setEditingProject(null)
-    setFormData({ title: '', description: '', status: 'Active' })
+    setFormData({ title: '', description: '', status: 'Active', startDate: '' })
     setErrorMessage('')
   }
 
@@ -115,13 +116,14 @@ const ProjectsPage = () => {
       title: project.title,
       description: project.description,
       status: project.status,
+      startDate: project.startDate || '',
     })
   }
 
   const closeModal = () => {
     setShowCreateModal(false)
     setEditingProject(null)
-    setFormData({ title: '', description: '', status: 'Active' })
+    setFormData({ title: '', description: '', status: 'Active', startDate: '' })
     setErrorMessage('')
   }
 
@@ -500,6 +502,23 @@ const ProjectsPage = () => {
                            focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
                   placeholder="Enter project description"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
+                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                  Optional: Set the project start date for timeline calculations in charts
+                </p>
               </div>
 
               <div>
