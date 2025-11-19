@@ -251,6 +251,7 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
             const completedWidth = totalWidth * progress
 
             // Create group of shapes to show progress
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const children: any[] = [
               // Background bar (remaining work) with reduced opacity
               {
