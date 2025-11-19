@@ -6,6 +6,7 @@ import ProjectsPage from './pages/ProjectsPage'
 import TasksPage from './pages/TasksPage'
 import ResourcesPage from './pages/ResourcesPage'
 import ConfigurationsPage from './pages/ConfigurationsPage'
+import SeedPage from './pages/SeedPage'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/configurations" element={<ConfigurationsPage />} />
+            <Route path="/seed" element={<SeedPage />} />
           </Routes>
         </main>
 

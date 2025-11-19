@@ -1,92 +1,142 @@
-import { useState } from 'react'
-import CSVUploader from '../components/upload/CSVUploader'
+import { useState, useEffect } from 'react'
+import { useEntitiesStore } from '../stores/entitiesStore'
 import GanttChart from '../components/charts/GanttChart'
 import BurndownChart from '../components/charts/BurndownChart'
 import ChartControls from '../components/controls/ChartControls'
-import { useProjectStore } from '../stores/projectStore'
 
 type ChartType = 'gantt' | 'burndown'
 
 const ChartsPage = () => {
+  const {
+    projects,
+    tasks,
+    isInitialized,
+    initialize,
+    loadProjects,
+    loadTasks,
+  } = useEntitiesStore()
+
   const [activeChart, setActiveChart] = useState<ChartType>('gantt')
-  const { projectData } = useProjectStore()
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
+
+  useEffect(() => {
+    if (!isInitialized) {
+      initialize()
+    } else {
+      loadProjects('Active')
+      loadTasks()
+    }
+  }, [isInitialized, initialize, loadProjects, loadTasks])
+
+  useEffect(() => {
+    // Auto-select first active project if none selected
+    if (!selectedProjectId && projects.length > 0) {
+      const activeProjects = projects.filter(p => p.status === 'Active')
+      if (activeProjects.length > 0) {
+        setSelectedProjectId(activeProjects[0].id)
+      }
+    }
+  }, [projects, selectedProjectId])
+
+  const activeProjects = projects.filter(p => p.status === 'Active')
+  const selectedProject = activeProjects.find(p => p.id === selectedProjectId)
+  const projectTasks = tasks.filter(t => t.projectId === selectedProjectId)
 
   return (
-    <div className="container-wide section-spacing">
-      {!projectData ? (
-        <div className="flex items-center justify-center min-h-[70vh]">
-          <div className="w-full max-w-3xl">
-            {/* Hero Section */}
-            <div className="text-center mb-12 space-y-6">
-              <div className="inline-block mb-4">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-salmon-100 dark:bg-salmon-900/20
-                              rounded-full text-sm font-medium text-salmon-800 dark:text-salmon-400 border border-salmon-200 dark:border-salmon-800">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                  Professional Project Intelligence
-                </div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-navy-900 dark:to-salmon-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100 mb-2">
+            Project Charts & Analytics
+          </h1>
+          <p className="text-navy-600 dark:text-navy-400">
+            Visualize project timelines with Gantt charts and track progress with burndown analysis
+          </p>
+        </div>
 
-              <h2 className="text-h1 font-serif text-navy-900 dark:text-white">
-                Visualize Your Project's{' '}
-                <span className="text-gradient-salmon">Future</span>
+        {activeProjects.length === 0 ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center max-w-md">
+              <div className="mb-6">
+                <svg className="w-24 h-24 mx-auto text-navy-300 dark:text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-3">
+                No Active Projects
               </h2>
-
-              <p className="text-body-lg text-navy-600 dark:text-navy-300 max-w-2xl mx-auto leading-relaxed">
-                Transform your project data into actionable insights with elegant Gantt charts
-                and burndown analysis. Upload a CSV and let Nostradamus illuminate the path ahead.
+              <p className="text-navy-600 dark:text-navy-400 mb-6">
+                Create your first project to start visualizing tasks and tracking progress with charts.
               </p>
-            </div>
-
-            {/* Uploader */}
-            <CSVUploader />
-
-            {/* Features */}
-            <div className="grid grid-cols-3 gap-6 mt-12 text-center">
-              <div>
-                <div className="text-2xl font-serif font-bold text-salmon-600 dark:text-salmon-500 mb-1">
-                  No Setup
-                </div>
-                <p className="text-sm text-navy-600 dark:text-navy-400">
-                  Just upload & visualize
-                </p>
-              </div>
-              <div>
-                <div className="text-2xl font-serif font-bold text-salmon-600 dark:text-salmon-500 mb-1">
-                  100% Private
-                </div>
-                <p className="text-sm text-navy-600 dark:text-navy-400">
-                  All data stays local
-                </p>
-              </div>
-              <div>
-                <div className="text-2xl font-serif font-bold text-salmon-600 dark:text-salmon-500 mb-1">
-                  Instant Insights
-                </div>
-                <p className="text-sm text-navy-600 dark:text-navy-400">
-                  Real-time projections
-                </p>
-              </div>
+              <a
+                href="/projects"
+                className="inline-block px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Go to Projects
+              </a>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <ChartControls
-            activeChart={activeChart}
-            onChartChange={setActiveChart}
-          />
+        ) : (
+          <div className="space-y-6">
+            {/* Project Selection */}
+            <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                    Select Project
+                  </label>
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="w-full px-4 py-3 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-lg"
+                  >
+                    {activeProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title} ({tasks.filter(t => t.projectId === project.id).length} tasks)
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          <div className="card-hover">
-            {activeChart === 'gantt' ? (
-              <GanttChart />
-            ) : (
-              <BurndownChart />
+                {selectedProject && (
+                  <div className="text-right">
+                    <p className="text-sm text-navy-600 dark:text-navy-400 mb-1">Tasks</p>
+                    <p className="text-3xl font-bold text-salmon-600 dark:text-salmon-400">
+                      {projectTasks.length}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {selectedProject && projectTasks.length === 0 && (
+                <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-yellow-800 dark:text-yellow-300 text-sm">
+                    This project has no tasks yet. Add tasks to see them visualized in charts.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Charts */}
+            {selectedProject && projectTasks.length > 0 && (
+              <div className="space-y-4">
+                <ChartControls
+                  activeChart={activeChart}
+                  onChartChange={setActiveChart}
+                />
+
+                <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
+                  {activeChart === 'gantt' ? (
+                    <GanttChart />
+                  ) : (
+                    <BurndownChart />
+                  )}
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
