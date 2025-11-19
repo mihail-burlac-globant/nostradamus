@@ -14,7 +14,7 @@ interface BurndownChartProps {
 const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: BurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
-  const { getTaskResources, getProjectResources } = useEntitiesStore()
+  const { getTaskResources, getProjectResources, getTaskDependencies } = useEntitiesStore()
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -62,65 +62,121 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
       '#EC7063', '#48C9B0', '#5DADE2', '#F5B041', '#AF7AC5'
     ]
 
-    // Calculate initial effort for each task
+    // Calculate initial effort and current remaining effort for each task
     const taskInitialEffort = new Map<string, number>()
+    const taskCurrentRemaining = new Map<string, number>()
+    const taskResourceTypes = new Map<string, string[]>() // task -> resource types
+
     validTasks.forEach(task => {
       const resources = getTaskResources(task.id)
       const effort = resources.reduce((sum, resource) => {
         return sum + (resource.estimatedDays * (resource.focusFactor / 100))
       }, 0)
       taskInitialEffort.set(task.id, effort)
-    })
 
-    // Calculate current remaining effort for each task (based on progress)
-    const taskCurrentRemaining = new Map<string, number>()
-    validTasks.forEach(task => {
-      const initialEffort = taskInitialEffort.get(task.id) || 0
-      // Use progress to calculate remaining effort
-      const remaining = initialEffort * (1 - task.progress / 100)
+      // Calculate remaining effort based on progress
+      const remaining = effort * (1 - task.progress / 100)
       taskCurrentRemaining.set(task.id, remaining)
+
+      // Store resource types for this task
+      const resourceTypes = resources.map(r => r.id)
+      taskResourceTypes.set(task.id, resourceTypes)
     })
 
-    // Calculate remaining effort for each task on each day
-    const taskRemainingByDay = validTasks.map(task => {
-      const currentRemaining = taskCurrentRemaining.get(task.id) || 0
-      const taskResources = getTaskResources(task.id)
-      const taskStart = new Date(task.startDate!)
-      const taskEnd = new Date(task.endDate!)
+    // Build dependency graph
+    const taskDependencies = new Map<string, string[]>() // task -> depends on these tasks
+    const completedTasks = new Set<string>()
 
-      return {
-        task,
-        color: taskColors[validTasks.indexOf(task) % taskColors.length],
-        data: allDays.map((date) => {
-          const isFuture = isAfter(date, today)
+    validTasks.forEach(task => {
+      const deps = getTaskDependencies(task.id) // Returns Task objects this task depends on
+      taskDependencies.set(task.id, deps.map(d => d.id))
 
-          // For past dates and today: show current remaining effort (flat baseline)
-          if (!isFuture) {
-            return currentRemaining
+      // Mark done tasks as completed
+      if (task.status === 'Done' || task.progress >= 100) {
+        completedTasks.add(task.id)
+      }
+    })
+
+    // Calculate resource capacity per type from project resources
+    const resourceCapacity = new Map<string, number>() // resourceId -> daily capacity
+    projectResources.forEach(pr => {
+      const capacity = pr.numberOfResources * (pr.focusFactor / 100)
+      resourceCapacity.set(pr.id, capacity)
+    })
+
+    // Simulate work day by day to calculate remaining effort
+    const taskRemainingByDay = validTasks.map(task => ({
+      task,
+      color: taskColors[validTasks.indexOf(task) % taskColors.length],
+      data: [] as number[]
+    }))
+
+    // For each day, simulate work
+    const taskRemainingSimulation = new Map<string, number>()
+    validTasks.forEach(task => {
+      taskRemainingSimulation.set(task.id, taskCurrentRemaining.get(task.id) || 0)
+    })
+
+    const simulationCompletedTasks = new Set(completedTasks)
+
+    allDays.forEach((date) => {
+      const isFuture = isAfter(date, today)
+
+      if (!isFuture) {
+        // For past dates and today: show current remaining effort (flat baseline)
+        validTasks.forEach(task => {
+          const idx = validTasks.indexOf(task)
+          taskRemainingByDay[idx].data.push(taskCurrentRemaining.get(task.id) || 0)
+        })
+      } else {
+        // For future dates: simulate work with dependencies
+
+        // Find tasks that can be worked on (dependencies satisfied)
+        const workableTasks = validTasks.filter(task => {
+          if (simulationCompletedTasks.has(task.id)) return false
+
+          const deps = taskDependencies.get(task.id) || []
+          return deps.every(depId => simulationCompletedTasks.has(depId))
+        })
+
+        // Group workable tasks by resource type and calculate work done
+        const workDoneByTask = new Map<string, number>()
+
+        // For each resource type, distribute capacity across tasks that need it
+        resourceCapacity.forEach((capacity, resourceId) => {
+          const tasksNeedingResource = workableTasks.filter(task => {
+            const types = taskResourceTypes.get(task.id) || []
+            return types.includes(resourceId) && (taskRemainingSimulation.get(task.id) || 0) > 0
+          })
+
+          if (tasksNeedingResource.length === 0) return
+
+          // Distribute capacity evenly across tasks needing this resource
+          const capacityPerTask = capacity / tasksNeedingResource.length
+
+          tasksNeedingResource.forEach(task => {
+            const currentWork = workDoneByTask.get(task.id) || 0
+            workDoneByTask.set(task.id, currentWork + capacityPerTask)
+          })
+        })
+
+        // Apply work done and update remaining effort
+        workableTasks.forEach(task => {
+          const workDone = workDoneByTask.get(task.id) || 0
+          const remaining = taskRemainingSimulation.get(task.id) || 0
+          const newRemaining = Math.max(0, remaining - workDone)
+          taskRemainingSimulation.set(task.id, newRemaining)
+
+          // Mark as completed if done
+          if (newRemaining <= 0.01) {
+            simulationCompletedTasks.add(task.id)
           }
+        })
 
-          // For future dates: project burndown from current remaining effort
-          // Only burn down if the task is active on this date
-          if (date < taskStart || date > taskEnd) {
-            return currentRemaining // Task not active on this date
-          }
-
-          // Calculate daily capacity for this task from project resources
-          const dailyCapacity = taskResources.reduce((sum, taskResource) => {
-            // Find the project resource to get numberOfResources
-            const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-            const numberOfResources = projectResource?.numberOfResources || 1
-            const focusFactor = projectResource?.focusFactor || 100
-
-            // Daily capacity = numberOfResources * (focusFactor / 100)
-            return sum + (numberOfResources * (focusFactor / 100))
-          }, 0)
-
-          // Calculate days elapsed since today
-          const daysFromToday = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-          const workDone = daysFromToday * dailyCapacity
-
-          return Math.max(0, currentRemaining - workDone)
+        // Record remaining effort for this day
+        validTasks.forEach(task => {
+          const idx = validTasks.indexOf(task)
+          taskRemainingByDay[idx].data.push(taskRemainingSimulation.get(task.id) || 0)
         })
       }
     })
@@ -302,12 +358,12 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
                       show: true,
                       position: 'insideEndTop' as const,
                       formatter: milestone.title,
-                      color: '#9333ea',
+                      color: milestone.color,
                       fontSize: 11,
                       fontWeight: 600 as const,
                     },
                     lineStyle: {
-                      color: '#9333ea',
+                      color: milestone.color,
                       width: 2,
                       type: 'dashed' as const,
                     },
@@ -335,7 +391,7 @@ const BurndownChart = ({ projectId, projectTitle, tasks, milestones = [] }: Burn
         chartInstance.current = null
       }
     }
-  }, [projectId, projectTitle, tasks, milestones, getTaskResources, getProjectResources])
+  }, [projectId, projectTitle, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies])
 
   // Show message if no tasks have dates
   const validTasks = tasks.filter(t => t.startDate && t.endDate)

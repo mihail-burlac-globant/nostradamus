@@ -80,6 +80,8 @@ export interface Milestone {
   projectId: string
   title: string
   date: string // ISO date string for milestone date
+  icon: string // Icon identifier (e.g., 'flag', 'star', 'rocket', 'target')
+  color: string // Hex color for milestone marker, default: '#9333ea'
   createdAt: string
   updatedAt: string
 }
