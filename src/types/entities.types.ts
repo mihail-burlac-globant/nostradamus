@@ -14,6 +14,7 @@ export interface Resource {
   title: string // e.g., 'PHP', 'TypeScript', 'ReactJS', 'iOS', etc.
   description: string
   defaultVelocity: number // Focus factor in percentage (0-100)
+  icon: string // Icon ID from resource icons library, default: 'generic'
   status: ProjectStatus
   createdAt: string
   updatedAt: string
@@ -51,6 +52,7 @@ export interface Task {
   title: string
   description: string
   status: TaskStatus
+  color: string // Hex color for the task, default: '#6366f1'
   createdAt: string
   updatedAt: string
 }
@@ -61,4 +63,10 @@ export interface TaskResource {
   estimatedDays: number // Man-days estimate
   focusFactor: number // Task-specific focus factor (0-100)
   assignedAt: string
+}
+
+export interface TaskDependency {
+  taskId: string // The task that has dependencies
+  dependsOnTaskId: string // The task that must be completed first
+  createdAt: string
 }

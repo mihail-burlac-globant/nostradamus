@@ -5,7 +5,7 @@ let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
 const DB_VERSION_KEY = 'nostradamus_db_version'
-const CURRENT_DB_VERSION = 3 // Incremented for tasks and task_resources tables
+const CURRENT_DB_VERSION = 4 // Incremented for resource icons, task colors, and task dependencies
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -53,6 +53,7 @@ const createTables = (database: Database) => {
       title TEXT NOT NULL,
       description TEXT NOT NULL,
       defaultVelocity REAL NOT NULL CHECK(defaultVelocity >= 0 AND defaultVelocity <= 100),
+      icon TEXT NOT NULL DEFAULT 'generic',
       status TEXT NOT NULL CHECK(status IN ('Active', 'Archived')),
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
@@ -94,6 +95,7 @@ const createTables = (database: Database) => {
       title TEXT NOT NULL,
       description TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('Todo', 'In Progress', 'Done')),
+      color TEXT NOT NULL DEFAULT '#6366f1',
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
@@ -110,6 +112,16 @@ const createTables = (database: Database) => {
       FOREIGN KEY (resourceId) REFERENCES resources(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS task_dependencies (
+      taskId TEXT NOT NULL,
+      dependsOnTaskId TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      PRIMARY KEY (taskId, dependsOnTaskId),
+      FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY (dependsOnTaskId) REFERENCES tasks(id) ON DELETE CASCADE,
+      CHECK (taskId != dependsOnTaskId)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
     CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status);
     CREATE INDEX IF NOT EXISTS idx_project_resources_project ON project_resources(projectId);
@@ -117,6 +129,8 @@ const createTables = (database: Database) => {
     CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(projectId);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_task_resources_task ON task_resources(taskId);
+    CREATE INDEX IF NOT EXISTS idx_task_dependencies_task ON task_dependencies(taskId);
+    CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends ON task_dependencies(dependsOnTaskId);
   `)
 
   saveDatabase(database)
@@ -239,10 +253,11 @@ export const createResource = (resource: Omit<Resource, 'id' | 'createdAt' | 'up
   const database = getDatabase()
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
+  const icon = resource.icon || 'generic'
 
   database.run(
-    'INSERT INTO resources (id, title, description, defaultVelocity, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [id, resource.title, resource.description, resource.defaultVelocity, resource.status, now, now]
+    'INSERT INTO resources (id, title, description, defaultVelocity, icon, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, resource.title, resource.description, resource.defaultVelocity, icon, resource.status, now, now]
   )
 
   saveDatabase(database)
@@ -250,6 +265,7 @@ export const createResource = (resource: Omit<Resource, 'id' | 'createdAt' | 'up
   return {
     id,
     ...resource,
+    icon,
     createdAt: now,
     updatedAt: now,
   }
@@ -304,6 +320,10 @@ export const updateResource = (id: string, updates: Partial<Omit<Resource, 'id' 
   if (updates.defaultVelocity !== undefined) {
     fields.push('defaultVelocity = ?')
     values.push(updates.defaultVelocity)
+  }
+  if (updates.icon !== undefined) {
+    fields.push('icon = ?')
+    values.push(updates.icon || 'generic')
   }
   if (updates.status !== undefined) {
     fields.push('status = ?')
@@ -431,10 +451,11 @@ export const createTask = (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): 
   const database = getDatabase()
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
+  const color = task.color || '#6366f1'
 
   database.run(
-    'INSERT INTO tasks (id, projectId, title, description, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [id, task.projectId, task.title, task.description, task.status, now, now]
+    'INSERT INTO tasks (id, projectId, title, description, status, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, task.projectId, task.title, task.description, task.status, color, now, now]
   )
 
   saveDatabase(database)
@@ -442,6 +463,7 @@ export const createTask = (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): 
   return {
     id,
     ...task,
+    color,
     createdAt: now,
     updatedAt: now,
   }
@@ -504,6 +526,10 @@ export const updateTask = (id: string, updates: Partial<Omit<Task, 'id' | 'creat
   if (updates.status !== undefined) {
     fields.push('status = ?')
     values.push(updates.status || '')
+  }
+  if (updates.color !== undefined) {
+    fields.push('color = ?')
+    values.push(updates.color || '#6366f1')
   }
   if (updates.projectId !== undefined) {
     fields.push('projectId = ?')
@@ -661,4 +687,102 @@ export const getTaskResources = (taskId: string): (Resource & { estimatedDays: n
 
   stmt.free()
   return results
+}
+
+// Task Dependency operations
+export const addTaskDependency = (taskId: string, dependsOnTaskId: string): void => {
+  const database = getDatabase()
+  const now = new Date().toISOString()
+
+  // Check if both tasks exist
+  const task = getTaskById(taskId)
+  const dependsOnTask = getTaskById(dependsOnTaskId)
+
+  if (!task || !dependsOnTask) {
+    throw new Error('One or both tasks not found')
+  }
+
+  // Check if tasks are in the same project
+  if (task.projectId !== dependsOnTask.projectId) {
+    throw new Error('Tasks must be in the same project')
+  }
+
+  database.run(
+    'INSERT OR REPLACE INTO task_dependencies (taskId, dependsOnTaskId, createdAt) VALUES (?, ?, ?)',
+    [taskId, dependsOnTaskId, now]
+  )
+
+  saveDatabase(database)
+}
+
+export const removeTaskDependency = (taskId: string, dependsOnTaskId: string): void => {
+  const database = getDatabase()
+  database.run('DELETE FROM task_dependencies WHERE taskId = ? AND dependsOnTaskId = ?', [taskId, dependsOnTaskId])
+  saveDatabase(database)
+}
+
+export const getTaskDependencies = (taskId: string): Task[] => {
+  const database = getDatabase()
+  const stmt = database.prepare(`
+    SELECT t.*
+    FROM tasks t
+    INNER JOIN task_dependencies td ON t.id = td.dependsOnTaskId
+    WHERE td.taskId = ?
+    ORDER BY t.title
+  `)
+  stmt.bind([taskId])
+
+  const results: Task[] = []
+
+  while (stmt.step()) {
+    const row = stmt.getAsObject()
+    results.push(row as unknown as Task)
+  }
+
+  stmt.free()
+  return results
+}
+
+// Get tasks that depend on this task (reverse dependencies)
+export const getTaskDependents = (taskId: string): Task[] => {
+  const database = getDatabase()
+  const stmt = database.prepare(`
+    SELECT t.*
+    FROM tasks t
+    INNER JOIN task_dependencies td ON t.id = td.taskId
+    WHERE td.dependsOnTaskId = ?
+    ORDER BY t.title
+  `)
+  stmt.bind([taskId])
+
+  const results: Task[] = []
+
+  while (stmt.step()) {
+    const row = stmt.getAsObject()
+    results.push(row as unknown as Task)
+  }
+
+  stmt.free()
+  return results
+}
+
+// Check if a task can be started (all dependencies are done or have 0 remaining estimate)
+export const canTaskBeStarted = (taskId: string): boolean => {
+  const dependencies = getTaskDependencies(taskId)
+
+  for (const dep of dependencies) {
+    if (dep.status !== 'Done') {
+      // Check if remaining estimate is 0
+      const resources = getTaskResources(dep.id)
+      const remainingEstimate = resources.reduce((total, resource) => {
+        return total + (resource.estimatedDays * (resource.focusFactor / 100))
+      }, 0)
+
+      if (remainingEstimate > 0) {
+        return false
+      }
+    }
+  }
+
+  return true
 }

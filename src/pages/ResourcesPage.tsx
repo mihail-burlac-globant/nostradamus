@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Resource } from '../types/entities.types'
+import { RESOURCE_ICONS, getIconById } from '../utils/resourceIcons'
 
 const ResourcesPage = () => {
   const {
@@ -25,6 +26,7 @@ const ResourcesPage = () => {
     title: '',
     description: '',
     defaultVelocity: 80,
+    icon: 'generic',
     status: 'Active' as 'Active' | 'Archived',
   })
 
@@ -60,7 +62,7 @@ const ResourcesPage = () => {
     }
 
     addResource(formData)
-    setFormData({ title: '', description: '', defaultVelocity: 80, status: 'Active' })
+    setFormData({ title: '', description: '', defaultVelocity: 80, icon: 'generic', status: 'Active' })
     setErrorMessage('')
     setShowCreateModal(false)
   }
@@ -80,7 +82,7 @@ const ResourcesPage = () => {
 
     editResource(editingResource.id, formData)
     setEditingResource(null)
-    setFormData({ title: '', description: '', defaultVelocity: 80, status: 'Active' })
+    setFormData({ title: '', description: '', defaultVelocity: 80, icon: 'generic', status: 'Active' })
     setErrorMessage('')
   }
 
@@ -96,6 +98,7 @@ const ResourcesPage = () => {
       title: resource.title,
       description: resource.description,
       defaultVelocity: resource.defaultVelocity,
+      icon: resource.icon || 'generic',
       status: resource.status,
     })
   }
@@ -103,7 +106,7 @@ const ResourcesPage = () => {
   const closeModal = () => {
     setShowCreateModal(false)
     setEditingResource(null)
-    setFormData({ title: '', description: '', defaultVelocity: 80, status: 'Active' })
+    setFormData({ title: '', description: '', defaultVelocity: 80, icon: 'generic', status: 'Active' })
     setErrorMessage('')
   }
 
@@ -257,9 +260,15 @@ const ResourcesPage = () => {
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-navy-900 dark:text-white mb-2 group-hover:text-salmon-600 dark:group-hover:text-salmon-400 transition-colors">
-                      {resource.title}
-                    </h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      {(() => {
+                        const IconComponent = getIconById(resource.icon || 'generic')
+                        return <IconComponent className="w-8 h-8 text-salmon-600 dark:text-salmon-400" />
+                      })()}
+                      <h3 className="text-lg font-semibold text-navy-900 dark:text-white group-hover:text-salmon-600 dark:group-hover:text-salmon-400 transition-colors">
+                        {resource.title}
+                      </h3>
+                    </div>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         resource.status === 'Active'
@@ -344,8 +353,14 @@ const ResourcesPage = () => {
               {filteredResources.map((resource) => (
                 <tr key={resource.id} className="hover:bg-navy-50 dark:hover:bg-navy-900/30 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-navy-900 dark:text-white">
-                      {resource.title}
+                    <div className="flex items-center gap-3">
+                      {(() => {
+                        const IconComponent = getIconById(resource.icon || 'generic')
+                        return <IconComponent className="w-6 h-6 text-salmon-600 dark:text-salmon-400" />
+                      })()}
+                      <div className="text-sm font-medium text-navy-900 dark:text-white">
+                        {resource.title}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -457,6 +472,40 @@ const ResourcesPage = () => {
                            focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
                   placeholder="Describe this resource type"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                  Icon <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-10 gap-2 max-h-48 overflow-y-auto p-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900">
+                  {RESOURCE_ICONS.map((icon) => {
+                    const IconComponent = icon.component
+                    const isSelected = formData.icon === icon.id
+                    return (
+                      <button
+                        key={icon.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, icon: icon.id })}
+                        className={`p-3 rounded-lg border-2 transition-all hover:scale-110 ${
+                          isSelected
+                            ? 'border-salmon-600 dark:border-salmon-400 bg-salmon-50 dark:bg-salmon-900/20'
+                            : 'border-navy-200 dark:border-navy-700 hover:border-salmon-300 dark:hover:border-salmon-600'
+                        }`}
+                        title={icon.name}
+                      >
+                        <IconComponent className={`w-6 h-6 ${
+                          isSelected
+                            ? 'text-salmon-600 dark:text-salmon-400'
+                            : 'text-navy-600 dark:text-navy-400'
+                        }`} />
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                  Select an icon that represents this resource type
+                </p>
               </div>
 
               <div>

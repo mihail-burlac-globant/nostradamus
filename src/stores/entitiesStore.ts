@@ -27,6 +27,11 @@ import {
   assignResourceToTask,
   removeResourceFromTask,
   getTaskResources,
+  addTaskDependency,
+  removeTaskDependency,
+  getTaskDependencies,
+  getTaskDependents,
+  canTaskBeStarted,
 } from '../services/database'
 
 interface EntitiesState {
@@ -77,6 +82,13 @@ interface EntitiesState {
   assignResourceToTask: (taskId: string, resourceId: string, estimatedDays: number, focusFactor?: number) => void
   removeResourceFromTask: (taskId: string, resourceId: string) => void
   getTaskResources: (taskId: string) => (Resource & { estimatedDays: number; focusFactor: number })[]
+
+  // Task dependency actions
+  addTaskDependency: (taskId: string, dependsOnTaskId: string) => void
+  removeTaskDependency: (taskId: string, dependsOnTaskId: string) => void
+  getTaskDependencies: (taskId: string) => Task[]
+  getTaskDependents: (taskId: string) => Task[]
+  canTaskBeStarted: (taskId: string) => boolean
 }
 
 export const useEntitiesStore = create<EntitiesState>((set, get) => ({
@@ -236,5 +248,26 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
 
   getTaskResources: (taskId) => {
     return getTaskResources(taskId)
+  },
+
+  // Task dependency actions
+  addTaskDependency: (taskId, dependsOnTaskId) => {
+    addTaskDependency(taskId, dependsOnTaskId)
+  },
+
+  removeTaskDependency: (taskId, dependsOnTaskId) => {
+    removeTaskDependency(taskId, dependsOnTaskId)
+  },
+
+  getTaskDependencies: (taskId) => {
+    return getTaskDependencies(taskId)
+  },
+
+  getTaskDependents: (taskId) => {
+    return getTaskDependents(taskId)
+  },
+
+  canTaskBeStarted: (taskId) => {
+    return canTaskBeStarted(taskId)
   },
 }))
