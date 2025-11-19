@@ -12,6 +12,7 @@ import {
   deleteResource,
   createConfiguration,
   getConfigurations,
+  getConfigurationByKey,
   updateConfiguration,
   deleteConfiguration,
   assignResourceToProject,
@@ -139,7 +140,14 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   },
 
   addProject: (project) => {
-    createProject(project)
+    const newProject = createProject(project)
+
+    // Auto-assign default configuration to new projects
+    const defaultConfig = getConfigurationByKey('default_config')
+    if (defaultConfig) {
+      assignConfigurationToProject(newProject.id, defaultConfig.id)
+    }
+
     get().loadProjects()
   },
 

@@ -83,6 +83,17 @@ export const seedDatabase = (): void => {
 
     // Create Configurations
     console.log('Creating configurations...')
+    const defaultConfig = createConfiguration({
+      name: 'Default Configuration',
+      key: 'default_config',
+      value: JSON.stringify({
+        sprintDuration: 14,
+        velocityTarget: 80,
+        methodology: 'Agile',
+      }),
+      description: 'Default configuration for new projects',
+    })
+
     const config1 = createConfiguration({
       name: 'Agile Sprint Configuration',
       key: 'agile_sprint_config',
@@ -118,6 +129,9 @@ export const seedDatabase = (): void => {
     console.log('Assigning configurations to projects...')
     assignConfigurationToProject(project1.id, config1.id)
     assignConfigurationToProject(project2.id, config2.id)
+
+    // Note: defaultConfig is automatically assigned to new projects via store logic
+    console.log('Default configuration created:', defaultConfig.name)
 
     // Task colors
     const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1']
@@ -409,7 +423,7 @@ export const seedDatabase = (): void => {
     console.log(`Created:
   - 2 Projects
   - 4 Resources
-  - 2 Configurations
+  - 3 Configurations
   - ${project1Tasks.length} tasks for E-Commerce Platform
   - ${project2Tasks.length} tasks for Mobile App Redesign
   - 6 milestones for E-Commerce Platform
