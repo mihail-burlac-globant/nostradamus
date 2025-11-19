@@ -64,19 +64,29 @@ export const seedDatabase = (): void => {
     // Create Configurations
     console.log('Creating configurations...')
     const config1 = createConfiguration({
-      name: 'Sprint 1 - MVP',
+      name: 'Sprint 1 - MVP Configuration',
+      key: 'sprint_1_mvp',
+      value: JSON.stringify({
+        sprintNumber: 1,
+        estimatedDays: 14,
+        startDate: '2025-01-20',
+        endDate: '2025-02-03',
+        goals: ['MVP features', 'Core functionality']
+      }),
       description: 'First sprint focusing on MVP features',
-      estimatedDays: 14,
-      startDate: '2025-01-20',
-      endDate: '2025-02-03',
     })
 
     const config2 = createConfiguration({
-      name: 'Sprint 2 - Refinement',
+      name: 'Sprint 2 - Refinement Configuration',
+      key: 'sprint_2_refinement',
+      value: JSON.stringify({
+        sprintNumber: 2,
+        estimatedDays: 14,
+        startDate: '2025-02-03',
+        endDate: '2025-02-17',
+        goals: ['Feature refinement', 'UI/UX improvements']
+      }),
       description: 'Second sprint for feature refinement',
-      estimatedDays: 14,
-      startDate: '2025-02-03',
-      endDate: '2025-02-17',
     })
 
     // Assign Resources to Projects

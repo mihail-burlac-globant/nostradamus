@@ -38,6 +38,22 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
+### Database Seeding (Development)
+
+To populate the database with sample data for testing and development:
+
+1. Start the development server
+2. Navigate to [http://localhost:5173/seed](http://localhost:5173/seed)
+3. Click the "🌱 Seed Database" button
+
+This will create sample projects, resources, tasks, and configurations with realistic data including:
+- 2 Projects (E-Commerce Platform, Mobile App Redesign)
+- 4 Resource Types (React Developer, Node.js Developer, UX Designer, QA Engineer)
+- 2 Configurations (Sprint 1 MVP, Sprint 2 Refinement)
+- 8 Tasks with dependencies and resource assignments
+
+**Note:** Seeding will clear all existing data. Only use this in development.
+
 ### Build for Production
 
 ```bash

@@ -148,6 +148,21 @@ export const getDatabase = (): Database => {
   return db
 }
 
+export const clearDatabase = (): void => {
+  const database = getDatabase()
+  // Delete all data from all tables
+  database.run('DELETE FROM task_dependencies')
+  database.run('DELETE FROM task_resources')
+  database.run('DELETE FROM tasks')
+  database.run('DELETE FROM project_configurations')
+  database.run('DELETE FROM project_resources')
+  database.run('DELETE FROM configurations')
+  database.run('DELETE FROM resources')
+  database.run('DELETE FROM projects')
+  saveDatabase(database)
+  console.log('Database cleared successfully')
+}
+
 // Project CRUD operations
 export const createProject = (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Project => {
   const database = getDatabase()
@@ -603,21 +618,28 @@ export const getProjectResources = (projectId: string): (Resource & { numberOfRe
 }
 
 // Project-Configuration relationship operations
+// NOTE: Only ONE configuration per project is allowed
 export const assignConfigurationToProject = (projectId: string, configurationId: string): void => {
   const database = getDatabase()
   const now = new Date().toISOString()
 
+  // Remove any existing configuration for this project (enforce one-config-per-project rule)
+  database.run('DELETE FROM project_configurations WHERE projectId = ?', [projectId])
+
+  // Insert the new configuration
   database.run(
-    'INSERT OR REPLACE INTO project_configurations (projectId, configurationId, appliedAt) VALUES (?, ?, ?)',
+    'INSERT INTO project_configurations (projectId, configurationId, appliedAt) VALUES (?, ?, ?)',
     [projectId, configurationId, now]
   )
 
   saveDatabase(database)
 }
 
-export const removeConfigurationFromProject = (projectId: string, configurationId: string): void => {
+export const removeConfigurationFromProject = (projectId: string, _configurationId?: string): void => {
   const database = getDatabase()
-  database.run('DELETE FROM project_configurations WHERE projectId = ? AND configurationId = ?', [projectId, configurationId])
+  // Since only one config per project, we can just remove by projectId
+  // _configurationId parameter kept for backwards compatibility but is optional (unused)
+  database.run('DELETE FROM project_configurations WHERE projectId = ?', [projectId])
   saveDatabase(database)
 }
 
