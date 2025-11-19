@@ -42,3 +42,23 @@ export interface ProjectConfiguration {
   configurationId: string
   appliedAt: string
 }
+
+export type TaskStatus = 'Todo' | 'In Progress' | 'Done'
+
+export interface Task {
+  id: string
+  projectId: string
+  title: string
+  description: string
+  status: TaskStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TaskResource {
+  taskId: string
+  resourceId: string
+  estimatedDays: number // Man-days estimate
+  focusFactor: number // Task-specific focus factor (0-100)
+  assignedAt: string
+}
