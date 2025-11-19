@@ -5,7 +5,7 @@ let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
 const DB_VERSION_KEY = 'nostradamus_db_version'
-const CURRENT_DB_VERSION = 8 // Incremented for task progress field
+const CURRENT_DB_VERSION = 9 // Incremented for milestone icon and color fields
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -131,6 +131,8 @@ const createTables = (database: Database) => {
       projectId TEXT NOT NULL,
       title TEXT NOT NULL,
       date TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'flag',
+      color TEXT NOT NULL DEFAULT '#9333ea',
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
@@ -852,9 +854,12 @@ export const createMilestone = (milestone: Omit<Milestone, 'id' | 'createdAt' | 
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
 
+  const icon = milestone.icon || 'flag'
+  const color = milestone.color || '#9333ea'
+
   database.run(
-    'INSERT INTO milestones (id, projectId, title, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
-    [id, milestone.projectId, milestone.title, milestone.date, now, now]
+    'INSERT INTO milestones (id, projectId, title, date, icon, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, milestone.projectId, milestone.title, milestone.date, icon, color, now, now]
   )
 
   saveDatabase(database)
@@ -862,6 +867,8 @@ export const createMilestone = (milestone: Omit<Milestone, 'id' | 'createdAt' | 
   return {
     id,
     ...milestone,
+    icon,
+    color,
     createdAt: now,
     updatedAt: now,
   }
@@ -927,6 +934,14 @@ export const updateMilestone = (id: string, updates: Partial<Omit<Milestone, 'id
   if (updates.date !== undefined) {
     fields.push('date = ?')
     values.push(updates.date)
+  }
+  if (updates.icon !== undefined) {
+    fields.push('icon = ?')
+    values.push(updates.icon)
+  }
+  if (updates.color !== undefined) {
+    fields.push('color = ?')
+    values.push(updates.color)
   }
 
   if (fields.length === 0) {

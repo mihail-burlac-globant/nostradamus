@@ -330,31 +330,43 @@ export const seedDatabase = (): void => {
       projectId: project1.id,
       title: 'Architecture Complete',
       date: addDays(today, 12), // End of Planning & Setup Phase
+      icon: 'flag',
+      color: '#3b82f6', // Blue
     })
     createMilestone({
       projectId: project1.id,
       title: 'Auth System Live',
       date: addDays(today, 26), // End of Authentication Phase
+      icon: 'star',
+      color: '#10b981', // Green
     })
     createMilestone({
       projectId: project1.id,
       title: 'Product Catalog Ready',
       date: addDays(today, 49), // End of Product Catalog Phase
+      icon: 'rocket',
+      color: '#8b5cf6', // Purple
     })
     createMilestone({
       projectId: project1.id,
       title: 'Checkout Flow Complete',
       date: addDays(today, 70), // End of Shopping Cart & Checkout Phase
+      icon: 'target',
+      color: '#f59e0b', // Amber
     })
     createMilestone({
       projectId: project1.id,
       title: 'Admin Panel Ready',
       date: addDays(today, 90), // End of Admin Panel Phase
+      icon: 'flag',
+      color: '#ec4899', // Pink
     })
     createMilestone({
       projectId: project1.id,
       title: 'Production Launch',
       date: addDays(today, 120), // Final Launch
+      icon: 'rocket',
+      color: '#ef4444', // Red
     })
 
     // Create Milestones for Project 2: Mobile App Redesign
@@ -363,26 +375,36 @@ export const seedDatabase = (): void => {
       projectId: project2.id,
       title: 'Research Complete',
       date: addDays(today, 12), // End of Research & Discovery
+      icon: 'flag',
+      color: '#3b82f6', // Blue
     })
     createMilestone({
       projectId: project2.id,
       title: 'Design System Ready',
       date: addDays(today, 30), // After Design System
+      icon: 'star',
+      color: '#8b5cf6', // Purple
     })
     createMilestone({
       projectId: project2.id,
       title: 'Prototype Validated',
       date: addDays(today, 48), // After Usability Testing
+      icon: 'target',
+      color: '#10b981', // Green
     })
     createMilestone({
       projectId: project2.id,
       title: 'Beta Release',
       date: addDays(today, 100), // Before Beta Testing
+      icon: 'rocket',
+      color: '#f59e0b', // Amber
     })
     createMilestone({
       projectId: project2.id,
       title: 'App Store Launch',
       date: addDays(today, 125), // Final Launch
+      icon: 'rocket',
+      color: '#ef4444', // Red
     })
 
     console.log('✅ Database seeding completed successfully!')

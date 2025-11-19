@@ -68,6 +68,8 @@ const TasksPage = () => {
   const [milestoneFormData, setMilestoneFormData] = useState({
     title: '',
     date: '',
+    icon: 'flag',
+    color: '#9333ea',
   })
 
   useEffect(() => {
@@ -194,8 +196,10 @@ const TasksPage = () => {
       projectId: selectedProjectFilter,
       title: milestoneFormData.title,
       date: milestoneFormData.date,
+      icon: milestoneFormData.icon,
+      color: milestoneFormData.color,
     })
-    setMilestoneFormData({ title: '', date: '' })
+    setMilestoneFormData({ title: '', date: '', icon: 'flag', color: '#9333ea' })
     setShowMilestoneModal(false)
   }
 
@@ -205,8 +209,10 @@ const TasksPage = () => {
     editMilestone(currentMilestone.id, {
       title: milestoneFormData.title,
       date: milestoneFormData.date,
+      icon: milestoneFormData.icon,
+      color: milestoneFormData.color,
     })
-    setMilestoneFormData({ title: '', date: '' })
+    setMilestoneFormData({ title: '', date: '', icon: 'flag', color: '#9333ea' })
     setCurrentMilestone(null)
     setShowMilestoneModal(false)
   }
@@ -224,6 +230,8 @@ const TasksPage = () => {
     setMilestoneFormData({
       title: milestone.title,
       date: milestone.date,
+      icon: milestone.icon,
+      color: milestone.color,
     })
     setShowMilestoneModal(true)
   }
@@ -384,7 +392,7 @@ const TasksPage = () => {
               <button
                 onClick={() => {
                   setCurrentMilestone(null)
-                  setMilestoneFormData({ title: '', date: '' })
+                  setMilestoneFormData({ title: '', date: '', icon: 'flag', color: '#9333ea' })
                   setShowMilestoneModal(true)
                 }}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md text-sm"
