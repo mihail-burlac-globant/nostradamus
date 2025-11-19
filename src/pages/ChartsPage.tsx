@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import GanttChart from '../components/charts/GanttChart'
 import BurndownChart from '../components/charts/BurndownChart'
-import ChartControls from '../components/controls/ChartControls'
 
 type ChartType = 'gantt' | 'burndown'
 
@@ -45,13 +44,10 @@ const ChartsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-navy-900 dark:to-salmon-900 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100 mb-2">
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">
             Project Charts & Analytics
           </h1>
-          <p className="text-navy-600 dark:text-navy-400">
-            Visualize project timelines with Gantt charts and track progress with burndown analysis
-          </p>
         </div>
 
         {activeProjects.length === 0 ? (
@@ -78,32 +74,98 @@ const ChartsPage = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Project Selection */}
+            {/* Merged Project Selection and Chart Controls */}
             <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                {/* Project Selector - Left Side */}
+                <div className="flex-1 w-full lg:w-auto">
                   <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                     Select Project
                   </label>
-                  <select
-                    value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                    className="w-full px-4 py-3 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent text-lg"
-                  >
-                    {activeProjects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.title} ({tasks.filter(t => t.projectId === project.id).length} tasks)
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-4">
+                    <select
+                      value={selectedProjectId}
+                      onChange={(e) => setSelectedProjectId(e.target.value)}
+                      className="flex-1 px-4 py-2.5 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    >
+                      {activeProjects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.title} ({tasks.filter(t => t.projectId === project.id).length} tasks)
+                        </option>
+                      ))}
+                    </select>
+                    {selectedProject && (
+                      <div className="text-right">
+                        <p className="text-sm text-navy-600 dark:text-navy-400">Tasks</p>
+                        <p className="text-2xl font-bold text-salmon-600 dark:text-salmon-400">
+                          {projectTasks.length}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {selectedProject && (
-                  <div className="text-right">
-                    <p className="text-sm text-navy-600 dark:text-navy-400 mb-1">Tasks</p>
-                    <p className="text-3xl font-bold text-salmon-600 dark:text-salmon-400">
-                      {projectTasks.length}
-                    </p>
+                {/* Chart Type Selector - Right Side */}
+                {selectedProject && projectTasks.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-navy-700 dark:text-navy-300">Chart Type:</span>
+                    <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-xl p-1.5 gap-1">
+                      <button
+                        onClick={() => setActiveChart('gantt')}
+                        className={`
+                          px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
+                          flex items-center gap-2
+                          ${
+                            activeChart === 'gantt'
+                              ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-soft'
+                              : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                          }
+                        `}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                          />
+                        </svg>
+                        <span>Gantt</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveChart('burndown')}
+                        className={`
+                          px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
+                          flex items-center gap-2
+                          ${
+                            activeChart === 'burndown'
+                              ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-soft'
+                              : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                          }
+                        `}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                          />
+                        </svg>
+                        <span>Burndown</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -120,10 +182,6 @@ const ChartsPage = () => {
             {/* Charts */}
             {selectedProject && projectTasks.length > 0 && (
               <div className="space-y-4">
-                <ChartControls
-                  activeChart={activeChart}
-                  onChartChange={setActiveChart}
-                />
 
                 <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
                   {activeChart === 'gantt' ? (
