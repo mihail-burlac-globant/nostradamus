@@ -14,10 +14,3 @@ task-12,Payment Gateway Integration,2025-10-17,,45,in-progress,Marcus Rodriguez,
 task-13,Order Management System,2025-10-24,,30,in-progress,Elena Popov,backend,112,1.0,task-12
 task-14,API Testing & Automation,2025-10-31,,40,in-progress,Aisha Mohammed,qa,96,0.5,task-6
 task-15,UI/UX Testing,2025-11-07,,25,in-progress,Aisha Mohammed,qa,120,0.5,task-11
-task-16,Performance Testing & Optimization,2025-11-14,,15,in-progress,David Kim,devops,136,1.0,task-13
-task-17,Security Audit & Fixes,,,10,not-started,Marcus Rodriguez,backend,144,1.0,task-13
-task-18,Mobile Responsive Testing,,,5,not-started,Aisha Mohammed,qa,152,0.5,task-15
-task-19,Production Deployment Pipeline,,,0,not-started,David Kim,devops,160,1.0,task-16
-task-20,User Acceptance Testing,,,0,not-started,Sarah Chen,product,168,1.0,task-18
-task-21,Documentation & Training,,,0,not-started,Julia Wang,frontend,176,2.0,task-20
-task-22,Launch Preparation & Monitoring,,,0,not-started,David Kim,devops,184,1.0,task-19
