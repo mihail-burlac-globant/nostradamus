@@ -21,6 +21,10 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     if (!chartRef.current || tasks.length === 0) return
 
     console.log('📈 BurndownChart received milestones:', milestones)
+    // Debug: Log each milestone's icon value
+    milestones.forEach(m => {
+      console.log(`  Milestone "${m.title}": icon="${m.icon}", color="${m.color}"`)
+    })
 
     // Calculate effective start and end dates for each task
     const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
@@ -454,7 +458,14 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                     calendar: '📅',
                     rocket: '🚀',
                   }
-                  const iconSymbol = iconSymbols[milestone.icon] || '📍'
+                  // Normalize icon name (trim, lowercase) for case-insensitive matching
+                  const normalizedIcon = (milestone.icon || '').trim().toLowerCase()
+                  const iconSymbol = iconSymbols[normalizedIcon] || '📍'
+
+                  // Debug: Log if icon is not found
+                  if (!iconSymbols[normalizedIcon]) {
+                    console.warn(`⚠️ Unknown milestone icon "${milestone.icon}" for milestone "${milestone.title}". Using fallback.`)
+                  }
 
                   return {
                     name: milestone.title,
