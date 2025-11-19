@@ -70,6 +70,7 @@ const SeedPage = () => {
               <li>• 4 Resource Types (React Dev, Node.js Dev, UX Designer, QA Engineer)</li>
               <li>• 2 Configurations (Agile Sprint, Design Sprint)</li>
               <li>• 55 Tasks spanning 6 months (30 for E-Commerce, 25 for Mobile App)</li>
+              <li>• 11 Milestones marking key project phases (6 for E-Commerce, 5 for Mobile App)</li>
               <li>• Tasks with realistic dates starting from 1 week ago</li>
               <li>• Resource assignments and task dependencies</li>
               <li>• Automatic status based on dates (Done/In Progress/Todo)</li>
