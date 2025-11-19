@@ -179,7 +179,8 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
                 <div style="margin-bottom: 2px;">Start: <strong>${start}</strong></div>
                 <div style="margin-bottom: 2px;">End: <strong>${end}</strong></div>
                 <div style="margin-bottom: 2px;">Duration: <strong>${duration} days</strong></div>
-                <div>Status: <strong style="color: ${task.status === 'Done' ? '#10b981' : task.status === 'In Progress' ? '#f59e0b' : '#6b7280'};">${task.status}</strong></div>
+                <div style="margin-bottom: 2px;">Status: <strong style="color: ${task.status === 'Done' ? '#10b981' : task.status === 'In Progress' ? '#f59e0b' : '#6b7280'};">${task.status}</strong></div>
+                <div>Progress: <strong style="color: #3b82f6;">${task.progress}%</strong></div>
               </div>
               ${resourcesHtml}
             </div>
@@ -240,21 +241,69 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
             const end = api.coord([api.value(1), categoryIndex])
             const height = api.size([0, 1])[1] * 0.6
 
-            // Get color from the data item using dataIndex
+            // Get color and progress from the data item
             const dataItem = chartData[params.dataIndex]
+            const task = validTasks[params.dataIndex]
             const color = dataItem?.itemStyle?.color || '#B3B3BA'
+            const progress = task.progress / 100
+
+            const totalWidth = end[0] - start[0]
+            const completedWidth = totalWidth * progress
+
+            // Create group of shapes to show progress
+            const children: any[] = [
+              // Background bar (remaining work) with reduced opacity
+              {
+                type: 'rect',
+                shape: {
+                  x: start[0],
+                  y: start[1] - height / 2,
+                  width: totalWidth,
+                  height: height,
+                },
+                style: {
+                  fill: color,
+                  opacity: 0.3,
+                },
+              },
+              // Foreground bar (completed work) with full opacity
+              {
+                type: 'rect',
+                shape: {
+                  x: start[0],
+                  y: start[1] - height / 2,
+                  width: completedWidth,
+                  height: height,
+                },
+                style: {
+                  fill: color,
+                  opacity: 1,
+                },
+              },
+            ]
+
+            // Add progress text only if progress > 0 and < 100
+            if (progress > 0 && progress < 1) {
+              children.push({
+                type: 'text',
+                style: {
+                  x: start[0] + totalWidth / 2,
+                  y: start[1],
+                  text: `${task.progress}%`,
+                  textAlign: 'center',
+                  textVerticalAlign: 'middle',
+                  fill: '#fff',
+                  fontSize: 11,
+                  fontWeight: 'bold',
+                  textShadowColor: 'rgba(0,0,0,0.5)',
+                  textShadowBlur: 2,
+                },
+              })
+            }
 
             return {
-              type: 'rect',
-              shape: {
-                x: start[0],
-                y: start[1] - height / 2,
-                width: end[0] - start[0],
-                height: height,
-              },
-              style: {
-                fill: color,
-              },
+              type: 'group',
+              children,
             }
           },
           encode: {

@@ -79,6 +79,7 @@ const TasksPage = () => {
     const saved = localStorage.getItem('nostradamus_tasks_active_tab')
     return (saved as 'tasks' | 'milestones') || 'tasks'
   })
+  const [dependencySearchTerm, setDependencySearchTerm] = useState('')
 
   useEffect(() => {
     if (!isInitialized) {
@@ -909,46 +910,59 @@ const TasksPage = () => {
                       Select tasks from the same project that must be completed before this task can start
                     </p>
                     {formData.projectId ? (
-                      <div className="border border-navy-200 dark:border-navy-700 rounded-lg max-h-96 overflow-y-auto">
-                        {tasksWithResources
-                          .filter((t) => t.projectId === formData.projectId)
-                          .map((task) => {
-                            const isSelected = formData.dependencies.includes(task.id)
-                            return (
-                              <label
-                                key={task.id}
-                                className={`flex items-center gap-3 p-3 hover:bg-navy-50 dark:hover:bg-navy-900 cursor-pointer border-b border-navy-100 dark:border-navy-800 last:border-b-0 ${
-                                  isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setFormData({ ...formData, dependencies: [...formData.dependencies, task.id] })
-                                    } else {
-                                      setFormData({
-                                        ...formData,
-                                        dependencies: formData.dependencies.filter((id) => id !== task.id),
-                                      })
-                                    }
-                                  }}
-                                  className="w-4 h-4 text-purple-600 border-navy-300 rounded focus:ring-purple-500"
-                                />
-                                <div className="flex-1">
-                                  <span className="text-navy-800 dark:text-navy-100">{task.title}</span>
-                                  <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
-                                </div>
-                              </label>
-                            )
-                          })}
-                        {tasksWithResources.filter((t) => t.projectId === formData.projectId).length === 0 && (
-                          <p className="p-3 text-sm text-navy-500 dark:text-navy-400">
-                            No other tasks in this project yet
-                          </p>
-                        )}
-                      </div>
+                      <>
+                        {/* Search Filter */}
+                        <div className="mb-2">
+                          <input
+                            type="text"
+                            value={dependencySearchTerm}
+                            onChange={(e) => setDependencySearchTerm(e.target.value)}
+                            placeholder="Search tasks..."
+                            className="w-full px-3 py-1.5 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="border border-navy-200 dark:border-navy-700 rounded-lg max-h-80 overflow-y-auto">
+                          {tasksWithResources
+                            .filter((t) => t.projectId === formData.projectId)
+                            .filter((t) => dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))
+                            .map((task) => {
+                              const isSelected = formData.dependencies.includes(task.id)
+                              return (
+                                <label
+                                  key={task.id}
+                                  className={`flex items-center gap-2 px-3 py-1.5 hover:bg-navy-50 dark:hover:bg-navy-900 cursor-pointer border-b border-navy-100 dark:border-navy-800 last:border-b-0 transition-colors ${
+                                    isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setFormData({ ...formData, dependencies: [...formData.dependencies, task.id] })
+                                      } else {
+                                        setFormData({
+                                          ...formData,
+                                          dependencies: formData.dependencies.filter((id) => id !== task.id),
+                                        })
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-purple-600 border-navy-300 rounded focus:ring-purple-500 flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-navy-800 dark:text-navy-100 text-sm">{task.title}</span>
+                                    <span className="ml-2 text-xs text-navy-600 dark:text-navy-400">({task.status})</span>
+                                  </div>
+                                </label>
+                              )
+                            })}
+                          {tasksWithResources.filter((t) => t.projectId === formData.projectId && (dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))).length === 0 && (
+                            <p className="p-3 text-sm text-navy-500 dark:text-navy-400">
+                              {dependencySearchTerm ? 'No tasks match your search' : 'No other tasks in this project yet'}
+                            </p>
+                          )}
+                        </div>
+                      </>
                     ) : (
                       <p className="text-sm text-navy-500 dark:text-navy-400">
                         Please select a project first to choose dependencies
@@ -1519,33 +1533,46 @@ const TasksPage = () => {
               {/* Add Dependency */}
               <div className="border-t border-navy-200 dark:border-navy-700 pt-6">
                 <h3 className="font-semibold text-navy-700 dark:text-navy-300 mb-3">Add Dependency:</h3>
-                <p className="text-sm text-navy-600 dark:text-navy-400 mb-4">
+                <p className="text-sm text-navy-600 dark:text-navy-400 mb-3">
                   Select tasks from the same project that must be completed before this task can start.
                 </p>
-                <div className="space-y-2">
+                {/* Search Filter */}
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={dependencySearchTerm}
+                    onChange={(e) => setDependencySearchTerm(e.target.value)}
+                    placeholder="Search tasks..."
+                    className="w-full px-3 py-1.5 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
                   {tasksWithResources
                     .filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id)
                     .filter((t) => !getTaskDependencies(currentTask.id).some((dep) => dep.id === t.id))
+                    .filter((t) => dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))
                     .map((task) => (
                       <div
                         key={task.id}
-                        className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-3 rounded hover:bg-navy-100 dark:hover:bg-navy-800 transition-colors"
+                        className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 px-3 py-2 rounded hover:bg-navy-100 dark:hover:bg-navy-800 transition-colors"
                       >
-                        <div>
-                          <span className="font-medium text-navy-800 dark:text-navy-100">{task.title}</span>
-                          <span className="ml-2 text-sm text-navy-600 dark:text-navy-400">({task.status})</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-navy-800 dark:text-navy-100 text-sm">{task.title}</span>
+                          <span className="ml-2 text-xs text-navy-600 dark:text-navy-400">({task.status})</span>
                         </div>
                         <button
                           onClick={() => handleAddDependency(task.id)}
-                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors flex-shrink-0"
                         >
                           Add
                         </button>
                       </div>
                     ))}
                 </div>
-                {tasksWithResources.filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id).length === 0 && (
-                  <p className="text-sm text-navy-500 dark:text-navy-400">No other tasks in this project.</p>
+                {tasksWithResources.filter((t) => t.projectId === currentTask.projectId && t.id !== currentTask.id && (dependencySearchTerm === '' || t.title.toLowerCase().includes(dependencySearchTerm.toLowerCase()))).length === 0 && (
+                  <p className="text-sm text-navy-500 dark:text-navy-400 mt-2">
+                    {dependencySearchTerm ? 'No tasks match your search' : 'No other tasks in this project.'}
+                  </p>
                 )}
               </div>
 
@@ -1712,6 +1739,78 @@ const TasksPage = () => {
                     onChange={(e) => setMilestoneFormData({ ...milestoneFormData, date: e.target.value })}
                     className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+                </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={milestoneFormData.color}
+                      onChange={(e) => setMilestoneFormData({ ...milestoneFormData, color: e.target.value })}
+                      className="w-12 h-10 border border-navy-200 dark:border-navy-700 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={milestoneFormData.color}
+                      onChange={(e) => setMilestoneFormData({ ...milestoneFormData, color: e.target.value })}
+                      className="flex-1 px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="#9333ea"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Icon</label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {['flag', 'star', 'trophy', 'target', 'check', 'calendar', 'rocket'].map((iconName) => (
+                      <button
+                        key={iconName}
+                        type="button"
+                        onClick={() => setMilestoneFormData({ ...milestoneFormData, icon: iconName })}
+                        className={`p-2 rounded border-2 transition-all ${
+                          milestoneFormData.icon === iconName
+                            ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
+                            : 'border-navy-200 dark:border-navy-700 hover:border-purple-400'
+                        }`}
+                        title={iconName}
+                      >
+                        {iconName === 'flag' && (
+                          <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                          </svg>
+                        )}
+                        {iconName === 'star' && (
+                          <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                        )}
+                        {iconName === 'trophy' && (
+                          <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                          </svg>
+                        )}
+                        {iconName === 'target' && (
+                          <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        )}
+                        {iconName === 'check' && (
+                          <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                        {iconName === 'calendar' && (
+                          <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                        {iconName === 'rocket' && (
+                          <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-4 mt-6">
