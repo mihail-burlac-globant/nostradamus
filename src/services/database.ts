@@ -446,6 +446,21 @@ export const getConfigurationById = (id: string): Configuration | null => {
   return null
 }
 
+export const getConfigurationByKey = (key: string): Configuration | null => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM configurations WHERE key = ?')
+  stmt.bind([key])
+
+  if (stmt.step()) {
+    const config = stmt.getAsObject() as unknown as Configuration
+    stmt.free()
+    return config
+  }
+
+  stmt.free()
+  return null
+}
+
 export const updateConfiguration = (id: string, updates: Partial<Omit<Configuration, 'id' | 'createdAt'>>): Configuration | null => {
   const database = getDatabase()
   const config = getConfigurationById(id)

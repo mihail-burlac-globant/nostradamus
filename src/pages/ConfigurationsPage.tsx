@@ -42,6 +42,10 @@ const ConfigurationsPage = () => {
     key: '',
     value: '',
     description: '',
+    // Parsed config values
+    sprintDuration: 14,
+    velocityTarget: 80,
+    methodology: 'Agile',
   })
 
   useEffect(() => {
@@ -149,17 +153,31 @@ const ConfigurationsPage = () => {
   // Configuration Handlers
   const openCreateConfigModal = () => {
     setEditingConfig(null)
-    setConfigFormData({ name: '', key: '', value: '', description: '' })
+    setConfigFormData({ name: '', key: '', value: '', description: '', sprintDuration: 14, velocityTarget: 80, methodology: 'Agile' })
     setShowConfigModal(true)
   }
 
   const openEditConfigModal = (config: Configuration) => {
     setEditingConfig(config)
+
+    // Parse the JSON value
+    let parsedConfig = { sprintDuration: 14, velocityTarget: 80, methodology: 'Agile' }
+    try {
+      if (config.value) {
+        parsedConfig = JSON.parse(config.value)
+      }
+    } catch (e) {
+      console.error('Failed to parse config value:', e)
+    }
+
     setConfigFormData({
       name: config.name,
       key: config.key,
       value: config.value,
       description: config.description || '',
+      sprintDuration: parsedConfig.sprintDuration || 14,
+      velocityTarget: parsedConfig.velocityTarget || 80,
+      methodology: parsedConfig.methodology || 'Agile',
     })
     setShowConfigModal(true)
   }
@@ -167,14 +185,28 @@ const ConfigurationsPage = () => {
   const handleSaveConfig = () => {
     if (!configFormData.name.trim() || !configFormData.key.trim()) return
 
+    // Build JSON value from form fields
+    const configValue = JSON.stringify({
+      sprintDuration: configFormData.sprintDuration,
+      velocityTarget: configFormData.velocityTarget,
+      methodology: configFormData.methodology,
+    })
+
+    const configData = {
+      name: configFormData.name,
+      key: configFormData.key,
+      value: configValue,
+      description: configFormData.description,
+    }
+
     if (editingConfig) {
-      editConfiguration(editingConfig.id, configFormData)
+      editConfiguration(editingConfig.id, configData)
     } else {
-      addConfiguration(configFormData)
+      addConfiguration(configData)
     }
 
     setShowConfigModal(false)
-    setConfigFormData({ name: '', key: '', value: '', description: '' })
+    setConfigFormData({ name: '', key: '', value: '', description: '', sprintDuration: 14, velocityTarget: 80, methodology: 'Agile' })
     setEditingConfig(null)
   }
 
@@ -749,15 +781,57 @@ const ConfigurationsPage = () => {
                   placeholder="agile_sprint_config"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Sprint Duration (days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={configFormData.sprintDuration}
+                    onChange={(e) => setConfigFormData({ ...configFormData, sprintDuration: parseInt(e.target.value) || 14 })}
+                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100"
+                    placeholder="14"
+                  />
+                </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Velocity Target (%)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={configFormData.velocityTarget}
+                      onChange={(e) => setConfigFormData({ ...configFormData, velocityTarget: parseInt(e.target.value) })}
+                      className="flex-1"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={configFormData.velocityTarget}
+                      onChange={(e) => setConfigFormData({ ...configFormData, velocityTarget: parseInt(e.target.value) || 80 })}
+                      className="w-16 px-2 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-center"
+                    />
+                  </div>
+                </div>
+              </div>
               <div>
-                <label className="block text-navy-700 dark:text-navy-300 mb-2">Value (JSON)</label>
-                <textarea
-                  value={configFormData.value}
-                  onChange={(e) => setConfigFormData({ ...configFormData, value: e.target.value })}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 font-mono"
-                  placeholder='{"sprintDuration": 14, "velocityTarget": 85}'
-                  rows={4}
-                />
+                <label className="block text-navy-700 dark:text-navy-300 mb-2">Methodology</label>
+                <select
+                  value={configFormData.methodology}
+                  onChange={(e) => setConfigFormData({ ...configFormData, methodology: e.target.value })}
+                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100"
+                >
+                  <option value="Agile">Agile</option>
+                  <option value="Scrum">Scrum</option>
+                  <option value="Kanban">Kanban</option>
+                  <option value="Design Thinking">Design Thinking</option>
+                  <option value="Waterfall">Waterfall</option>
+                  <option value="Lean">Lean</option>
+                  <option value="XP">Extreme Programming (XP)</option>
+                </select>
               </div>
               <div>
                 <label className="block text-navy-700 dark:text-navy-300 mb-2">Description</label>
@@ -781,7 +855,7 @@ const ConfigurationsPage = () => {
               <button
                 onClick={() => {
                   setShowConfigModal(false)
-                  setConfigFormData({ name: '', key: '', value: '', description: '' })
+                  setConfigFormData({ name: '', key: '', value: '', description: '', sprintDuration: 14, velocityTarget: 80, methodology: 'Agile' })
                   setEditingConfig(null)
                 }}
                 className="flex-1 px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
