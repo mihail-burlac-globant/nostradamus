@@ -12,10 +12,10 @@ interface GanttChartProps {
   milestones?: Milestone[]
 }
 
-const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: GanttChartProps) => {
+const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, milestones = [] }: GanttChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
-  const { getTaskResources, getTaskDependencies } = useEntitiesStore()
+  const { getTaskResources, getTaskDependencies, getProjectResources } = useEntitiesStore()
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -59,10 +59,34 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
         }
       }
 
-      // Calculate duration from resource estimates
+      // Calculate duration from resource estimates with parallel work consideration
       const resources = getTaskResources(task.id)
-      const totalDays = resources.reduce((sum, r) => sum + (r.estimatedDays * (r.focusFactor / 100)), 0)
-      const durationDays = totalDays > 0 ? Math.ceil(totalDays) : 1
+      const projectResources = getProjectResources(projectId)
+
+      // For each resource type, calculate how long it takes considering team size
+      const resourceDurations: number[] = []
+
+      resources.forEach(taskResource => {
+        // Person-days of work needed for this resource type
+        const workNeeded = taskResource.estimatedDays * (taskResource.focusFactor / 100)
+
+        // Find how many people of this resource type are available in the project
+        const projectResource = projectResources.find(pr => pr.id === taskResource.id)
+        const teamSize = projectResource?.numberOfResources || 1
+        const teamFocusFactor = projectResource?.focusFactor || 100
+
+        // Daily capacity: number of people * their focus factor
+        const dailyCapacity = teamSize * (teamFocusFactor / 100)
+
+        // Duration: work needed / daily capacity
+        const duration = dailyCapacity > 0 ? workNeeded / dailyCapacity : workNeeded
+        resourceDurations.push(duration)
+      })
+
+      // Task duration is the longest duration among all resource types (they work in parallel)
+      const durationDays = resourceDurations.length > 0
+        ? Math.ceil(Math.max(...resourceDurations))
+        : 1
 
       // Calculate end date
       const endDate = new Date(earliestStart)
@@ -410,7 +434,7 @@ const GanttChart = ({ projectTitle, projectStartDate, tasks, milestones = [] }: 
         chartInstance.current = null
       }
     }
-  }, [projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies])
+  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources])
 
   const handleExportPNG = () => {
     if (chartInstance.current) {
