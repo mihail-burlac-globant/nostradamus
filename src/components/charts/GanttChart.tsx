@@ -21,8 +21,26 @@ const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) =
 
     console.log('📊 GanttChart received milestones:', milestones)
 
-    // Filter tasks that have both start and end dates
-    const validTasks = tasks.filter(t => t.startDate && t.endDate)
+    // Filter and process tasks - calculate end dates if missing
+    const validTasks = tasks.filter(t => t.startDate).map(task => {
+      if (task.endDate) return task
+
+      // Auto-calculate end date from start date + resource estimates
+      const resources = getTaskResources(task.id)
+      const totalDays = resources.reduce((sum, r) => sum + (r.estimatedDays * (r.focusFactor / 100)), 0)
+
+      // If no resources, default to 1 day duration
+      const durationDays = totalDays > 0 ? Math.ceil(totalDays) : 1
+      const startDate = new Date(task.startDate!)
+      const calculatedEndDate = new Date(startDate)
+      calculatedEndDate.setDate(calculatedEndDate.getDate() + durationDays)
+
+      return {
+        ...task,
+        endDate: calculatedEndDate.toISOString().split('T')[0]
+      }
+    })
+
     if (validTasks.length === 0) {
       // Show message if no tasks have dates
       if (chartInstance.current) {
