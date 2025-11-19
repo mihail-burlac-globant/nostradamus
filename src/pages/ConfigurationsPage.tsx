@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Project, Resource } from '../types/entities.types'
 
@@ -30,20 +30,20 @@ const ConfigurationsPage = () => {
     }
   }, [isInitialized, initialize])
 
-  useEffect(() => {
-    if (selectedProject) {
-      loadProjectResources()
-    }
-  }, [selectedProject])
-
-  const loadProjectResources = () => {
+  const loadProjectResources = useCallback(() => {
     if (selectedProject) {
       const resources = getProjectResources(selectedProject.id)
       setProjectResources(resources)
       setPendingAllocations(new Map())
       setHasChanges(false)
     }
-  }
+  }, [selectedProject, getProjectResources])
+
+  useEffect(() => {
+    if (selectedProject) {
+      loadProjectResources()
+    }
+  }, [selectedProject, loadProjectResources])
 
   const handleSelectProject = (project: Project) => {
     if (hasChanges) {
