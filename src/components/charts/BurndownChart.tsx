@@ -19,6 +19,8 @@ const BurndownChart = ({ projectTitle, tasks, milestones = [] }: BurndownChartPr
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
 
+    console.log('📈 BurndownChart received milestones:', milestones)
+
     // Filter tasks that have dates
     const validTasks = tasks.filter(t => t.startDate && t.endDate)
     if (validTasks.length === 0) {

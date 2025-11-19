@@ -26,8 +26,9 @@ const ChartsPage = () => {
     } else {
       loadProjects('Active')
       loadTasks()
+      loadMilestones() // Load all milestones on mount
     }
-  }, [isInitialized, initialize, loadProjects, loadTasks])
+  }, [isInitialized, initialize, loadProjects, loadTasks, loadMilestones])
 
   useEffect(() => {
     // Auto-select first active project if none selected
@@ -40,8 +41,9 @@ const ChartsPage = () => {
   }, [projects, selectedProjectId])
 
   useEffect(() => {
-    // Load milestones when project changes
+    // Reload milestones when project changes to ensure fresh data
     if (selectedProjectId) {
+      console.log('📊 Loading milestones for project:', selectedProjectId)
       loadMilestones(selectedProjectId)
     }
   }, [selectedProjectId, loadMilestones])
@@ -50,6 +52,15 @@ const ChartsPage = () => {
   const selectedProject = activeProjects.find(p => p.id === selectedProjectId)
   const projectTasks = tasks.filter(t => t.projectId === selectedProjectId)
   const projectMilestones = milestones.filter(m => m.projectId === selectedProjectId)
+
+  // Debug: log milestones being passed to charts
+  useEffect(() => {
+    if (selectedProjectId) {
+      console.log('📌 All milestones in store:', milestones)
+      console.log('📌 Filtered milestones for project:', projectMilestones)
+      console.log('📌 Selected project ID:', selectedProjectId)
+    }
+  }, [selectedProjectId, milestones, projectMilestones])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-gray-950 dark:to-gray-900 p-6">
