@@ -5,6 +5,7 @@ export interface Project {
   title: string
   description: string
   status: ProjectStatus
+  startDate?: string // ISO date string for project start date (optional)
   createdAt: string
   updatedAt: string
 }

@@ -187,27 +187,48 @@ const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) =
             ...item,
             value: [item.value[0], item.value[1], index],
           })),
-          markLine: milestones.length > 0 ? {
+          markLine: {
             silent: false,
             symbol: ['none', 'none'],
-            label: {
-              show: true,
-              position: 'insideEndTop',
-              formatter: '{b}',
-              color: '#9333ea',
-              fontSize: 11,
-              fontWeight: 600,
-            },
-            lineStyle: {
-              color: '#9333ea',
-              width: 2,
-              type: 'dashed',
-            },
-            data: milestones.map(milestone => ({
-              name: milestone.title,
-              xAxis: new Date(milestone.date).getTime(),
-            })),
-          } : undefined,
+            data: [
+              // Today marker
+              {
+                name: 'Today',
+                xAxis: new Date().setHours(0, 0, 0, 0),
+                label: {
+                  show: true,
+                  position: 'insideEndTop',
+                  formatter: 'Today',
+                  color: '#ef4444',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                },
+                lineStyle: {
+                  color: '#ef4444',
+                  width: 3,
+                  type: 'solid',
+                },
+              },
+              // Milestone markers
+              ...milestones.map(milestone => ({
+                name: milestone.title,
+                xAxis: new Date(milestone.date).getTime(),
+                label: {
+                  show: true,
+                  position: 'insideEndTop',
+                  formatter: milestone.title,
+                  color: '#9333ea',
+                  fontSize: 11,
+                  fontWeight: 600,
+                },
+                lineStyle: {
+                  color: '#9333ea',
+                  width: 2,
+                  type: 'dashed',
+                },
+              })),
+            ],
+          },
         },
       ],
     }

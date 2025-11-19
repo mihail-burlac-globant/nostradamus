@@ -19,12 +19,14 @@ export const seedDatabase = (): void => {
       title: 'E-Commerce Platform',
       description: 'Building a modern e-commerce platform with React and Node.js',
       status: 'Active',
+      startDate: '2025-01-15',
     })
 
     const project2 = createProject({
       title: 'Mobile App Redesign',
       description: 'Redesigning the mobile application for better UX',
       status: 'Active',
+      startDate: '2025-01-20',
     })
 
     // Create Resources

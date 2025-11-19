@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
-import type { Task, Resource, TaskStatus } from '../types/entities.types'
+import type { Task, Resource, TaskStatus, Milestone } from '../types/entities.types'
 import { getIconById } from '../utils/resourceIcons'
 
 interface TaskWithResources extends Task {
@@ -11,11 +11,16 @@ const TasksPage = () => {
   const {
     tasks,
     projects,
+    milestones,
     loadTasks,
     loadProjects,
+    loadMilestones,
     addTask,
     editTask,
     removeTask,
+    addMilestone,
+    editMilestone,
+    removeMilestone,
     getProjectResources,
     assignResourceToTask,
     removeResourceFromTask,
@@ -41,7 +46,10 @@ const TasksPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showResourceModal, setShowResourceModal] = useState(false)
   const [showDependenciesModal, setShowDependenciesModal] = useState(false)
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false)
+  const [showDeleteMilestoneModal, setShowDeleteMilestoneModal] = useState(false)
   const [currentTask, setCurrentTask] = useState<Task | null>(null)
+  const [currentMilestone, setCurrentMilestone] = useState<Milestone | null>(null)
   const [tasksWithResources, setTasksWithResources] = useState<TaskWithResources[]>([])
   const [formData, setFormData] = useState({
     title: '',
@@ -55,6 +63,10 @@ const TasksPage = () => {
     resourceId: '',
     estimatedDays: 1,
     focusFactor: 80,
+  })
+  const [milestoneFormData, setMilestoneFormData] = useState({
+    title: '',
+    date: '',
   })
 
   useEffect(() => {
@@ -85,12 +97,24 @@ const TasksPage = () => {
     localStorage.setItem('nostradamus_tasks_view_mode', viewMode)
   }, [viewMode])
 
+  useEffect(() => {
+    // Load milestones when project filter changes
+    if (selectedProjectFilter !== 'all') {
+      loadMilestones(selectedProjectFilter)
+    }
+  }, [selectedProjectFilter, loadMilestones])
+
   const activeProjects = projects.filter((p) => p.status === 'Active')
 
   const filteredTasks =
     selectedProjectFilter === 'all'
       ? tasksWithResources
       : tasksWithResources.filter((t) => t.projectId === selectedProjectFilter)
+
+  const filteredMilestones =
+    selectedProjectFilter === 'all'
+      ? []
+      : milestones.filter((m) => m.projectId === selectedProjectFilter)
 
   const groupedTasks = filteredTasks.reduce(
     (acc, task) => {
@@ -160,6 +184,52 @@ const TasksPage = () => {
   const handleRemoveResource = (taskId: string, resourceId: string) => {
     removeResourceFromTask(taskId, resourceId)
     loadTasks()
+  }
+
+  const handleCreateMilestone = () => {
+    if (!milestoneFormData.title.trim() || !milestoneFormData.date || selectedProjectFilter === 'all') return
+
+    addMilestone({
+      projectId: selectedProjectFilter,
+      title: milestoneFormData.title,
+      date: milestoneFormData.date,
+    })
+    setMilestoneFormData({ title: '', date: '' })
+    setShowMilestoneModal(false)
+  }
+
+  const handleEditMilestone = () => {
+    if (!currentMilestone || !milestoneFormData.title.trim() || !milestoneFormData.date) return
+
+    editMilestone(currentMilestone.id, {
+      title: milestoneFormData.title,
+      date: milestoneFormData.date,
+    })
+    setMilestoneFormData({ title: '', date: '' })
+    setCurrentMilestone(null)
+    setShowMilestoneModal(false)
+  }
+
+  const handleDeleteMilestone = () => {
+    if (!currentMilestone) return
+
+    removeMilestone(currentMilestone.id)
+    setCurrentMilestone(null)
+    setShowDeleteMilestoneModal(false)
+  }
+
+  const openEditMilestoneModal = (milestone: Milestone) => {
+    setCurrentMilestone(milestone)
+    setMilestoneFormData({
+      title: milestone.title,
+      date: milestone.date,
+    })
+    setShowMilestoneModal(true)
+  }
+
+  const openDeleteMilestoneModal = (milestone: Milestone) => {
+    setCurrentMilestone(milestone)
+    setShowDeleteMilestoneModal(true)
   }
 
   const openEditModal = (task: Task) => {
@@ -234,7 +304,7 @@ const TasksPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-navy-900 dark:to-salmon-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-gray-950 dark:to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">Tasks</h1>
@@ -303,6 +373,83 @@ const TasksPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Milestones Section */}
+        {selectedProjectFilter !== 'all' && (
+          <div className="mb-6 bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-navy-800 dark:text-navy-100">Project Milestones</h3>
+              <button
+                onClick={() => {
+                  setCurrentMilestone(null)
+                  setMilestoneFormData({ title: '', date: '' })
+                  setShowMilestoneModal(true)
+                }}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md text-sm"
+              >
+                + Add Milestone
+              </button>
+            </div>
+            {filteredMilestones.length === 0 ? (
+              <p className="text-navy-500 dark:text-navy-400 text-sm">
+                No milestones yet. Add milestones to track key dates in your project timeline.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {filteredMilestones
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map((milestone) => (
+                    <div
+                      key={milestone.id}
+                      className="flex justify-between items-center bg-navy-50 dark:bg-navy-900 p-3 rounded-lg border border-navy-200 dark:border-navy-700"
+                    >
+                      <div className="flex items-center gap-3">
+                        <svg
+                          className="w-5 h-5 text-purple-600 dark:text-purple-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+                          />
+                        </svg>
+                        <div>
+                          <span className="font-semibold text-navy-800 dark:text-navy-100">
+                            {milestone.title}
+                          </span>
+                          <span className="ml-3 text-sm text-navy-600 dark:text-navy-400">
+                            {new Date(milestone.date).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditMilestoneModal(milestone)}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => openDeleteMilestoneModal(milestone)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tasks grouped by project */}
         <div className="space-y-8">
@@ -936,6 +1083,84 @@ const TasksPage = () => {
                   className="w-full px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create/Edit Milestone Modal */}
+        {showMilestoneModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">
+                {currentMilestone ? 'Edit Milestone' : 'Create New Milestone'}
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Title *</label>
+                  <input
+                    type="text"
+                    value={milestoneFormData.title}
+                    onChange={(e) => setMilestoneFormData({ ...milestoneFormData, title: e.target.value })}
+                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter milestone title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">Date *</label>
+                  <input
+                    type="date"
+                    value={milestoneFormData.date}
+                    onChange={(e) => setMilestoneFormData({ ...milestoneFormData, date: e.target.value })}
+                    className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-4 mt-6">
+                <button
+                  onClick={currentMilestone ? handleEditMilestone : handleCreateMilestone}
+                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  {currentMilestone ? 'Save' : 'Create'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMilestoneModal(false)
+                    setCurrentMilestone(null)
+                  }}
+                  className="flex-1 px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Milestone Modal */}
+        {showDeleteMilestoneModal && currentMilestone && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Delete Milestone</h2>
+              <p className="text-navy-600 dark:text-navy-400 mb-6">
+                Are you sure you want to delete "{currentMilestone.title}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleDeleteMilestone}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteMilestoneModal(false)
+                    setCurrentMilestone(null)
+                  }}
+                  className="flex-1 px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

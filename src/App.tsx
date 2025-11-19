@@ -19,7 +19,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-salmon-50 dark:bg-navy-900 flex flex-col">
+      <div className="min-h-screen bg-salmon-50 dark:bg-gray-950 flex flex-col">
         <Header />
 
         <main className="flex-1">
