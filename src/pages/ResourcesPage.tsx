@@ -15,6 +15,9 @@ const ResourcesPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingResource, setEditingResource] = useState<Resource | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Archived'>('all')
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [errorMessage, setErrorMessage] = useState<string>('')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -28,22 +31,50 @@ const ResourcesPage = () => {
     }
   }, [isInitialized, initialize])
 
-  const filteredResources = resources.filter((r) =>
-    filterStatus === 'all' ? true : r.status === filterStatus
-  )
+  const filteredResources = resources.filter((r) => {
+    const matchesStatus = filterStatus === 'all' ? true : r.status === filterStatus
+    const matchesSearch = searchQuery === '' ? true :
+      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.description.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesStatus && matchesSearch
+  })
 
   const handleCreateResource = () => {
     if (!formData.title.trim()) return
+
+    // Check for duplicate title
+    const duplicateExists = resources.some(
+      (r) => r.title.toLowerCase() === formData.title.trim().toLowerCase()
+    )
+
+    if (duplicateExists) {
+      setErrorMessage('A resource type with this name already exists. Please choose a different name.')
+      return
+    }
+
     addResource(formData)
     setFormData({ title: '', description: '', defaultVelocity: 80, status: 'Active' })
+    setErrorMessage('')
     setShowCreateModal(false)
   }
 
   const handleEditResource = () => {
     if (!editingResource || !formData.title.trim()) return
+
+    // Check for duplicate title (excluding the current resource being edited)
+    const duplicateExists = resources.some(
+      (r) => r.id !== editingResource.id && r.title.toLowerCase() === formData.title.trim().toLowerCase()
+    )
+
+    if (duplicateExists) {
+      setErrorMessage('A resource type with this name already exists. Please choose a different name.')
+      return
+    }
+
     editResource(editingResource.id, formData)
     setEditingResource(null)
     setFormData({ title: '', description: '', defaultVelocity: 80, status: 'Active' })
+    setErrorMessage('')
   }
 
   const handleDeleteResource = (id: string) => {
@@ -66,6 +97,7 @@ const ResourcesPage = () => {
     setShowCreateModal(false)
     setEditingResource(null)
     setFormData({ title: '', description: '', defaultVelocity: 80, status: 'Active' })
+    setErrorMessage('')
   }
 
   return (
@@ -93,41 +125,96 @@ const ResourcesPage = () => {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setFilterStatus('all')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            filterStatus === 'all'
-              ? 'bg-salmon-100 text-salmon-700 dark:bg-salmon-900/30 dark:text-salmon-400'
-              : 'bg-navy-50 text-navy-700 hover:bg-navy-100 dark:bg-navy-800 dark:text-navy-300'
-          }`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setFilterStatus('Active')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            filterStatus === 'Active'
-              ? 'bg-salmon-100 text-salmon-700 dark:bg-salmon-900/30 dark:text-salmon-400'
-              : 'bg-navy-50 text-navy-700 hover:bg-navy-100 dark:bg-navy-800 dark:text-navy-300'
-          }`}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setFilterStatus('Archived')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            filterStatus === 'Archived'
-              ? 'bg-salmon-100 text-salmon-700 dark:bg-salmon-900/30 dark:text-salmon-400'
-              : 'bg-navy-50 text-navy-700 hover:bg-navy-100 dark:bg-navy-800 dark:text-navy-300'
-          }`}
-        >
-          Archived
-        </button>
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title or description..."
+            className="w-full px-4 py-2.5 pl-10 border border-navy-200 dark:border-navy-700 rounded-lg
+                     bg-white dark:bg-navy-900 text-navy-900 dark:text-white
+                     focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+          />
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-400 dark:text-navy-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
       </div>
 
-      {/* Resources Grid */}
+      {/* Filters & View Toggle */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilterStatus('all')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              filterStatus === 'all'
+                ? 'bg-salmon-100 text-salmon-700 dark:bg-salmon-900/30 dark:text-salmon-400'
+                : 'bg-navy-50 text-navy-700 hover:bg-navy-100 dark:bg-navy-800 dark:text-navy-300'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setFilterStatus('Active')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              filterStatus === 'Active'
+                ? 'bg-salmon-100 text-salmon-700 dark:bg-salmon-900/30 dark:text-salmon-400'
+                : 'bg-navy-50 text-navy-700 hover:bg-navy-100 dark:bg-navy-800 dark:text-navy-300'
+            }`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setFilterStatus('Archived')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              filterStatus === 'Archived'
+                ? 'bg-salmon-100 text-salmon-700 dark:bg-salmon-900/30 dark:text-salmon-400'
+                : 'bg-navy-50 text-navy-700 hover:bg-navy-100 dark:bg-navy-800 dark:text-navy-300'
+            }`}
+          >
+            Archived
+          </button>
+        </div>
+
+        {/* View Toggle */}
+        <div className="flex gap-1 bg-navy-50 dark:bg-navy-800 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode('card')}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+              viewMode === 'card'
+                ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-400 shadow-sm'
+                : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+            }`}
+            title="Card view"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+              viewMode === 'list'
+                ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-400 shadow-sm'
+                : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+            }`}
+            title="List view"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Resources Display */}
       {filteredResources.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-navy-800 rounded-xl border border-navy-100 dark:border-navy-700">
           <svg
@@ -150,7 +237,8 @@ const ResourcesPage = () => {
             Add your first resource type like PHP, TypeScript, or ReactJS
           </p>
         </div>
-      ) : (
+      ) : viewMode === 'card' ? (
+        /* Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredResources.map((resource) => (
             <div
@@ -222,6 +310,93 @@ const ResourcesPage = () => {
             </div>
           ))}
         </div>
+      ) : (
+        /* List View */
+        <div className="bg-white dark:bg-navy-800 rounded-xl border border-navy-100 dark:border-navy-700 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-navy-50 dark:bg-navy-900/50 border-b border-navy-100 dark:border-navy-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
+                  Resource Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
+                  Description
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
+                  Default Velocity
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-navy-100 dark:divide-navy-700">
+              {filteredResources.map((resource) => (
+                <tr key={resource.id} className="hover:bg-navy-50 dark:hover:bg-navy-900/30 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-navy-900 dark:text-white">
+                      {resource.title}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-navy-600 dark:text-navy-400 line-clamp-2">
+                      {resource.description}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 bg-navy-100 dark:bg-navy-700 rounded-full h-2">
+                        <div
+                          className="bg-salmon-600 h-2 rounded-full transition-all"
+                          style={{ width: `${resource.defaultVelocity}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-navy-900 dark:text-white">
+                        {resource.defaultVelocity}%
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        resource.status === 'Active'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                      }`}
+                    >
+                      {resource.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openEditModal(resource)}
+                        className="text-navy-600 dark:text-navy-400 hover:text-salmon-600 dark:hover:text-salmon-400"
+                        title="Edit"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteResource(resource.id)}
+                        className="text-navy-600 dark:text-navy-400 hover:text-red-600 dark:hover:text-red-400"
+                        title="Delete"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* Create/Edit Modal */}
@@ -235,6 +410,18 @@ const ResourcesPage = () => {
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm text-red-800 dark:text-red-200">{errorMessage}</p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                   Title <span className="text-red-500">*</span>
