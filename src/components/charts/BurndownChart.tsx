@@ -1,339 +1,206 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
-import { useProjectStore } from '../../stores/projectStore'
-import { useBurndownData, useBurndownByProfileData } from '../../hooks/useChartCalculations'
-import { format } from 'date-fns'
+import type { Task } from '../../types/entities.types'
+import { format, eachDayOfInterval, isAfter } from 'date-fns'
 
-const BurndownChart = () => {
-  const { projectData } = useProjectStore()
-  const burndownData = useBurndownData()
-  const burndownByProfileData = useBurndownByProfileData()
+interface BurndownChartProps {
+  projectId: string
+  projectTitle: string
+  tasks: Task[]
+}
+
+const BurndownChart = ({ projectTitle, tasks }: BurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
 
-  const handleExportPNG = () => {
-    if (!chartInstance.current) return
-
-    // Save current options
-    const currentOptions = chartInstance.current.getOption()
-
-    // Force dark text colors for export on white background
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const xAxis = currentOptions.xAxis as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const yAxis = currentOptions.yAxis as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const legend = currentOptions.legend as any
-
-    const exportOptions = {
-      ...currentOptions,
-      xAxis: {
-        ...xAxis,
-        axisLabel: {
-          ...xAxis?.axisLabel,
-          color: '#2E2E36',
-        },
-        axisLine: {
-          lineStyle: {
-            color: '#D1D1D5',
-          },
-        },
-      },
-      yAxis: {
-        ...yAxis,
-        axisLabel: {
-          ...yAxis?.axisLabel,
-          color: '#2E2E36',
-        },
-        nameTextStyle: {
-          color: '#2E2E36',
-        },
-        axisLine: {
-          lineStyle: {
-            color: '#D1D1D5',
-          },
-        },
-        splitLine: {
-          lineStyle: {
-            color: '#E8E8EA',
-          },
-        },
-      },
-      legend: {
-        ...legend,
-        textStyle: {
-          ...legend?.textStyle,
-          color: '#2E2E36',
-        },
-      },
-    }
-
-    // Apply export-friendly options temporarily
-    chartInstance.current.setOption(exportOptions)
-
-    // Small delay to ensure rendering is complete
-    setTimeout(() => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx || !chartInstance.current) return
-
-      // Get chart image with white background
-      const chartImage = new Image()
-      chartImage.src = chartInstance.current.getDataURL({
-        type: 'png',
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-      })
-
-      chartImage.onload = () => {
-        canvas.width = chartImage.width
-        canvas.height = chartImage.height + 60 // Extra space for watermark
-
-        // Draw white background
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        ctx.drawImage(chartImage, 0, 0)
-
-        // Draw watermark
-        const watermarkY = canvas.height - 35
-
-        // Load logo
-        const logo = new Image()
-        logo.src = '/logo.svg'
-        logo.onload = () => {
-          ctx.drawImage(logo, 40, watermarkY - 10, 30, 30)
-
-          // Add text with dark color
-          ctx.font = '14px Inter, sans-serif'
-          ctx.fillStyle = '#2E2E36'
-          ctx.fillText('Nostradamus — Project Intelligence', 80, watermarkY + 8)
-
-          // Download
-          const link = document.createElement('a')
-          link.download = `burndown-chart-${format(new Date(), 'yyyy-MM-dd')}.png`
-          link.href = canvas.toDataURL('image/png')
-          link.click()
-
-          // Restore original options after export
-          if (chartInstance.current) {
-            chartInstance.current.setOption(currentOptions)
-          }
-        }
-
-        logo.onerror = () => {
-          // If logo fails to load, still download without it
-          const link = document.createElement('a')
-          link.download = `burndown-chart-${format(new Date(), 'yyyy-MM-dd')}.png`
-          link.href = canvas.toDataURL('image/png')
-          link.click()
-
-          // Restore original options
-          if (chartInstance.current) {
-            chartInstance.current.setOption(currentOptions)
-          }
-        }
-      }
-    }, 100)
-  }
-
   useEffect(() => {
-    if (!chartRef.current || !burndownData || burndownData.length === 0) return
+    if (!chartRef.current || tasks.length === 0) return
+
+    // Filter tasks that have dates
+    const validTasks = tasks.filter(t => t.startDate && t.endDate)
+    if (validTasks.length === 0) {
+      if (chartInstance.current) {
+        chartInstance.current.dispose()
+        chartInstance.current = null
+      }
+      return
+    }
 
     // Initialize chart
     if (!chartInstance.current) {
       chartInstance.current = echarts.init(chartRef.current)
     }
 
-    const dates = burndownData.map((point) => format(point.date, 'MMM dd'))
-    const idealWork = burndownData.map((point) => point.idealWork)
-    const actualWork = burndownData.map((point) => point.remainingWork)
+    // Calculate project bounds
+    const allDates = validTasks.flatMap(t => [
+      new Date(t.startDate!),
+      new Date(t.endDate!)
+    ])
+    const projectStart = new Date(Math.min(...allDates.map(d => d.getTime())))
+    const projectEnd = new Date(Math.max(...allDates.map(d => d.getTime())))
 
-    // Calculate total hours for tooltip display
-    const totalHours = projectData?.tasks.reduce((sum, task) => {
-      return sum + (task.remaining_estimate_hours || 0)
-    }, 0) || 0
+    // Generate all days in project
+    const allDays = eachDayOfInterval({ start: projectStart, end: projectEnd })
 
-    // Find today's date index
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayFormatted = format(today, 'MMM dd')
+    // Calculate total work (number of tasks)
+    const totalTasks = validTasks.length
 
-    // Extract unique profile types and prepare data for stacked areas
-    const profileTypes = new Set<string>()
-    burndownByProfileData.forEach((point) => {
-      Object.keys(point.profileBreakdown).forEach((profile) => profileTypes.add(profile))
+    // Calculate ideal burndown (linear)
+    const idealData = allDays.map((date, index) => {
+      const progress = index / (allDays.length - 1)
+      const remaining = totalTasks * (1 - progress)
+      return {
+        date: format(date, 'MMM dd'),
+        value: Math.max(0, remaining),
+      }
     })
-    const profileTypesArray = Array.from(profileTypes).sort()
 
-    // Color palette for profile types
-    const profileColors = [
-      '#FF9A66', // Salmon
-      '#2DD4BF', // Teal
-      '#A78BFA', // Purple
-      '#F472B6', // Pink
-      '#FBBF24', // Amber
-      '#34D399', // Emerald
-      '#60A5FA', // Blue
-      '#FB923C', // Orange
-    ]
+    // Calculate actual burndown (based on task completion)
+    const actualData = allDays.map((date) => {
+      // Count tasks that are NOT done and have started by this date
+      const remaining = validTasks.filter(task => {
+        const taskStart = new Date(task.startDate!)
+        // Task has started and is not done
+        return !isAfter(taskStart, date) && task.status !== 'Done'
+      }).length
+
+      return {
+        date: format(date, 'MMM dd'),
+        value: remaining,
+      }
+    })
 
     // Detect dark mode
-    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isDarkMode = document.documentElement.classList.contains('dark')
+    const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
+    const gridColor = isDarkMode ? '#3D3D47' : '#E8E8EA'
 
     const option: echarts.EChartsOption = {
+      title: {
+        text: `${projectTitle} - Burndown Chart`,
+        left: 'center',
+        textStyle: {
+          color: textColor,
+          fontSize: 18,
+          fontWeight: 600,
+        },
+      },
       tooltip: {
         trigger: 'axis',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        formatter: (params: any) => {
-          let result = `<strong>${params[0].name}</strong><br/>`
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        axisPointer: {
+          type: 'cross',
+        },
+        formatter: function (params: any) {
+          const date = params[0].axisValue
+          let result = `<div style="padding: 8px;"><div style="font-weight: 600; margin-bottom: 4px;">${date}</div>`
+
           params.forEach((param: any) => {
-            const hours = param.value.toFixed(1)
-            result += `${param.marker} ${param.seriesName}: ${hours}h<br/>`
+            const color = param.color
+            const name = param.seriesName
+            const value = param.value.toFixed(1)
+            result += `
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color};"></span>
+                <span style="font-size: 12px;">${name}: ${value} tasks</span>
+              </div>
+            `
           })
+
+          result += '</div>'
           return result
         },
       },
       legend: {
-        data: [...profileTypesArray, 'Ideal Burndown', 'Actual Remaining Work'],
-        bottom: 0,
+        data: ['Ideal Burndown', 'Actual Progress'],
+        top: 40,
         textStyle: {
-          fontFamily: 'Inter, sans-serif',
-          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
-          fontSize: 13,
+          color: textColor,
         },
-        type: 'scroll',
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        top: '10%',
-        bottom: '15%',
-        containLabel: true,
+        left: '10%',
+        right: '10%',
+        top: 100,
+        bottom: 80,
       },
       xAxis: {
         type: 'category',
-        boundaryGap: false,
-        data: dates,
+        data: idealData.map(d => d.date),
         axisLabel: {
+          color: textColor,
           rotate: 45,
-          fontSize: 11,
-          fontFamily: 'Inter, sans-serif',
-          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
-          interval: dates.length > 30 ? Math.floor(dates.length / 20) : dates.length > 14 ? 1 : 0,
+          interval: Math.floor(allDays.length / 10), // Show ~10 labels
         },
         axisLine: {
           lineStyle: {
-            color: isDarkMode ? '#5A5A66' : '#D1D1D5',
+            color: gridColor,
           },
         },
       },
       yAxis: {
         type: 'value',
-        name: 'Hours Remaining',
+        name: 'Remaining Tasks',
         nameTextStyle: {
-          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
-          fontFamily: 'Inter, sans-serif',
+          color: textColor,
         },
         axisLabel: {
-          formatter: '{value}h',
-          fontFamily: 'Inter, sans-serif',
-          color: isDarkMode ? '#E8E8EA' : '#2E2E36',
+          color: textColor,
         },
         axisLine: {
           lineStyle: {
-            color: isDarkMode ? '#5A5A66' : '#D1D1D5',
+            color: gridColor,
           },
         },
         splitLine: {
           lineStyle: {
-            color: isDarkMode ? '#3D3D47' : '#E8E8EA',
+            color: gridColor,
+            type: 'dashed',
           },
         },
-        min: 0,
       },
       series: [
-        // Stacked area charts for each profile type
-        ...(profileTypesArray.map((profileType, index) => ({
-          name: profileType,
-          type: 'line' as const,
-          stack: 'profile',
-          data: burndownByProfileData.map((point) => point.profileBreakdown[profileType] || 0),
-          smooth: true,
-          lineStyle: {
-            width: 0,
-          },
-          showSymbol: false,
-          areaStyle: {
-            color: profileColors[index % profileColors.length],
-            opacity: 0.7,
-          },
-          emphasis: {
-            focus: 'series' as const,
-          },
-        }))),
-        // Ideal burndown line (converted to hours)
         {
           name: 'Ideal Burndown',
           type: 'line',
-          data: idealWork.map((percent) => (percent / 100) * totalHours),
-          smooth: true,
+          data: idealData.map(d => d.value),
+          smooth: false,
           lineStyle: {
-            color: '#5A5A66',
+            color: '#94a3b8',
             width: 2,
             type: 'dashed',
           },
           itemStyle: {
-            color: '#5A5A66',
+            color: '#94a3b8',
           },
-          showSymbol: false,
-          z: 10,
+          symbol: 'none',
         },
-        // Actual remaining work line with today marker
         {
-          name: 'Actual Remaining Work',
+          name: 'Actual Progress',
           type: 'line',
-          data: actualWork.map((percent) => (percent / 100) * totalHours),
+          data: actualData.map(d => d.value),
           smooth: true,
           lineStyle: {
-            color: '#1A1A1D',
+            color: '#E8845C',
             width: 3,
           },
           itemStyle: {
-            color: '#1A1A1D',
+            color: '#E8845C',
           },
-          showSymbol: false,
-          z: 10,
-          markLine: {
-            symbol: 'none',
-            silent: false,
-            animation: false,
-            label: {
-              formatter: 'Today',
-              position: 'insideEndTop',
-              color: isDarkMode ? '#E8E8EA' : '#2E2E36',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 11,
-              fontWeight: 'bold',
-            },
-            lineStyle: {
-              color: '#FF9A66',
-              width: 2,
-              type: 'solid',
-            },
-            data: [
-              {
-                xAxis: todayFormatted,
-              },
-            ],
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(232, 132, 92, 0.3)' },
+              { offset: 1, color: 'rgba(232, 132, 92, 0.05)' },
+            ]),
           },
+          symbol: 'circle',
+          symbolSize: 6,
         },
       ],
     }
 
     chartInstance.current.setOption(option)
 
-    // Handle resize
+    // Handle window resize
     const handleResize = () => {
       chartInstance.current?.resize()
     }
@@ -341,22 +208,25 @@ const BurndownChart = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize)
+      if (chartInstance.current) {
+        chartInstance.current.dispose()
+        chartInstance.current = null
+      }
     }
-  }, [burndownData, burndownByProfileData, projectData])
+  }, [projectTitle, tasks])
 
-  if (!burndownData || burndownData.length === 0) {
+  // Show message if no tasks have dates
+  const validTasks = tasks.filter(t => t.startDate && t.endDate)
+  if (validTasks.length === 0) {
     return (
-      <div className="w-full h-[calc(100vh-420px)] min-h-[400px] flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <svg className="w-16 h-16 text-navy-300 dark:text-navy-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <svg className="w-16 h-16 mx-auto mb-4 text-navy-300 dark:text-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          <p className="text-body text-navy-600 dark:text-navy-400">
-            No burndown data available
-          </p>
-          <p className="text-body-sm text-navy-500 dark:text-navy-500">
-            Upload a project with time-based tasks to see the burndown chart
+          <p className="text-navy-600 dark:text-navy-400 text-lg mb-2">No Task Dates Available</p>
+          <p className="text-navy-500 dark:text-navy-500 text-sm">
+            Tasks need start and end dates to display in the Burndown chart.
           </p>
         </div>
       </div>
@@ -365,50 +235,7 @@ const BurndownChart = () => {
 
   return (
     <div className="w-full">
-      {/* Header with Export Button */}
-      <div className="flex items-start justify-between mb-3 pb-3 border-b border-navy-100 dark:border-navy-700">
-        <div>
-          <h3 className="text-h3 font-serif text-navy-900 dark:text-white mb-1">
-            Burndown Chart
-          </h3>
-          <p className="text-body-sm text-navy-600 dark:text-navy-400">
-            Track work remaining over time and compare against ideal progress
-          </p>
-        </div>
-        <button
-          onClick={handleExportPNG}
-          className="flex items-center gap-2 px-4 py-2 bg-salmon-600 hover:bg-salmon-700
-                   text-white font-medium text-sm rounded-lg transition-all duration-200
-                   shadow-soft hover:shadow-medium"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Export PNG
-        </button>
-      </div>
-
-      {/* Chart */}
-      <div ref={chartRef} className="w-full h-[calc(100vh-420px)] min-h-[400px]" />
-
-      {/* Insights */}
-      <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-navy-100 dark:border-navy-700">
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-8 bg-[#B3B3BA] rounded-full"></div>
-          <div>
-            <p className="text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wide">Ideal</p>
-            <p className="text-sm text-navy-700 dark:text-navy-300">Linear burndown</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-1 h-8 bg-[#FF9A66] rounded-full"></div>
-          <div>
-            <p className="text-xs font-medium text-navy-500 dark:text-navy-400 uppercase tracking-wide">Actual</p>
-            <p className="text-sm text-navy-700 dark:text-navy-300">Current progress</p>
-          </div>
-        </div>
-      </div>
+      <div ref={chartRef} style={{ width: '100%', height: '500px' }} />
     </div>
   )
 }
