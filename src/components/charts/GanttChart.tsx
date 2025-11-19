@@ -307,7 +307,7 @@ const GanttChart = () => {
           rotate: 45,
           fontSize: 10,
           margin: 8,
-        } as any,
+        },
         axisLine: {
           lineStyle: {
             color: isDarkMode ? '#5A5A66' : '#D1D1D5',
@@ -322,9 +322,9 @@ const GanttChart = () => {
           color: textColor,
           fontFamily: 'Inter, sans-serif',
           width: 120,
-          overflow: 'truncate',
+          overflow: 'truncate' as const,
           ellipsis: '...',
-        } as any, // ECharts supports these properties but TypeScript doesn't recognize them
+        },
         axisLine: {
           lineStyle: {
             color: isDarkMode ? '#5A5A66' : '#D1D1D5',
