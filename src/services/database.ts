@@ -280,7 +280,16 @@ export const updateProject = (id: string, updates: Partial<Omit<Project, 'id' | 
 
 export const deleteProject = (id: string): boolean => {
   const database = getDatabase()
+
+  // Delete all tasks related to this project (cascade delete)
+  database.run('DELETE FROM task_dependencies WHERE taskId IN (SELECT id FROM tasks WHERE projectId = ?)', [id])
+  database.run('DELETE FROM task_dependencies WHERE dependsOnTaskId IN (SELECT id FROM tasks WHERE projectId = ?)', [id])
+  database.run('DELETE FROM task_resources WHERE taskId IN (SELECT id FROM tasks WHERE projectId = ?)', [id])
+  database.run('DELETE FROM tasks WHERE projectId = ?', [id])
+
+  // Delete project (resources and configs are not deleted as they're shared)
   database.run('DELETE FROM projects WHERE id = ?', [id])
+
   saveDatabase(database)
   return true
 }
