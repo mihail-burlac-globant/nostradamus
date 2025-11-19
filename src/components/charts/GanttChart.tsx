@@ -76,8 +76,10 @@ const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) =
     const isDarkMode = document.documentElement.classList.contains('dark')
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
     const gridColor = isDarkMode ? '#3D3D47' : '#E8E8EA'
+    const backgroundColor = isDarkMode ? '#262629' : '#ffffff'
 
     const option: echarts.EChartsOption = {
+      backgroundColor: backgroundColor,
       title: {
         text: `${projectTitle} - Gantt Chart`,
         left: 'center',
