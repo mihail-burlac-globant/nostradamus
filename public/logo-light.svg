@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="gradient-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9A66;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E8845C;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="orb-gradient-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#FFAE80;stop-opacity:0.15" />
+    </linearGradient>
+    <filter id="glow-light">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer Ring (Mystical Circle) -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="url(#gradient-light)" stroke-width="3" opacity="0.3"/>
+
+  <!-- Inner Crystal Orb -->
+  <circle cx="100" cy="100" r="65" fill="url(#orb-gradient-light)" stroke="url(#gradient-light)" stroke-width="2"/>
+
+  <!-- Central Eye/Vision Symbol -->
+  <ellipse cx="100" cy="100" rx="28" ry="18" fill="none" stroke="#2E2E36" stroke-width="2.5" opacity="0.8"/>
+  <circle cx="100" cy="100" r="8" fill="#2E2E36" opacity="0.9"/>
+  <circle cx="102" cy="98" r="3" fill="#FF9A66"/>
+
+  <!-- Prediction Rays (Data Streams) -->
+  <g opacity="0.6">
+    <line x1="100" y1="35" x2="100" y2="55" stroke="#FF9A66" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="142" y1="58" x2="127" y2="73" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="165" y1="100" x2="145" y2="100" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="142" y1="142" x2="127" y2="127" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="58" y1="58" x2="73" y2="73" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="35" y1="100" x2="55" y2="100" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="58" y1="142" x2="73" y2="127" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Timeline Visualization (Bottom) -->
+  <g opacity="0.7">
+    <rect x="70" y="145" width="25" height="3" rx="1.5" fill="#2E2E36"/>
+    <rect x="70" y="152" width="40" height="3" rx="1.5" fill="#2E2E36"/>
+    <rect x="70" y="159" width="32" height="3" rx="1.5" fill="#2E2E36"/>
+  </g>
+
+  <!-- Celestial Stars (Data Points) -->
+  <g filter="url(#glow-light)">
+    <circle cx="85" cy="75" r="2" fill="#FF9A66"/>
+    <circle cx="115" cy="75" r="2" fill="#FF9A66"/>
+    <circle cx="75" cy="100" r="1.5" fill="#E8845C"/>
+    <circle cx="125" cy="100" r="1.5" fill="#E8845C"/>
+    <circle cx="85" cy="125" r="2" fill="#FF9A66"/>
+    <circle cx="115" y="125" r="2" fill="#FF9A66"/>
+  </g>
+</svg>

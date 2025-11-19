@@ -1,9 +1,39 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useProjectStore } from '../../stores/projectStore'
 import { exportProjectToCSV } from '../../utils/csvExporter'
 
 const Header = () => {
   const { projectData, clearProjectData } = useProjectStore()
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Check initial dark mode state
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark') ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+      setIsDarkMode(isDark)
+    }
+
+    checkDarkMode()
+
+    // Watch for changes in dark mode
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+
+    // Watch for system preference changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => checkDarkMode()
+    mediaQuery.addEventListener('change', handleChange)
+
+    return () => {
+      observer.disconnect()
+      mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [])
 
   const handleExportCSV = () => {
     if (projectData) {
@@ -25,7 +55,7 @@ const Header = () => {
           {/* Logo & Brand */}
           <div className="flex items-center space-x-4">
             <img
-              src="/logo.svg"
+              src={isDarkMode ? '/logo-dark.svg' : '/logo-light.svg'}
               alt="Nostradamus"
               className="w-12 h-12 transition-transform hover:scale-105"
             />
