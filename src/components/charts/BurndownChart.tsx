@@ -59,26 +59,23 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         }
       }
 
-      // Calculate duration from resource estimates with parallel work consideration
+      // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
       const resources = getTaskResources(task.id)
 
       // For each resource type, calculate how long it takes considering team size
       const resourceDurations: number[] = []
 
       resources.forEach(taskResource => {
-        // Person-days of work needed for this resource type
-        const workNeeded = taskResource.estimatedDays * (taskResource.focusFactor / 100)
+        // Person-days of work needed
+        const workDays = taskResource.estimatedDays
 
         // Find how many people of this resource type are available in the project
         const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-        const teamSize = projectResource?.numberOfResources || 1
-        const teamFocusFactor = projectResource?.focusFactor || 100
+        const numberOfProfiles = projectResource?.numberOfResources || 1
+        const focusFactor = (projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
 
-        // Daily capacity: number of people * their focus factor
-        const dailyCapacity = teamSize * (teamFocusFactor / 100)
-
-        // Duration: work needed / daily capacity
-        const duration = dailyCapacity > 0 ? workNeeded / dailyCapacity : workNeeded
+        // Duration = workDays / (numberOfProfiles * focusFactor)
+        const duration = workDays / (numberOfProfiles * focusFactor)
         resourceDurations.push(duration)
       })
 
