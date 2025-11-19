@@ -201,6 +201,7 @@ const ChartsPage = () => {
                     <GanttChart
                       projectId={selectedProjectId}
                       projectTitle={selectedProject.title}
+                      projectStartDate={selectedProject.startDate}
                       tasks={projectTasks}
                       milestones={projectMilestones}
                     />
@@ -208,6 +209,7 @@ const ChartsPage = () => {
                     <BurndownChart
                       projectId={selectedProjectId}
                       projectTitle={selectedProject.title}
+                      projectStartDate={selectedProject.startDate}
                       tasks={projectTasks}
                       milestones={projectMilestones}
                     />

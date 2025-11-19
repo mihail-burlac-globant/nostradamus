@@ -851,28 +851,32 @@ const TasksPage = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-navy-700 dark:text-navy-300 mb-2">
-                        Start Date
-                        {formData.projectId && projects.find(p => p.id === formData.projectId)?.startDate && (
-                          <span className="text-xs text-navy-500 dark:text-navy-400 ml-1">
-                            (defaults to project start: {new Date(projects.find(p => p.id === formData.projectId)!.startDate!).toLocaleDateString()})
-                          </span>
-                        )}
+                        Start Date (Optional)
                       </label>
                       <input
                         type="date"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                        placeholder="Calculated from project start"
                       />
+                      <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                        If empty, inherits from project start and follows dependencies
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date</label>
+                      <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date (Read-only)</label>
                       <input
                         type="date"
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                        className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-navy-50 dark:bg-navy-900 text-navy-500 dark:text-navy-400 cursor-not-allowed"
+                        placeholder="Auto-calculated"
+                        disabled
                       />
+                      <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                        Calculated from start date + resource estimates
+                      </p>
                     </div>
                   </div>
                   <div>
@@ -1224,28 +1228,32 @@ const TasksPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-navy-700 dark:text-navy-300 mb-2">
-                      Start Date
-                      {formData.projectId && projects.find(p => p.id === formData.projectId)?.startDate && (
-                        <span className="text-xs text-navy-500 dark:text-navy-400 ml-1">
-                          (defaults to project start: {new Date(projects.find(p => p.id === formData.projectId)!.startDate!).toLocaleDateString()})
-                        </span>
-                      )}
+                      Start Date (Optional)
                     </label>
                     <input
                       type="date"
                       value={formData.startDate}
                       onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                       className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      placeholder="Calculated from project start"
                     />
+                    <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                      If empty, inherits from project start and follows dependencies
+                    </p>
                   </div>
                   <div>
-                    <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date</label>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">End Date (Read-only)</label>
                     <input
                       type="date"
                       value={formData.endDate}
                       onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-navy-50 dark:bg-navy-900 text-navy-500 dark:text-navy-400 cursor-not-allowed"
+                      placeholder="Auto-calculated"
+                      disabled
                     />
+                    <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                      Calculated from start date + resource estimates
+                    </p>
                   </div>
                 </div>
                 <div>
