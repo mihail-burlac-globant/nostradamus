@@ -53,6 +53,7 @@ export interface Task {
   title: string
   description: string
   status: TaskStatus
+  progress: number // Task completion progress in percentage (0-100)
   color: string // Hex color for the task, default: '#6366f1'
   startDate?: string // ISO date string for task start date (optional)
   endDate?: string // ISO date string for task end date (optional)

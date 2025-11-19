@@ -56,6 +56,7 @@ const TasksPage = () => {
     description: '',
     projectId: '',
     status: 'Todo' as TaskStatus,
+    progress: 0,
     color: '#6366f1',
     dependencies: [] as string[],
   })
@@ -146,7 +147,7 @@ const TasksPage = () => {
 
     // Save the last selected project for future use
     localStorage.setItem('nostradamus_tasks_last_project', formData.projectId)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1', dependencies: [] })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
     setShowCreateModal(false)
   }
 
@@ -154,7 +155,7 @@ const TasksPage = () => {
     if (!currentTask || !formData.title.trim()) return
 
     editTask(currentTask.id, formData)
-    setFormData({ title: '', description: '', projectId: '', status: 'Todo', color: '#6366f1', dependencies: [] })
+    setFormData({ title: '', description: '', projectId: '', status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
     setCurrentTask(null)
     setShowEditModal(false)
   }
@@ -239,6 +240,7 @@ const TasksPage = () => {
       description: task.description,
       projectId: task.projectId,
       status: task.status,
+      progress: task.progress,
       color: task.color || '#6366f1',
       dependencies: [], // Edit mode doesn't modify dependencies
     })
@@ -314,7 +316,7 @@ const TasksPage = () => {
               const defaultProjectId = selectedProjectFilter !== 'all'
                 ? selectedProjectFilter
                 : localStorage.getItem('nostradamus_tasks_last_project') || (activeProjects[0]?.id || '')
-              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', color: '#6366f1', dependencies: [] })
+              setFormData({ title: '', description: '', projectId: defaultProjectId, status: 'Todo', progress: 0, color: '#6366f1', dependencies: [] })
               setShowCreateModal(true)
             }}
             className="px-6 py-3 bg-salmon-600 hover:bg-salmon-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -650,6 +652,24 @@ const TasksPage = () => {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">
+                    Progress: {formData.progress}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={formData.progress}
+                    onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-navy-200 dark:bg-navy-700 rounded-lg appearance-none cursor-pointer accent-salmon-600"
+                  />
+                  <div className="flex justify-between text-xs text-navy-500 dark:text-navy-400 mt-1">
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+                <div>
                   <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
                   <div className="flex items-center gap-4">
                     <input
@@ -798,6 +818,24 @@ const TasksPage = () => {
                     <option value="In Progress">In Progress</option>
                     <option value="Done">Done</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-navy-700 dark:text-navy-300 mb-2">
+                    Progress: {formData.progress}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={formData.progress}
+                    onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-navy-200 dark:bg-navy-700 rounded-lg appearance-none cursor-pointer accent-salmon-600"
+                  />
+                  <div className="flex justify-between text-xs text-navy-500 dark:text-navy-400 mt-1">
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
