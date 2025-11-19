@@ -528,9 +528,24 @@ const TasksPage = () => {
                               )}
                             </div>
                             <p className="text-navy-600 dark:text-navy-400 mb-2">{task.description}</p>
-                            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(task.status)}`}>
-                              {task.status}
-                            </span>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(task.status)}`}>
+                                {task.status}
+                              </span>
+                              {viewMode === 'detailed' && (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-32 h-2 bg-navy-200 dark:bg-navy-700 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-gradient-to-r from-salmon-500 to-salmon-600 transition-all duration-300"
+                                      style={{ width: `${task.progress}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm font-medium text-navy-700 dark:text-navy-300 min-w-[3rem]">
+                                    {task.progress}%
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                           <div className="flex gap-2 ml-4">
                             <button
