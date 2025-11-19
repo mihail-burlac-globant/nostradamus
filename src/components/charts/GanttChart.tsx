@@ -19,6 +19,8 @@ const GanttChart = ({ projectTitle, tasks, milestones = [] }: GanttChartProps) =
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
 
+    console.log('📊 GanttChart received milestones:', milestones)
+
     // Filter tasks that have both start and end dates
     const validTasks = tasks.filter(t => t.startDate && t.endDate)
     if (validTasks.length === 0) {
