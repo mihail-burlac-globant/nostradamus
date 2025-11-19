@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Project, Resource, Configuration } from '../types/entities.types'
+import type { Project, Resource, Configuration, Task } from '../types/entities.types'
 import {
   initDatabase,
   createProject,
@@ -20,6 +20,13 @@ import {
   assignConfigurationToProject,
   removeConfigurationFromProject,
   getProjectConfigurations,
+  createTask,
+  getTasks,
+  updateTask,
+  deleteTask,
+  assignResourceToTask,
+  removeResourceFromTask,
+  getTaskResources,
 } from '../services/database'
 
 interface EntitiesState {
@@ -27,6 +34,7 @@ interface EntitiesState {
   projects: Project[]
   resources: Resource[]
   configurations: Configuration[]
+  tasks: Task[]
   isInitialized: boolean
   isLoading: boolean
 
@@ -53,6 +61,12 @@ interface EntitiesState {
   editConfiguration: (id: string, updates: Partial<Omit<Configuration, 'id' | 'createdAt'>>) => void
   removeConfiguration: (id: string) => void
 
+  // Task actions
+  loadTasks: (projectId?: string) => void
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void
+  editTask: (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => void
+  removeTask: (id: string) => void
+
   // Relationship actions
   assignResourceToProject: (projectId: string, resourceId: string, numberOfResources?: number, focusFactor?: number) => void
   removeResourceFromProject: (projectId: string, resourceId: string) => void
@@ -60,6 +74,9 @@ interface EntitiesState {
   assignConfigurationToProject: (projectId: string, configurationId: string) => void
   removeConfigurationFromProject: (projectId: string, configurationId: string) => void
   getProjectConfigurations: (projectId: string) => Configuration[]
+  assignResourceToTask: (taskId: string, resourceId: string, estimatedDays: number, focusFactor?: number) => void
+  removeResourceFromTask: (taskId: string, resourceId: string) => void
+  getTaskResources: (taskId: string) => (Resource & { estimatedDays: number; focusFactor: number })[]
 }
 
 export const useEntitiesStore = create<EntitiesState>((set, get) => ({
@@ -67,6 +84,7 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   projects: [],
   resources: [],
   configurations: [],
+  tasks: [],
   isInitialized: false,
   isLoading: false,
 
@@ -80,6 +98,7 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
       get().loadProjects()
       get().loadResources()
       get().loadConfigurations()
+      get().loadTasks()
       set({ isInitialized: true })
     } catch (error) {
       console.error('Failed to initialize database:', error)
@@ -161,6 +180,27 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
     get().loadConfigurations()
   },
 
+  // Task actions
+  loadTasks: (projectId?: string) => {
+    const tasks = getTasks(projectId)
+    set({ tasks })
+  },
+
+  addTask: (task) => {
+    createTask(task)
+    get().loadTasks()
+  },
+
+  editTask: (id, updates) => {
+    updateTask(id, updates)
+    get().loadTasks()
+  },
+
+  removeTask: (id) => {
+    deleteTask(id)
+    get().loadTasks()
+  },
+
   // Relationship actions
   assignResourceToProject: (projectId, resourceId, numberOfResources, focusFactor) => {
     assignResourceToProject(projectId, resourceId, numberOfResources, focusFactor)
@@ -184,5 +224,17 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
 
   getProjectConfigurations: (projectId) => {
     return getProjectConfigurations(projectId)
+  },
+
+  assignResourceToTask: (taskId, resourceId, estimatedDays, focusFactor) => {
+    assignResourceToTask(taskId, resourceId, estimatedDays, focusFactor)
+  },
+
+  removeResourceFromTask: (taskId, resourceId) => {
+    removeResourceFromTask(taskId, resourceId)
+  },
+
+  getTaskResources: (taskId) => {
+    return getTaskResources(taskId)
   },
 }))

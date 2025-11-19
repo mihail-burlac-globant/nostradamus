@@ -77,6 +77,9 @@ const Header = () => {
             <NavLink to="/projects" className={navLinkClass}>
               Projects
             </NavLink>
+            <NavLink to="/tasks" className={navLinkClass}>
+              Tasks
+            </NavLink>
             <NavLink to="/resources" className={navLinkClass}>
               Resources
             </NavLink>

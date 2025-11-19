@@ -1,9 +1,11 @@
 import initSqlJs, { Database } from 'sql.js'
-import type { Project, Resource, Configuration } from '../types/entities.types'
+import type { Project, Resource, Configuration, Task } from '../types/entities.types'
 
 let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
+const DB_VERSION_KEY = 'nostradamus_db_version'
+const CURRENT_DB_VERSION = 3 // Incremented for tasks and task_resources tables
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -12,16 +14,24 @@ export const initDatabase = async (): Promise<Database> => {
     locateFile: (file) => `https://sql.js.org/dist/${file}`,
   })
 
-  // Try to load existing database from localStorage
+  // Check database version
+  const savedVersion = localStorage.getItem(DB_VERSION_KEY)
   const savedDb = localStorage.getItem(DB_KEY)
-  if (savedDb) {
+
+  if (savedDb && savedVersion && parseInt(savedVersion, 10) === CURRENT_DB_VERSION) {
+    // Load existing database with matching version
     const uint8Array = new Uint8Array(
       savedDb.split(',').map((x) => parseInt(x, 10))
     )
     db = new SQL.Database(uint8Array)
   } else {
+    // Create new database (version mismatch or no database)
+    if (savedDb) {
+      console.log('Database version mismatch, recreating database...')
+    }
     db = new SQL.Database()
     createTables(db)
+    localStorage.setItem(DB_VERSION_KEY, CURRENT_DB_VERSION.toString())
   }
 
   return db
@@ -78,10 +88,35 @@ const createTables = (database: Database) => {
       FOREIGN KEY (configurationId) REFERENCES configurations(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      projectId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('Todo', 'In Progress', 'Done')),
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS task_resources (
+      taskId TEXT NOT NULL,
+      resourceId TEXT NOT NULL,
+      estimatedDays REAL NOT NULL CHECK(estimatedDays > 0),
+      focusFactor REAL NOT NULL DEFAULT 80 CHECK(focusFactor >= 0 AND focusFactor <= 100),
+      assignedAt TEXT NOT NULL,
+      PRIMARY KEY (taskId, resourceId),
+      FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY (resourceId) REFERENCES resources(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
     CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status);
     CREATE INDEX IF NOT EXISTS idx_project_resources_project ON project_resources(projectId);
     CREATE INDEX IF NOT EXISTS idx_project_configurations_project ON project_configurations(projectId);
+    CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(projectId);
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+    CREATE INDEX IF NOT EXISTS idx_task_resources_task ON task_resources(taskId);
   `)
 
   saveDatabase(database)
@@ -391,6 +426,110 @@ export const deleteConfiguration = (id: string): boolean => {
   return true
 }
 
+// Task CRUD operations
+export const createTask = (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Task => {
+  const database = getDatabase()
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+
+  database.run(
+    'INSERT INTO tasks (id, projectId, title, description, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [id, task.projectId, task.title, task.description, task.status, now, now]
+  )
+
+  saveDatabase(database)
+
+  return {
+    id,
+    ...task,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export const getTasks = (projectId?: string): Task[] => {
+  const database = getDatabase()
+  const query = projectId
+    ? 'SELECT * FROM tasks WHERE projectId = ? ORDER BY updatedAt DESC'
+    : 'SELECT * FROM tasks ORDER BY updatedAt DESC'
+
+  const stmt = database.prepare(query)
+  const results: Task[] = []
+
+  if (projectId) {
+    stmt.bind([projectId])
+  }
+
+  while (stmt.step()) {
+    const row = stmt.getAsObject()
+    results.push(row as unknown as Task)
+  }
+
+  stmt.free()
+  return results
+}
+
+export const getTaskById = (id: string): Task | null => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM tasks WHERE id = ?')
+  stmt.bind([id])
+
+  if (stmt.step()) {
+    const task = stmt.getAsObject() as unknown as Task
+    stmt.free()
+    return task
+  }
+
+  stmt.free()
+  return null
+}
+
+export const updateTask = (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>): Task | null => {
+  const database = getDatabase()
+  const task = getTaskById(id)
+  if (!task) return null
+
+  const now = new Date().toISOString()
+  const fields: string[] = []
+  const values: string[] = []
+
+  if (updates.title !== undefined) {
+    fields.push('title = ?')
+    values.push(updates.title || '')
+  }
+  if (updates.description !== undefined) {
+    fields.push('description = ?')
+    values.push(updates.description || '')
+  }
+  if (updates.status !== undefined) {
+    fields.push('status = ?')
+    values.push(updates.status || '')
+  }
+  if (updates.projectId !== undefined) {
+    fields.push('projectId = ?')
+    values.push(updates.projectId || '')
+  }
+
+  fields.push('updatedAt = ?')
+  values.push(now)
+  values.push(id)
+
+  database.run(
+    `UPDATE tasks SET ${fields.join(', ')} WHERE id = ?`,
+    values
+  )
+
+  saveDatabase(database)
+  return getTaskById(id)
+}
+
+export const deleteTask = (id: string): boolean => {
+  const database = getDatabase()
+  database.run('DELETE FROM tasks WHERE id = ?', [id])
+  saveDatabase(database)
+  return true
+}
+
 // Project-Resource relationship operations
 export const assignResourceToProject = (
   projectId: string,
@@ -472,6 +611,52 @@ export const getProjectConfigurations = (projectId: string): Configuration[] => 
   while (stmt.step()) {
     const row = stmt.getAsObject()
     results.push(row as unknown as Configuration)
+  }
+
+  stmt.free()
+  return results
+}
+
+// Task-Resource relationship operations
+export const assignResourceToTask = (
+  taskId: string,
+  resourceId: string,
+  estimatedDays: number,
+  focusFactor: number = 80
+): void => {
+  const database = getDatabase()
+  const now = new Date().toISOString()
+
+  database.run(
+    'INSERT OR REPLACE INTO task_resources (taskId, resourceId, estimatedDays, focusFactor, assignedAt) VALUES (?, ?, ?, ?, ?)',
+    [taskId, resourceId, estimatedDays, focusFactor, now]
+  )
+
+  saveDatabase(database)
+}
+
+export const removeResourceFromTask = (taskId: string, resourceId: string): void => {
+  const database = getDatabase()
+  database.run('DELETE FROM task_resources WHERE taskId = ? AND resourceId = ?', [taskId, resourceId])
+  saveDatabase(database)
+}
+
+export const getTaskResources = (taskId: string): (Resource & { estimatedDays: number; focusFactor: number })[] => {
+  const database = getDatabase()
+  const stmt = database.prepare(`
+    SELECT r.*, tr.estimatedDays, tr.focusFactor
+    FROM resources r
+    INNER JOIN task_resources tr ON r.id = tr.resourceId
+    WHERE tr.taskId = ?
+    ORDER BY r.title
+  `)
+  stmt.bind([taskId])
+
+  const results: (Resource & { estimatedDays: number; focusFactor: number })[] = []
+
+  while (stmt.step()) {
+    const row = stmt.getAsObject()
+    results.push(row as unknown as Resource & { estimatedDays: number; focusFactor: number })
   }
 
   stmt.free()
