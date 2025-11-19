@@ -5,7 +5,7 @@ let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
 const DB_VERSION_KEY = 'nostradamus_db_version'
-const CURRENT_DB_VERSION = 4 // Incremented for resource icons, task colors, and task dependencies
+const CURRENT_DB_VERSION = 5 // Incremented for task start/end dates
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -96,6 +96,8 @@ const createTables = (database: Database) => {
       description TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('Todo', 'In Progress', 'Done')),
       color TEXT NOT NULL DEFAULT '#6366f1',
+      startDate TEXT,
+      endDate TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
@@ -469,8 +471,8 @@ export const createTask = (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): 
   const color = task.color || '#6366f1'
 
   database.run(
-    'INSERT INTO tasks (id, projectId, title, description, status, color, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, task.projectId, task.title, task.description, task.status, color, now, now]
+    'INSERT INTO tasks (id, projectId, title, description, status, color, startDate, endDate, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, task.projectId, task.title, task.description, task.status, color, task.startDate || null, task.endDate || null, now, now]
   )
 
   saveDatabase(database)
@@ -549,6 +551,14 @@ export const updateTask = (id: string, updates: Partial<Omit<Task, 'id' | 'creat
   if (updates.projectId !== undefined) {
     fields.push('projectId = ?')
     values.push(updates.projectId || '')
+  }
+  if (updates.startDate !== undefined) {
+    fields.push('startDate = ?')
+    values.push(updates.startDate || '')
+  }
+  if (updates.endDate !== undefined) {
+    fields.push('endDate = ?')
+    values.push(updates.endDate || '')
   }
 
   fields.push('updatedAt = ?')

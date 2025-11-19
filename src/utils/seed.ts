@@ -111,6 +111,8 @@ export const seedDatabase = (): void => {
       description: 'Initialize React and Node.js project structure',
       status: 'Done',
       color: '#10b981',
+      startDate: '2025-01-20',
+      endDate: '2025-01-22',
     })
 
     const task2 = createTask({
@@ -119,6 +121,8 @@ export const seedDatabase = (): void => {
       description: 'Create database schema for e-commerce platform',
       status: 'Done',
       color: '#3b82f6',
+      startDate: '2025-01-20',
+      endDate: '2025-01-23',
     })
 
     const task3 = createTask({
@@ -127,6 +131,8 @@ export const seedDatabase = (): void => {
       description: 'Add user authentication and authorization',
       status: 'In Progress',
       color: '#f59e0b',
+      startDate: '2025-01-23',
+      endDate: '2025-01-28',
     })
 
     const task4 = createTask({
@@ -135,6 +141,8 @@ export const seedDatabase = (): void => {
       description: 'Create product listing and detail pages',
       status: 'Todo',
       color: '#8b5cf6',
+      startDate: '2025-01-28',
+      endDate: '2025-02-02',
     })
 
     const task5 = createTask({
@@ -143,6 +151,8 @@ export const seedDatabase = (): void => {
       description: 'Add shopping cart functionality',
       status: 'Todo',
       color: '#ec4899',
+      startDate: '2025-02-02',
+      endDate: '2025-02-06',
     })
 
     // Create Tasks for Project 2
@@ -152,6 +162,8 @@ export const seedDatabase = (): void => {
       description: 'Conduct user interviews and surveys',
       status: 'Done',
       color: '#14b8a6',
+      startDate: '2025-02-03',
+      endDate: '2025-02-06',
     })
 
     const task7 = createTask({
@@ -160,6 +172,8 @@ export const seedDatabase = (): void => {
       description: 'Design wireframes for new mobile app',
       status: 'In Progress',
       color: '#f97316',
+      startDate: '2025-02-06',
+      endDate: '2025-02-11',
     })
 
     const task8 = createTask({
@@ -168,6 +182,8 @@ export const seedDatabase = (): void => {
       description: 'Build reusable UI components',
       status: 'Todo',
       color: '#6366f1',
+      startDate: '2025-02-11',
+      endDate: '2025-02-19',
     })
 
     // Assign Resources to Tasks
