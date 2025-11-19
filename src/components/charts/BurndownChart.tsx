@@ -90,10 +90,12 @@ const BurndownChart = ({ projectTitle, tasks }: BurndownChartProps) => {
         axisPointer: {
           type: 'cross',
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (params: any) {
           const date = params[0].axisValue
           let result = `<div style="padding: 8px;"><div style="font-weight: 600; margin-bottom: 4px;">${date}</div>`
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           params.forEach((param: any) => {
             const color = param.color
             const name = param.seriesName

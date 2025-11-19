@@ -32,6 +32,10 @@ const TasksPage = () => {
     const saved = localStorage.getItem('nostradamus_tasks_project_filter')
     return saved || 'all'
   })
+  const [viewMode, setViewMode] = useState<'detailed' | 'compact'>(() => {
+    const saved = localStorage.getItem('nostradamus_tasks_view_mode')
+    return (saved as 'detailed' | 'compact') || 'detailed'
+  })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -75,6 +79,11 @@ const TasksPage = () => {
     // Save filter selection to localStorage
     localStorage.setItem('nostradamus_tasks_project_filter', selectedProjectFilter)
   }, [selectedProjectFilter])
+
+  useEffect(() => {
+    // Save view mode to localStorage
+    localStorage.setItem('nostradamus_tasks_view_mode', viewMode)
+  }, [viewMode])
 
   const activeProjects = projects.filter((p) => p.status === 'Active')
 
@@ -245,20 +254,54 @@ const TasksPage = () => {
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex gap-4 items-center">
-          <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
-          <select
-            value={selectedProjectFilter}
-            onChange={(e) => setSelectedProjectFilter(e.target.value)}
-            className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-          >
-            <option value="all">All Projects</option>
-            {activeProjects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
+        <div className="mb-6 flex gap-6 items-center flex-wrap">
+          <div className="flex gap-4 items-center">
+            <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
+            <select
+              value={selectedProjectFilter}
+              onChange={(e) => setSelectedProjectFilter(e.target.value)}
+              className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+            >
+              <option value="all">All Projects</option>
+              {activeProjects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-4 items-center">
+            <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
+            <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
+              <button
+                onClick={() => setViewMode('detailed')}
+                className={`
+                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                  ${
+                    viewMode === 'detailed'
+                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                  }
+                `}
+              >
+                Detailed
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`
+                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                  ${
+                    viewMode === 'compact'
+                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                  }
+                `}
+              >
+                Compact
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Tasks grouped by project */}
@@ -335,7 +378,7 @@ const TasksPage = () => {
                         </div>
 
                         {/* Dependencies */}
-                        {dependencies.length > 0 && (
+                        {viewMode === 'detailed' && dependencies.length > 0 && (
                           <div className="mt-4 pt-4 border-t border-navy-200 dark:border-navy-700">
                             <h4 className="font-semibold text-navy-700 dark:text-navy-300 mb-2">
                               Dependencies:
@@ -354,7 +397,7 @@ const TasksPage = () => {
                         )}
 
                         {/* Resources */}
-                        {task.resources.length > 0 && (
+                        {viewMode === 'detailed' && task.resources.length > 0 && (
                           <div className="mt-4 pt-4 border-t border-navy-200 dark:border-navy-700">
                             <h4 className="font-semibold text-navy-700 dark:text-navy-300 mb-2">
                               Assigned Resources:
