@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Header from './components/layout/Header'
+import Footer from './components/layout/Footer'
 import ChartsPage from './pages/ChartsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import TasksPage from './pages/TasksPage'
@@ -9,10 +10,10 @@ import ConfigurationsPage from './pages/ConfigurationsPage'
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-salmon-50 dark:bg-navy-900">
+      <div className="min-h-screen bg-salmon-50 dark:bg-navy-900 flex flex-col">
         <Header />
 
-        <main>
+        <main className="flex-1">
           <Routes>
             <Route path="/" element={<ChartsPage />} />
             <Route path="/charts" element={<ChartsPage />} />
@@ -22,6 +23,8 @@ function App() {
             <Route path="/configurations" element={<ConfigurationsPage />} />
           </Routes>
         </main>
+
+        <Footer />
       </div>
     </Router>
   )
