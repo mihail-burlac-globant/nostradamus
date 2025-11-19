@@ -72,3 +72,12 @@ export interface TaskDependency {
   dependsOnTaskId: string // The task that must be completed first
   createdAt: string
 }
+
+export interface Milestone {
+  id: string
+  projectId: string
+  title: string
+  date: string // ISO date string for milestone date
+  createdAt: string
+  updatedAt: string
+}

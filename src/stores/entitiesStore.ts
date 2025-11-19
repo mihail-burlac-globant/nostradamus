@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Project, Resource, Configuration, Task } from '../types/entities.types'
+import type { Project, Resource, Configuration, Task, Milestone } from '../types/entities.types'
 import {
   initDatabase,
   createProject,
@@ -32,6 +32,11 @@ import {
   getTaskDependencies,
   getTaskDependents,
   canTaskBeStarted,
+  createMilestone,
+  getMilestones,
+  getMilestonesByProject,
+  updateMilestone,
+  deleteMilestone,
 } from '../services/database'
 
 interface EntitiesState {
@@ -40,6 +45,7 @@ interface EntitiesState {
   resources: Resource[]
   configurations: Configuration[]
   tasks: Task[]
+  milestones: Milestone[]
   isInitialized: boolean
   isLoading: boolean
 
@@ -89,6 +95,12 @@ interface EntitiesState {
   getTaskDependencies: (taskId: string) => Task[]
   getTaskDependents: (taskId: string) => Task[]
   canTaskBeStarted: (taskId: string) => boolean
+
+  // Milestone actions
+  loadMilestones: (projectId?: string) => void
+  addMilestone: (milestone: Omit<Milestone, 'id' | 'createdAt' | 'updatedAt'>) => void
+  editMilestone: (id: string, updates: Partial<Omit<Milestone, 'id' | 'createdAt'>>) => void
+  removeMilestone: (id: string) => void
 }
 
 export const useEntitiesStore = create<EntitiesState>((set, get) => ({
@@ -97,6 +109,7 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   resources: [],
   configurations: [],
   tasks: [],
+  milestones: [],
   isInitialized: false,
   isLoading: false,
 
@@ -270,5 +283,29 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
 
   canTaskBeStarted: (taskId) => {
     return canTaskBeStarted(taskId)
+  },
+
+  // Milestone actions
+  loadMilestones: (projectId) => {
+    const milestones = projectId ? getMilestonesByProject(projectId) : getMilestones()
+    set({ milestones })
+  },
+
+  addMilestone: (milestone) => {
+    createMilestone(milestone)
+    const milestones = getMilestones()
+    set({ milestones })
+  },
+
+  editMilestone: (id, updates) => {
+    updateMilestone(id, updates)
+    const milestones = getMilestones()
+    set({ milestones })
+  },
+
+  removeMilestone: (id) => {
+    deleteMilestone(id)
+    const milestones = getMilestones()
+    set({ milestones })
   },
 }))

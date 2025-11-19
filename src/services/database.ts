@@ -1,11 +1,11 @@
 import initSqlJs, { Database } from 'sql.js'
-import type { Project, Resource, Configuration, Task } from '../types/entities.types'
+import type { Project, Resource, Configuration, Task, Milestone } from '../types/entities.types'
 
 let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
 const DB_VERSION_KEY = 'nostradamus_db_version'
-const CURRENT_DB_VERSION = 5 // Incremented for task start/end dates
+const CURRENT_DB_VERSION = 6 // Incremented for milestones
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -124,6 +124,16 @@ const createTables = (database: Database) => {
       CHECK (taskId != dependsOnTaskId)
     );
 
+    CREATE TABLE IF NOT EXISTS milestones (
+      id TEXT PRIMARY KEY,
+      projectId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
     CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status);
     CREATE INDEX IF NOT EXISTS idx_project_resources_project ON project_resources(projectId);
@@ -133,6 +143,7 @@ const createTables = (database: Database) => {
     CREATE INDEX IF NOT EXISTS idx_task_resources_task ON task_resources(taskId);
     CREATE INDEX IF NOT EXISTS idx_task_dependencies_task ON task_dependencies(taskId);
     CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends ON task_dependencies(dependsOnTaskId);
+    CREATE INDEX IF NOT EXISTS idx_milestones_project ON milestones(projectId);
   `)
 
   saveDatabase(database)
@@ -156,6 +167,7 @@ export const clearDatabase = (): void => {
   database.run('DELETE FROM task_dependencies')
   database.run('DELETE FROM task_resources')
   database.run('DELETE FROM tasks')
+  database.run('DELETE FROM milestones')
   database.run('DELETE FROM project_configurations')
   database.run('DELETE FROM project_resources')
   database.run('DELETE FROM configurations')
@@ -818,4 +830,114 @@ export const canTaskBeStarted = (taskId: string): boolean => {
   }
 
   return true
+}
+
+// ============================================================================
+// Milestone CRUD Operations
+// ============================================================================
+
+export const createMilestone = (milestone: Omit<Milestone, 'id' | 'createdAt' | 'updatedAt'>): Milestone => {
+  const database = getDatabase()
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+
+  database.run(
+    'INSERT INTO milestones (id, projectId, title, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+    [id, milestone.projectId, milestone.title, milestone.date, now, now]
+  )
+
+  saveDatabase(database)
+
+  return {
+    id,
+    ...milestone,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export const getMilestones = (): Milestone[] => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM milestones ORDER BY date ASC')
+  const results: Milestone[] = []
+
+  while (stmt.step()) {
+    const row = stmt.getAsObject()
+    results.push(row as unknown as Milestone)
+  }
+
+  stmt.free()
+  return results
+}
+
+export const getMilestonesByProject = (projectId: string): Milestone[] => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM milestones WHERE projectId = ? ORDER BY date ASC')
+  stmt.bind([projectId])
+
+  const results: Milestone[] = []
+
+  while (stmt.step()) {
+    const row = stmt.getAsObject()
+    results.push(row as unknown as Milestone)
+  }
+
+  stmt.free()
+  return results
+}
+
+export const getMilestoneById = (id: string): Milestone | null => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM milestones WHERE id = ?')
+  stmt.bind([id])
+
+  let result: Milestone | null = null
+
+  if (stmt.step()) {
+    const row = stmt.getAsObject()
+    result = row as unknown as Milestone
+  }
+
+  stmt.free()
+  return result
+}
+
+export const updateMilestone = (id: string, updates: Partial<Omit<Milestone, 'id' | 'createdAt' | 'updatedAt'>>): Milestone | null => {
+  const database = getDatabase()
+  const now = new Date().toISOString()
+
+  const fields: string[] = []
+  const values: (string | number)[] = []
+
+  if (updates.title !== undefined) {
+    fields.push('title = ?')
+    values.push(updates.title)
+  }
+  if (updates.date !== undefined) {
+    fields.push('date = ?')
+    values.push(updates.date)
+  }
+
+  if (fields.length === 0) {
+    return getMilestoneById(id)
+  }
+
+  fields.push('updatedAt = ?')
+  values.push(now)
+  values.push(id)
+
+  database.run(
+    `UPDATE milestones SET ${fields.join(', ')} WHERE id = ?`,
+    values
+  )
+
+  saveDatabase(database)
+
+  return getMilestoneById(id)
+}
+
+export const deleteMilestone = (id: string): void => {
+  const database = getDatabase()
+  database.run('DELETE FROM milestones WHERE id = ?', [id])
+  saveDatabase(database)
 }
