@@ -271,6 +271,17 @@ const ProgressPage = () => {
               const project = projects.find(p => p.id === task.projectId)
               const estimate = estimates[task.id] || 0
 
+              // Calculate original total effort
+              const resources = getTaskResources(task.id)
+              const totalEffort = resources.reduce((sum, resource) => {
+                return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+              }, 0)
+
+              // Calculate actual progress based on remaining estimate
+              const calculatedProgress = totalEffort > 0
+                ? Math.min(100, Math.max(0, ((totalEffort - estimate) / totalEffort) * 100))
+                : 0
+
               return (
                 <div
                   key={task.id}
@@ -347,6 +358,17 @@ const ProgressPage = () => {
                         max="100"
                         className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center font-semibold"
                       />
+                      {/* Calculated Progress Indicator */}
+                      <div className="mt-2 text-xs text-center">
+                        <span className="text-navy-500 dark:text-navy-400">
+                          Calculated: {calculatedProgress.toFixed(1)}%
+                        </span>
+                        {totalEffort > 0 && (
+                          <span className="block text-navy-400 dark:text-navy-500 text-[10px] mt-0.5">
+                            ({(totalEffort - estimate).toFixed(1)}/{totalEffort.toFixed(1)} days)
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Notes */}
