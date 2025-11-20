@@ -124,11 +124,21 @@ export const exportProject = (projectId: string): ProjectExport => {
   }
 }
 
+export interface ImportProgress {
+  stage: string
+  current: number
+  total: number
+}
+
 /**
  * Import a project from exported data
  * Returns the new project ID
  */
-export const importProject = (data: ProjectExport): string => {
+export const importProject = (
+  data: ProjectExport,
+  customTitle?: string,
+  onProgress?: (progress: ImportProgress) => void
+): string => {
   const database = getDatabase()
 
   // Validate the data structure
@@ -160,13 +170,15 @@ export const importProject = (data: ProjectExport): string => {
   const resourceIdMap = new Map<string, string>() // old resource ID -> new resource ID
 
   // Import project
+  onProgress?.({ stage: 'Importing project', current: 0, total: 5 })
   const now = new Date().toISOString()
+  const projectTitle = customTitle || `${data.project.title} (Imported)`
   database.run(
     `INSERT INTO projects (id, title, description, status, startDate, createdAt, updatedAt)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       newProjectId,
-      `${data.project.title} (Imported)`,
+      projectTitle,
       data.project.description,
       data.project.status,
       data.project.startDate || null,
@@ -176,6 +188,7 @@ export const importProject = (data: ProjectExport): string => {
   )
 
   // Import or link project resources
+  onProgress?.({ stage: 'Importing resources', current: 1, total: 5 })
   for (const pr of data.projectResources) {
     // Check if resource already exists by title
     const existingResourceStmt = database.prepare('SELECT id FROM resources WHERE title = ?')
@@ -204,6 +217,7 @@ export const importProject = (data: ProjectExport): string => {
   }
 
   // Import tasks
+  onProgress?.({ stage: 'Importing tasks', current: 2, total: 5 })
   for (const task of data.tasks) {
     const newTaskId = crypto.randomUUID()
     taskIdMap.set(task.id, newTaskId)
@@ -240,6 +254,7 @@ export const importProject = (data: ProjectExport): string => {
   }
 
   // Import task dependencies (after all tasks are created)
+  onProgress?.({ stage: 'Importing task dependencies', current: 3, total: 5 })
   for (const task of data.tasks) {
     const newTaskId = taskIdMap.get(task.id)
     if (!newTaskId) continue
@@ -257,6 +272,7 @@ export const importProject = (data: ProjectExport): string => {
   }
 
   // Import milestones
+  onProgress?.({ stage: 'Importing milestones', current: 4, total: 5 })
   for (const milestone of data.milestones) {
     const newMilestoneId = crypto.randomUUID()
     database.run(
@@ -276,6 +292,7 @@ export const importProject = (data: ProjectExport): string => {
   }
 
   // Import progress snapshots
+  onProgress?.({ stage: 'Importing progress snapshots', current: 5, total: 5 })
   for (const snapshot of data.progressSnapshots) {
     const newTaskId = taskIdMap.get(snapshot.taskId)
     if (!newTaskId) continue
@@ -302,7 +319,53 @@ export const importProject = (data: ProjectExport): string => {
   // Save database
   saveDatabase(database)
 
+  onProgress?.({ stage: 'Complete', current: 5, total: 5 })
+
   return newProjectId
+}
+
+/**
+ * Parse and validate import file without importing
+ * Returns the export data if valid
+ */
+export const parseImportFile = (file: File): Promise<ProjectExport> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string
+        const data = JSON.parse(content) as ProjectExport
+
+        // Validate the data structure
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid import file: The file does not contain valid project data')
+        }
+        if (!data.version) {
+          throw new Error('Invalid import file: Missing version field. This file may not be a valid Nostradamus project export.')
+        }
+        if (data.version !== '1.0.0') {
+          throw new Error(`Unsupported export version: ${data.version}. This application supports version 1.0.0.`)
+        }
+        if (!data.project) {
+          throw new Error('Invalid import file: Missing project data')
+        }
+        if (!Array.isArray(data.tasks)) {
+          throw new Error('Invalid import file: Missing or invalid tasks data')
+        }
+
+        resolve(data)
+      } catch (error) {
+        reject(error)
+      }
+    }
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'))
+    }
+
+    reader.readAsText(file)
+  })
 }
 
 /**
@@ -324,6 +387,7 @@ export const downloadProjectExport = (projectId: string, projectTitle: string): 
 
 /**
  * Upload and import project from JSON file
+ * @deprecated Use parseImportFile and importProject separately for better control
  */
 export const uploadAndImportProject = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
