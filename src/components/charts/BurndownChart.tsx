@@ -367,7 +367,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       data: [] as number[]
     }))
 
-    finalDays.forEach((day, _dayIndex) => {
+    finalDays.forEach((day) => {
       const dateKey = format(day, 'yyyy-MM-dd')
       const isFuture = isAfter(day, today)
 
