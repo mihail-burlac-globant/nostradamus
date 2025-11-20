@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import { format } from 'date-fns'
+import { getIconById } from '../utils/resourceIcons'
 
 const ProgressPage = () => {
   const {
@@ -305,18 +306,16 @@ const ProgressPage = () => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                     {/* Task Info */}
-                    <div className="md:col-span-6">
-                      <div className="flex items-center gap-2 mb-0.5">
+                    <div className="md:col-span-7">
+                      <div className="flex items-center gap-2 mb-1">
                         <div
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: task.color || '#6366f1' }}
                         />
-                        <h3 className="font-semibold text-sm text-navy-800 dark:text-navy-100 line-clamp-1">
+                        <h3 className="font-semibold text-sm text-navy-800 dark:text-navy-100 line-clamp-1 flex-1">
                           {task.title}
                         </h3>
-                      </div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] flex-shrink-0 ${
                           task.status === 'In Progress'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
@@ -325,26 +324,27 @@ const ProgressPage = () => {
                         </span>
                       </div>
                       {/* Resource Profile Summary */}
-                      <div className="flex items-center gap-1">
-                        {resources.map((resource, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-1 px-1.5 py-0.5 bg-navy-100 dark:bg-navy-700 rounded text-[10px] text-navy-600 dark:text-navy-300"
-                            title={`${resource.numberOfProfiles}x ${resource.title} @ ${resource.focusFactor}%`}
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span>{resource.numberOfProfiles}x</span>
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {resources.map((resource, idx) => {
+                          const IconComponent = getIconById(resource.icon || 'generic')
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1 px-1.5 py-0.5 bg-navy-100 dark:bg-navy-700 rounded text-[10px] text-navy-600 dark:text-navy-300"
+                              title={`${resource.numberOfProfiles}x ${resource.title} @ ${resource.focusFactor}%`}
+                            >
+                              <IconComponent className="w-3 h-3" />
+                              <span>{resource.numberOfProfiles}x</span>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
 
                     {/* Remaining Estimate Input */}
-                    <div className="md:col-span-3 text-right">
+                    <div className="md:col-span-2 text-right">
                       <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1 text-right">
-                        Remaining estimate
+                        Remaining
                       </label>
                       <div className="flex items-center gap-0.5 justify-end">
                         <button
@@ -372,7 +372,7 @@ const ProgressPage = () => {
                       </div>
                       {calculatedDuration > 0 && (
                         <div className="mt-0.5 text-[10px] text-right text-navy-400 dark:text-navy-500">
-                          Estimated duration: ~{calculatedDuration.toFixed(1)}d
+                          ~{calculatedDuration.toFixed(1)}d
                         </div>
                       )}
                     </div>
