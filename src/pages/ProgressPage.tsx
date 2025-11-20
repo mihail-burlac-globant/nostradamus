@@ -294,6 +294,17 @@ const ProgressPage = () => {
                 ? Math.min(100, Math.max(0, ((totalEffort - estimate) / totalEffort) * 100))
                 : 0
 
+              // Calculate duration based on remaining estimate
+              // TASK_DURATION = (REMAINING_ESTIMATION / FOCUS_FACTOR) / NUMBER_OF_PROFILES
+              const resourceDurations = resources.map(resource => {
+                const numberOfProfiles = resource.numberOfProfiles || 1
+                const focusFactor = (resource.focusFactor || 80) / 100
+                return estimate / (numberOfProfiles * focusFactor)
+              })
+              const calculatedDuration = resourceDurations.length > 0
+                ? Math.max(...resourceDurations)
+                : 0
+
               return (
                 <div
                   key={task.id}
@@ -355,6 +366,11 @@ const ProgressPage = () => {
                           +
                         </button>
                       </div>
+                      {calculatedDuration > 0 && (
+                        <div className="mt-0.5 text-[10px] text-center text-navy-400 dark:text-navy-500">
+                          ~{calculatedDuration.toFixed(1)}d
+                        </div>
+                      )}
                     </div>
 
                     {/* Progress Percentage Input */}
