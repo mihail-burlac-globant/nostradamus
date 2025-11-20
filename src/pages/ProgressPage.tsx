@@ -16,6 +16,7 @@ const ProgressPage = () => {
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all')
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [searchTerm, setSearchTerm] = useState<string>('')
   const [estimates, setEstimates] = useState<Record<string, number>>({})
   const [progressValues, setProgressValues] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
@@ -35,9 +36,15 @@ const ProgressPage = () => {
     return project?.status === 'Active' && t.status !== 'Done'
   })
 
-  const filteredTasks = selectedProjectId === 'all'
+  const filteredTasks = (selectedProjectId === 'all'
     ? activeTasks
     : activeTasks.filter(t => t.projectId === selectedProjectId)
+  ).filter(t => {
+    if (!searchTerm) return true
+    const search = searchTerm.toLowerCase()
+    return t.title.toLowerCase().includes(search) ||
+           (t.description && t.description.toLowerCase().includes(search))
+  })
 
   // Initialize estimates from existing snapshots or calculated values
   // Only run when date or project selection changes, not when tasks update
@@ -146,9 +153,9 @@ const ProgressPage = () => {
 
         {/* Controls */}
         <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Date Selector */}
-            <div>
+          <div className="flex flex-wrap gap-4 items-end mb-4">
+            {/* Date Selector - Narrower */}
+            <div className="w-48">
               <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                 Date
               </label>
@@ -157,19 +164,19 @@ const ProgressPage = () => {
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 max={format(new Date(), 'yyyy-MM-dd')}
-                className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+                className="w-full h-10 px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
               />
             </div>
 
-            {/* Project Filter */}
-            <div>
+            {/* Project Filter - Wider */}
+            <div className="flex-1 min-w-64">
               <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                 Project
               </label>
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
-                className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+                className="w-full h-10 px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
               >
                 <option value="all">All Projects</option>
                 {activeProjects.map(project => (
@@ -181,15 +188,50 @@ const ProgressPage = () => {
             </div>
 
             {/* Summary */}
-            <div className="flex items-end">
-              <div className="bg-salmon-50 dark:bg-salmon-900/20 rounded-lg p-4 w-full">
-                <div className="text-sm text-salmon-700 dark:text-salmon-400 mb-1">
+            <div className="w-48">
+              <div className="bg-salmon-50 dark:bg-salmon-900/20 rounded-lg p-4 h-10 flex items-center justify-between">
+                <div className="text-xs text-salmon-700 dark:text-salmon-400">
                   Total Remaining
                 </div>
-                <div className="text-2xl font-bold text-salmon-800 dark:text-salmon-300">
+                <div className="text-lg font-bold text-salmon-800 dark:text-salmon-300">
                   {totalRemaining.toFixed(1)} days
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Search Field */}
+          <div className="w-full">
+            <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+              Search Tasks
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by task name or description..."
+                className="w-full h-10 px-3 py-2 pl-10 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+              />
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-navy-400 dark:text-navy-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-navy-400 hover:text-navy-600 dark:text-navy-500 dark:hover:text-navy-300"
+                  title="Clear search"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -199,7 +241,10 @@ const ProgressPage = () => {
           {filteredTasks.length === 0 ? (
             <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-12 text-center">
               <p className="text-navy-500 dark:text-navy-400">
-                No active tasks found. All tasks are either completed or no project is selected.
+                {searchTerm
+                  ? `No tasks found matching "${searchTerm}". Try a different search term.`
+                  : 'No active tasks found. All tasks are either completed or no project is selected.'
+                }
               </p>
             </div>
           ) : (
@@ -215,7 +260,7 @@ const ProgressPage = () => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                     {/* Task Info */}
-                    <div className="md:col-span-4">
+                    <div className="md:col-span-3">
                       <div className="flex items-center gap-2 mb-1">
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
@@ -240,7 +285,7 @@ const ProgressPage = () => {
                     </div>
 
                     {/* Remaining Estimate Input */}
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-3">
                       <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                         Remaining (days)
                       </label>
