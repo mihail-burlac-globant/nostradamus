@@ -26,6 +26,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       console.log(`  Milestone "${m.title}": icon="${m.icon}", color="${m.color}"`)
     })
 
+    // Get project resources BEFORE calculateTaskDates to avoid initialization error
+    const projectResources = getProjectResources(projectId)
+
     // Calculate effective start and end dates for each task
     const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
       // Check if already calculated
@@ -135,9 +138,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     // Generate days for the burndown chart (from project start to far future)
     const allDays = eachDayOfInterval({ start: chartStart, end: initialChartEnd })
-
-    // Get project resources to calculate daily capacity
-    const projectResources = getProjectResources(projectId)
 
     // Task colors (consistent color per task)
     const taskColors = [
