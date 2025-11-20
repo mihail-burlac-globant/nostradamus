@@ -136,7 +136,7 @@ const ProjectsPage = () => {
     setImportSuccess('')
 
     try {
-      const newProjectId = await uploadAndImportProject(file)
+      await uploadAndImportProject(file)
       setImportSuccess('Project imported successfully!')
       loadProjects()
       setTimeout(() => setImportSuccess(''), 3000)
