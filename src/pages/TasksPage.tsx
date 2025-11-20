@@ -9,6 +9,20 @@ interface TaskWithResources extends Task {
   resources: (Resource & { estimatedDays: number; focusFactor: number })[]
 }
 
+// Beautiful chart-friendly color palette
+const CHART_COLORS = [
+  { name: 'Blue', value: '#3B82F6' },
+  { name: 'Emerald', value: '#10B981' },
+  { name: 'Purple', value: '#8B5CF6' },
+  { name: 'Orange', value: '#F59E0B' },
+  { name: 'Pink', value: '#EC4899' },
+  { name: 'Teal', value: '#14B8A6' },
+  { name: 'Red', value: '#EF4444' },
+  { name: 'Indigo', value: '#6366F1' },
+  { name: 'Cyan', value: '#06B6D4' },
+  { name: 'Lime', value: '#84CC16' },
+]
+
 const TasksPage = () => {
   const {
     tasks,
@@ -1021,6 +1035,24 @@ const TasksPage = () => {
                     </div>
                     <div>
                       <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
+                      {/* Preset color swatches */}
+                      <div className="grid grid-cols-10 gap-2 mb-3">
+                        {CHART_COLORS.map((color) => (
+                          <button
+                            key={color.value}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, color: color.value })}
+                            className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 ${
+                              formData.color.toLowerCase() === color.value.toLowerCase()
+                                ? 'border-navy-800 dark:border-white ring-2 ring-navy-400 dark:ring-navy-300'
+                                : 'border-navy-200 dark:border-navy-600 hover:border-navy-400 dark:hover:border-navy-400'
+                            }`}
+                            style={{ backgroundColor: color.value }}
+                            title={color.name}
+                          />
+                        ))}
+                      </div>
+                      {/* Color picker and text input */}
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -1411,6 +1443,24 @@ const TasksPage = () => {
                   </div>
                   <div>
                     <label className="block text-navy-700 dark:text-navy-300 mb-2">Task Color</label>
+                    {/* Preset color swatches */}
+                    <div className="grid grid-cols-10 gap-2 mb-3">
+                      {CHART_COLORS.map((color) => (
+                        <button
+                          key={color.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, color: color.value })}
+                          className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 ${
+                            formData.color.toLowerCase() === color.value.toLowerCase()
+                              ? 'border-navy-800 dark:border-white ring-2 ring-navy-400 dark:ring-navy-300'
+                              : 'border-navy-200 dark:border-navy-600 hover:border-navy-400 dark:hover:border-navy-400'
+                          }`}
+                          style={{ backgroundColor: color.value }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
+                    {/* Color picker and text input */}
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
