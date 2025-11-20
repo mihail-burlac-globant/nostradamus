@@ -441,7 +441,8 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       },
       legend: {
         data: [
-          ...taskRemainingByDay.map(t => t.task.title),
+          // Only show task names if we have velocity data
+          ...(velocityMetrics ? taskRemainingByDay.map(t => t.task.title) : []),
           'Actual Progress',
           'Ideal Projection',
           'Realistic Projection',
