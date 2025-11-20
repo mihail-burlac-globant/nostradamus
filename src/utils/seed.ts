@@ -8,6 +8,8 @@ import {
   assignResourceToTask,
   addTaskDependency,
   createMilestone,
+  createProgressSnapshot,
+  getTaskResources,
 } from '../services/database'
 
 // Helper function to add days to a date
@@ -419,6 +421,77 @@ export const seedDatabase = (): void => {
       color: '#ef4444', // Red
     })
 
+    // Create Progress Snapshots for realistic velocity tracking
+    console.log('Creating progress snapshots...')
+    let snapshotCount = 0
+
+    // Helper to create snapshots for a task over the past 7 days
+    const createTaskSnapshots = (task: any, initialRemaining: number) => {
+      if (task.status === 'Todo') return // Skip Todo tasks
+
+      const daysToTrack = task.status === 'Done' ? 7 : 5 // Track more days for completed tasks
+
+      for (let dayOffset = -daysToTrack; dayOffset <= 0; dayOffset++) {
+        const snapshotDate = addDays(today, dayOffset)
+
+        // Calculate remaining estimate with realistic decrease
+        let remaining: number
+        if (task.status === 'Done') {
+          // Task is done, so remaining should decrease to 0
+          const progressFactor = (dayOffset + daysToTrack) / daysToTrack
+          remaining = Math.max(0, initialRemaining * (1 - progressFactor))
+        } else {
+          // Task is in progress, show gradual decrease
+          const progressFactor = (dayOffset + daysToTrack) / daysToTrack
+          remaining = initialRemaining * (1 - (progressFactor * 0.6)) // 60% done over the tracked period
+        }
+
+        // Calculate progress percentage based on remaining
+        const progressPercent = Math.round((1 - remaining / initialRemaining) * 100)
+
+        createProgressSnapshot({
+          taskId: task.id,
+          projectId: task.projectId,
+          date: snapshotDate,
+          remainingEstimate: Number(remaining.toFixed(2)),
+          status: task.status,
+          progress: Math.min(progressPercent, task.progress), // Don't exceed current progress
+          notes: dayOffset === 0 ? undefined : dayOffset === -daysToTrack ? 'Initial estimate' : undefined,
+        })
+        snapshotCount++
+      }
+    }
+
+    // Create snapshots for Project 1 tasks
+    project1TaskObjects.forEach(task => {
+      if (task.status !== 'Todo') {
+        // Calculate initial remaining based on task resources
+        const resources = getTaskResources(task.id)
+        const totalEstimate = resources.reduce((sum, resource) => {
+          return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+        }, 0)
+
+        if (totalEstimate > 0) {
+          createTaskSnapshots(task, totalEstimate)
+        }
+      }
+    })
+
+    // Create snapshots for Project 2 tasks
+    project2TaskObjects.forEach(task => {
+      if (task.status !== 'Todo') {
+        // Calculate initial remaining based on task resources
+        const resources = getTaskResources(task.id)
+        const totalEstimate = resources.reduce((sum, resource) => {
+          return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+        }, 0)
+
+        if (totalEstimate > 0) {
+          createTaskSnapshots(task, totalEstimate)
+        }
+      }
+    })
+
     console.log('✅ Database seeding completed successfully!')
     console.log(`Created:
   - 2 Projects
@@ -428,6 +501,7 @@ export const seedDatabase = (): void => {
   - ${project2Tasks.length} tasks for Mobile App Redesign
   - 6 milestones for E-Commerce Platform
   - 5 milestones for Mobile App Redesign
+  - ${snapshotCount} progress snapshots for velocity tracking
   - Multiple resource assignments
   - Task dependencies
   - Tasks spanning 6 months from ${addDays(today, -7)} to ${addDays(today, currentDay)}`)
