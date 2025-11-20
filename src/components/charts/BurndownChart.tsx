@@ -3,6 +3,12 @@ import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
 import { format, eachDayOfInterval, isAfter, startOfDay } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
+import {
+  calculateActualVelocity,
+  calculatePlannedVelocity,
+  calculateVelocityMetrics,
+  getHistoricalData,
+} from '../../utils/velocityCalculations'
 
 interface BurndownChartProps {
   projectId: string
@@ -15,7 +21,7 @@ interface BurndownChartProps {
 const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, milestones = [] }: BurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
-  const { getTaskResources, getProjectResources, getTaskDependencies } = useEntitiesStore()
+  const { getTaskResources, getProjectResources, getTaskDependencies, progressSnapshots } = useEntitiesStore()
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -289,23 +295,109 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Track which days are in the past for opacity
     const todayIndex = finalDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd'))
 
+    // Get progress snapshots for this project
+    const projectSnapshots = progressSnapshots.filter(s => s.projectId === projectId)
+
+    // Calculate total current remaining effort
+    const totalCurrentRemaining = Array.from(taskCurrentRemaining.values()).reduce((sum, val) => sum + val, 0)
+
+    // Get historical actual data from snapshots
+    const historicalData = getHistoricalData(
+      projectSnapshots,
+      chartStart,
+      finalDays[finalDays.length - 1]
+    )
+
+    // Build actual data series (historical remaining estimates from snapshots)
+    const actualDataSeries: (number | null)[] = finalDays.map((day, index) => {
+      const dateKey = format(day, 'yyyy-MM-dd')
+
+      // Use snapshot data if available
+      if (historicalData.has(dateKey)) {
+        return historicalData.get(dateKey)!
+      }
+
+      // Only show data for past days where we have snapshots or can interpolate
+      if (index <= todayIndex) {
+        // For past days without snapshots, return null (won't draw line)
+        return null
+      }
+
+      // Future days - no actual data
+      return null
+    })
+
+    // Calculate velocities
+    const plannedVelocity = calculatePlannedVelocity(
+      projectResources.map(r => ({
+        numberOfResources: r.numberOfResources,
+        focusFactor: r.focusFactor
+      }))
+    )
+
+    const { velocity: actualVelocity, confidence } = calculateActualVelocity(projectSnapshots)
+
+    // Calculate velocity metrics for display
+    const velocityMetrics = projectSnapshots.length >= 2
+      ? calculateVelocityMetrics(projectSnapshots, totalCurrentRemaining, plannedVelocity)
+      : null
+
+    // Generate ideal projection (from today forward using planned velocity)
+    const idealProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
+      if (index < todayIndex) return null // No projection for past
+      if (index === todayIndex) return totalCurrentRemaining // Start from current remaining
+
+      const daysFromToday = index - todayIndex
+      const projected = Math.max(0, totalCurrentRemaining - (plannedVelocity * daysFromToday))
+      return projected
+    })
+
+    // Generate realistic projection (from today forward using actual velocity)
+    const realisticProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
+      if (index < todayIndex) return null // No projection for past
+      if (index === todayIndex) return totalCurrentRemaining // Start from current remaining
+      if (actualVelocity <= 0) return totalCurrentRemaining // No velocity data yet
+
+      const daysFromToday = index - todayIndex
+      const projected = Math.max(0, totalCurrentRemaining - (actualVelocity * daysFromToday))
+      return projected
+    })
+
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
     const gridColor = isDarkMode ? '#3D3D47' : '#E8E8EA'
     const backgroundColor = isDarkMode ? '#262629' : '#ffffff'
 
+    // Build velocity subtitle
+    const velocitySubtitle = velocityMetrics
+      ? `Velocity: ${actualVelocity.toFixed(2)} p-d/day (${confidence}) | Planned: ${plannedVelocity.toFixed(2)} p-d/day | ` +
+        `Trend: ${velocityMetrics.velocityTrend === 'improving' ? '📈' : velocityMetrics.velocityTrend === 'declining' ? '📉' : '➡️'} ${velocityMetrics.velocityTrend}`
+      : `Planned Velocity: ${plannedVelocity.toFixed(2)} person-days/day (no actual data yet)`
+
     const option: echarts.EChartsOption = {
       backgroundColor: backgroundColor,
-      title: {
-        text: `${projectTitle} - Burndown Chart`,
-        left: 'center',
-        textStyle: {
-          color: textColor,
-          fontSize: 18,
-          fontWeight: 600,
+      title: [
+        {
+          text: `${projectTitle} - Burndown Chart`,
+          left: 'center',
+          textStyle: {
+            color: textColor,
+            fontSize: 18,
+            fontWeight: 600,
+          },
         },
-      },
+        {
+          text: velocitySubtitle,
+          left: 'center',
+          top: 28,
+          textStyle: {
+            color: textColor,
+            fontSize: 12,
+            fontWeight: 400,
+          },
+        },
+      ],
       tooltip: {
         trigger: 'axis',
         axisPointer: {
@@ -348,8 +440,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         },
       },
       legend: {
-        data: taskRemainingByDay.map(t => t.task.title),
-        top: 40,
+        data: [
+          ...taskRemainingByDay.map(t => t.task.title),
+          'Actual Progress',
+          'Ideal Projection',
+          'Realistic Projection',
+        ],
+        top: 50,
         textStyle: {
           color: textColor,
           fontSize: 11,
@@ -421,6 +518,61 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             focus: 'series' as const,
           },
         })),
+        // Actual progress line (historical data from snapshots)
+        {
+          name: 'Actual Progress',
+          type: 'line' as const,
+          data: actualDataSeries,
+          lineStyle: {
+            color: '#3b82f6', // Blue
+            width: 3,
+            type: 'solid',
+          },
+          itemStyle: {
+            color: '#3b82f6',
+          },
+          symbol: 'circle',
+          symbolSize: 6,
+          smooth: false,
+          z: 10, // Higher z-index to appear on top
+          connectNulls: false, // Don't connect gaps in data
+        },
+        // Ideal projection line (planned velocity from today forward)
+        {
+          name: 'Ideal Projection',
+          type: 'line' as const,
+          data: idealProjectionSeries,
+          lineStyle: {
+            color: '#10b981', // Green
+            width: 2,
+            type: 'dashed',
+          },
+          itemStyle: {
+            color: '#10b981',
+          },
+          symbol: 'none',
+          smooth: true,
+          z: 9,
+          connectNulls: false,
+        },
+        // Realistic projection line (actual velocity from today forward)
+        {
+          name: 'Realistic Projection',
+          type: 'line' as const,
+          data: realisticProjectionSeries,
+          lineStyle: {
+            color: actualVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444', // Orange or Red based on velocity
+            width: 2,
+            type: 'dashed',
+          },
+          itemStyle: {
+            color: actualVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444',
+          },
+          symbol: 'none',
+          smooth: true,
+          z: 9,
+          connectNulls: false,
+        },
         // Add "Today" and milestone markers using a dummy line series
         {
           name: 'Markers',
