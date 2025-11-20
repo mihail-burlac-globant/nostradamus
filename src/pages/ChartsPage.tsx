@@ -15,6 +15,7 @@ const ChartsPage = () => {
     loadProjects,
     loadTasks,
     loadMilestones,
+    loadProgressSnapshots,
   } = useEntitiesStore()
 
   const [activeChart, setActiveChart] = useState<ChartType>('gantt')
@@ -27,8 +28,9 @@ const ChartsPage = () => {
       loadProjects('Active')
       loadTasks()
       loadMilestones() // Load all milestones on mount
+      loadProgressSnapshots() // Load progress snapshots for chart projections
     }
-  }, [isInitialized, initialize, loadProjects, loadTasks, loadMilestones])
+  }, [isInitialized, initialize, loadProjects, loadTasks, loadMilestones, loadProgressSnapshots])
 
   useEffect(() => {
     // Auto-select first active project if none selected
