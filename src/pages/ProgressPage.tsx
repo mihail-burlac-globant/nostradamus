@@ -297,6 +297,19 @@ const ProgressPage = () => {
 
               // Calculate original total effort
               const resources = getTaskResources(task.id)
+
+              // Aggregate resources by resource ID to get total profiles per resource type
+              const aggregatedResources = resources.reduce((acc, resource) => {
+                const existing = acc.find(r => r.id === resource.id)
+                if (existing) {
+                  existing.numberOfProfiles += resource.numberOfProfiles
+                  existing.estimatedDays += resource.estimatedDays
+                } else {
+                  acc.push({ ...resource })
+                }
+                return acc
+              }, [] as typeof resources)
+
               const totalEffort = resources.reduce((sum, resource) => {
                 return sum + (resource.estimatedDays * (resource.focusFactor / 100))
               }, 0)
@@ -323,15 +336,15 @@ const ProgressPage = () => {
                   className="bg-white dark:bg-navy-800 rounded-lg shadow-sm p-3 border-l-4 hover:shadow-md transition-shadow"
                   style={{ borderLeftColor: task.color || '#6366f1' }}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
-                    {/* Task Info - 8 columns (67%) */}
-                    <div className="md:col-span-8">
+                  <div className="grid grid-cols-1 md:grid-cols-20 gap-2 items-center">
+                    {/* Task Info - 14 columns (70%) */}
+                    <div className="md:col-span-14">
                       <div className="flex items-center gap-1.5 mb-1">
                         <div
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: task.color || '#6366f1' }}
                         />
-                        <h3 className="font-semibold text-sm text-navy-800 dark:text-navy-100 line-clamp-1 flex-1">
+                        <h3 className="font-semibold text-sm text-navy-800 dark:text-navy-100 line-clamp-1">
                           {task.title}
                         </h3>
                         <span className={`px-1.5 py-0.5 rounded text-[10px] flex-shrink-0 ml-1 ${
@@ -344,7 +357,7 @@ const ProgressPage = () => {
                       </div>
                       {/* Resource Profile Summary */}
                       <div className="flex items-center gap-1 flex-wrap">
-                        {resources.map((resource, idx) => {
+                        {aggregatedResources.map((resource, idx) => {
                           const IconComponent = getIconById(resource.icon || 'generic')
                           return (
                             <div
@@ -360,8 +373,8 @@ const ProgressPage = () => {
                       </div>
                     </div>
 
-                    {/* Remaining Estimate Input - 2 columns (17%) */}
-                    <div className="md:col-span-2 text-right">
+                    {/* Remaining Estimate Input - 3 columns (15%) */}
+                    <div className="md:col-span-3 text-right">
                       <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1 text-right">
                         Remaining
                       </label>
@@ -396,8 +409,8 @@ const ProgressPage = () => {
                       )}
                     </div>
 
-                    {/* Progress Percentage Input - 1 column (8%) */}
-                    <div className="md:col-span-1 text-center">
+                    {/* Progress Percentage Input - 2 columns (10%) */}
+                    <div className="md:col-span-2 text-center">
                       <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
                         %
                       </label>
@@ -416,8 +429,8 @@ const ProgressPage = () => {
                       </div>
                     </div>
 
-                    {/* Notes Icon */}
-                    <div className="md:col-span-1 flex justify-end">
+                    {/* Notes Icon - 1 column (5%) */}
+                    <div className="md:col-span-1 flex justify-center">
                       <button
                         onClick={() => handleOpenNotesModal(task.id)}
                         className="p-2 text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200 hover:bg-navy-100 dark:hover:bg-navy-700 rounded transition-colors"
