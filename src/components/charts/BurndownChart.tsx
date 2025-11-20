@@ -315,15 +315,11 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     })
 
     // Truncate data to completion day if found, otherwise keep all data
+    // NOTE: Don't truncate yet - we need to calculate Current Projection first
+    // to determine the actual completion day (might be later than theoretical)
+    const theoreticalCompletionDayIndex = completionDayIndex
     let finalDays = allDays
-    if (completionDayIndex > -1) {
-      // Add a few days buffer after completion for visibility
-      const endIndex = Math.min(completionDayIndex + 5, allDays.length)
-      finalDays = allDays.slice(0, endIndex)
-      taskRemainingByDay.forEach(taskData => {
-        taskData.data = taskData.data.slice(0, endIndex)
-      })
-    }
+    // Will truncate after calculating Current Projection
 
     // Track which days are in the past for opacity
     const todayIndex = finalDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd'))
@@ -415,7 +411,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       : null
 
     // Generate theoretical projection from the simulated bars (accounts for dependencies)
-    const theoreticalProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
+    let theoreticalProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
       if (index < todayIndex) return null // No projection for past
 
       // Sum all task remaining values from the simulation
@@ -508,6 +504,36 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     } else {
       // No snapshots for today - don't show projection
       projectedFromActualSeries = finalDays.map(() => null)
+    }
+
+    // Find completion day for Current Projection
+    let actualCompletionDayIndex = -1
+    for (let i = todayIndex; i < projectedFromActualSeries.length; i++) {
+      const remaining = projectedFromActualSeries[i]
+      if (remaining !== null && remaining <= 0.01) {
+        actualCompletionDayIndex = i
+        break
+      }
+    }
+
+    // Use the LATER completion day between theoretical and actual projections
+    const latestCompletionDayIndex = Math.max(
+      theoreticalCompletionDayIndex,
+      actualCompletionDayIndex
+    )
+
+    // Now truncate data to the later completion day
+    if (latestCompletionDayIndex > -1) {
+      // Add buffer days after completion for visibility
+      const endIndex = Math.min(latestCompletionDayIndex + 5, allDays.length)
+      finalDays = allDays.slice(0, endIndex)
+      taskRemainingByDay.forEach(taskData => {
+        taskData.data = taskData.data.slice(0, endIndex)
+      })
+
+      // Also truncate both projection series to match
+      theoreticalProjectionSeries = theoreticalProjectionSeries.slice(0, endIndex)
+      projectedFromActualSeries = projectedFromActualSeries.slice(0, endIndex)
     }
 
     // Detect dark mode
