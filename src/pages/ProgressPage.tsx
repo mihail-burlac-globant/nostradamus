@@ -268,10 +268,10 @@ const ProgressPage = () => {
         </div>
 
         {/* Tasks List */}
-        <div className="space-y-4">
+        <div className="space-y-2">
           {filteredTasks.length === 0 ? (
-            <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-12 text-center">
-              <p className="text-navy-500 dark:text-navy-400">
+            <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-8 text-center">
+              <p className="text-navy-500 dark:text-navy-400 text-sm">
                 {searchTerm
                   ? `No tasks found matching "${searchTerm}". Try a different search term.`
                   : 'No active tasks found. All tasks are either completed or no project is selected.'
@@ -297,26 +297,26 @@ const ProgressPage = () => {
               return (
                 <div
                   key={task.id}
-                  className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6 border-l-4"
+                  className="bg-white dark:bg-navy-800 rounded-lg shadow-sm p-3 border-l-4 hover:shadow-md transition-shadow"
                   style={{ borderLeftColor: task.color || '#6366f1' }}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                     {/* Task Info */}
                     <div className="md:col-span-3">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                           style={{ backgroundColor: task.color || '#6366f1' }}
                         />
-                        <h3 className="font-semibold text-navy-800 dark:text-navy-100">
+                        <h3 className="font-semibold text-sm text-navy-800 dark:text-navy-100 line-clamp-1">
                           {task.title}
                         </h3>
                       </div>
-                      <p className="text-sm text-navy-600 dark:text-navy-400 mb-2">
+                      <p className="text-xs text-navy-500 dark:text-navy-400 mb-1 line-clamp-1">
                         {project?.title}
                       </p>
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className={`px-2 py-1 rounded ${
+                      <div className="flex items-center gap-2">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${
                           task.status === 'In Progress'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
@@ -327,14 +327,14 @@ const ProgressPage = () => {
                     </div>
 
                     {/* Remaining Estimate Input */}
-                    <div className="md:col-span-3">
-                      <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                        Remaining (days)
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                        Remaining
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleQuickAdjust(task.id, -0.5)}
-                          className="px-2 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors"
+                          className="px-1.5 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors text-sm"
                           title="Decrease by 0.5 days"
                         >
                           −
@@ -345,11 +345,11 @@ const ProgressPage = () => {
                           onChange={(e) => handleEstimateChange(task.id, e.target.value)}
                           step="0.5"
                           min="0"
-                          className="flex-1 px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center font-semibold"
+                          className="flex-1 px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
                         />
                         <button
                           onClick={() => handleQuickAdjust(task.id, 0.5)}
-                          className="px-2 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors"
+                          className="px-1.5 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors text-sm"
                           title="Increase by 0.5 days"
                         >
                           +
@@ -359,41 +359,35 @@ const ProgressPage = () => {
 
                     {/* Progress Percentage Input */}
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                        Progress (%)
+                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                        Progress
                       </label>
-                      <input
-                        type="number"
-                        value={progressValues[task.id] || 0}
-                        onChange={(e) => handleProgressChange(task.id, e.target.value)}
-                        min="0"
-                        max="100"
-                        className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center font-semibold"
-                      />
-                      {/* Calculated Progress Indicator */}
-                      <div className="mt-2 text-xs text-center">
-                        <span className="text-navy-500 dark:text-navy-400">
-                          Calculated: {calculatedProgress.toFixed(1)}%
-                        </span>
-                        {totalEffort > 0 && (
-                          <span className="block text-navy-400 dark:text-navy-500 text-[10px] mt-0.5">
-                            ({(totalEffort - estimate).toFixed(1)}/{totalEffort.toFixed(1)} days)
-                          </span>
-                        )}
+                      <div>
+                        <input
+                          type="number"
+                          value={progressValues[task.id] || 0}
+                          onChange={(e) => handleProgressChange(task.id, e.target.value)}
+                          min="0"
+                          max="100"
+                          className="w-full px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
+                        />
+                        <div className="mt-0.5 text-[10px] text-center text-navy-400 dark:text-navy-500">
+                          Calc: {calculatedProgress.toFixed(1)}%
+                        </div>
                       </div>
                     </div>
 
                     {/* Notes */}
-                    <div className="md:col-span-4">
-                      <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                        Notes (optional)
+                    <div className="md:col-span-5">
+                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                        Notes
                       </label>
                       <input
                         type="text"
                         value={notes[task.id] || ''}
                         onChange={(e) => handleNotesChange(task.id, e.target.value)}
-                        placeholder="Blockers, progress notes..."
-                        className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+                        placeholder="Blockers, progress..."
+                        className="w-full px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-sm"
                       />
                     </div>
                   </div>
