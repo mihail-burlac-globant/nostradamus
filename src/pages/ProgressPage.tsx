@@ -16,6 +16,7 @@ const ProgressPage = () => {
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all')
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [searchTerm, setSearchTerm] = useState<string>('')
   const [estimates, setEstimates] = useState<Record<string, number>>({})
   const [progressValues, setProgressValues] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
@@ -35,9 +36,15 @@ const ProgressPage = () => {
     return project?.status === 'Active' && t.status !== 'Done'
   })
 
-  const filteredTasks = selectedProjectId === 'all'
+  const filteredTasks = (selectedProjectId === 'all'
     ? activeTasks
     : activeTasks.filter(t => t.projectId === selectedProjectId)
+  ).filter(t => {
+    if (!searchTerm) return true
+    const search = searchTerm.toLowerCase()
+    return t.title.toLowerCase().includes(search) ||
+           (t.description && t.description.toLowerCase().includes(search))
+  })
 
   // Initialize estimates from existing snapshots or calculated values
   // Only run when date or project selection changes, not when tasks update
@@ -146,7 +153,7 @@ const ProgressPage = () => {
 
         {/* Controls */}
         <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6 mb-6">
-          <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-wrap gap-4 items-end mb-4">
             {/* Date Selector - Narrower */}
             <div className="w-48">
               <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
@@ -192,6 +199,41 @@ const ProgressPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Search Field */}
+          <div className="w-full">
+            <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+              Search Tasks
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by task name or description..."
+                className="w-full h-10 px-3 py-2 pl-10 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+              />
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-navy-400 dark:text-navy-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-navy-400 hover:text-navy-600 dark:text-navy-500 dark:hover:text-navy-300"
+                  title="Clear search"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Tasks List */}
@@ -199,7 +241,10 @@ const ProgressPage = () => {
           {filteredTasks.length === 0 ? (
             <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-12 text-center">
               <p className="text-navy-500 dark:text-navy-400">
-                No active tasks found. All tasks are either completed or no project is selected.
+                {searchTerm
+                  ? `No tasks found matching "${searchTerm}". Try a different search term.`
+                  : 'No active tasks found. All tasks are either completed or no project is selected.'
+                }
               </p>
             </div>
           ) : (
