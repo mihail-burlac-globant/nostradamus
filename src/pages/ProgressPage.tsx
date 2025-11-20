@@ -331,57 +331,61 @@ const ProgressPage = () => {
                 : 0
 
               return (
-                <div
+<div
                   key={task.id}
-                  className="bg-white dark:bg-navy-800 rounded-lg shadow-sm p-3 border-l-4 hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-navy-800 rounded-lg shadow-sm p-4 border-l-4 hover:shadow-md transition-shadow"
                   style={{ borderLeftColor: task.color || '#6366f1' }}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-20 gap-2 items-center">
-                    {/* Task Info - 14 columns (70%) */}
-                    <div className="md:col-span-14">
-                      <div className="flex items-center gap-1.5 mb-1">
+                  <div className="flex items-start gap-3">
+                    {/* Task Info Section - 70% */}
+                    <div className="flex-1 min-w-0" style={{ flexBasis: '70%' }}>
+                      {/* Title and Status Row */}
+                      <div className="flex items-center gap-2 mb-2">
                         <div
-                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                           style={{ backgroundColor: task.color || '#6366f1' }}
                         />
-                        <h3 className="font-semibold text-sm text-navy-800 dark:text-navy-100 line-clamp-1">
+                        <h3 className="font-semibold text-base text-navy-800 dark:text-navy-100 truncate">
                           {task.title}
                         </h3>
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] flex-shrink-0 ml-1 ${
+                        <span className={`px-2 py-0.5 rounded text-xs flex-shrink-0 font-medium ${
                           task.status === 'In Progress'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                            : task.status === 'Todo'
+                            ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
                         }`}>
                           {task.status}
                         </span>
                       </div>
-                      {/* Resource Profile Summary */}
-                      <div className="flex items-center gap-1 flex-wrap">
+
+                      {/* Resource Profiles Row */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         {aggregatedResources.map((resource, idx) => {
                           const IconComponent = getIconById(resource.icon || 'generic')
                           return (
                             <div
                               key={idx}
-                              className="flex items-center gap-1 px-1.5 py-0.5 bg-navy-100 dark:bg-navy-700 rounded text-[10px] text-navy-600 dark:text-navy-300"
+                              className="flex items-center gap-1.5 px-2 py-1 bg-navy-100 dark:bg-navy-700 rounded text-xs text-navy-700 dark:text-navy-300 font-medium"
                               title={`${resource.numberOfProfiles}x ${resource.title} @ ${resource.focusFactor}%`}
                             >
-                              <IconComponent className="w-3 h-3" />
-                              <span>{resource.numberOfProfiles}x</span>
+                              <IconComponent className="w-3.5 h-3.5" />
+                              <span>{resource.numberOfProfiles}x {resource.title}</span>
                             </div>
                           )
                         })}
                       </div>
                     </div>
 
-                    {/* Remaining Estimate Input - 3 columns (15%) */}
-                    <div className="md:col-span-3 text-right">
-                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1 text-right">
-                        Remaining
+                    {/* Estimation Section - 15% */}
+                    <div className="flex flex-col items-end" style={{ flexBasis: '15%', minWidth: '140px' }}>
+                      <label className="text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                        Remaining Days
                       </label>
-                      <div className="flex items-center gap-0.5 justify-end">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleQuickAdjust(task.id, -0.5)}
-                          className="px-1.5 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors text-sm"
+                          className="w-7 h-7 flex items-center justify-center bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors font-bold"
                           title="Decrease by 0.5 days"
                         >
                           −
@@ -392,48 +396,46 @@ const ProgressPage = () => {
                           onChange={(e) => handleEstimateChange(task.id, e.target.value)}
                           step="0.5"
                           min="0"
-                          className="w-20 px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
+                          className="w-16 h-7 px-2 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center text-sm font-bold"
                         />
                         <button
                           onClick={() => handleQuickAdjust(task.id, 0.5)}
-                          className="px-1.5 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors text-sm"
+                          className="w-7 h-7 flex items-center justify-center bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors font-bold"
                           title="Increase by 0.5 days"
                         >
                           +
                         </button>
                       </div>
                       {calculatedDuration > 0 && (
-                        <div className="mt-0.5 text-[10px] text-right text-navy-400 dark:text-navy-500">
-                          ~{calculatedDuration.toFixed(1)}d
+                        <div className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                          Duration: ~{calculatedDuration.toFixed(1)}d
                         </div>
                       )}
                     </div>
 
-                    {/* Progress Percentage Input - 2 columns (10%) */}
-                    <div className="md:col-span-2 text-center">
-                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
-                        %
+                    {/* Progress Control Section - 10% */}
+                    <div className="flex flex-col items-center" style={{ flexBasis: '10%', minWidth: '80px' }}>
+                      <label className="text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                        Progress
                       </label>
-                      <div className="flex justify-center">
-                        <input
-                          type="number"
-                          value={progressValues[task.id] || 0}
-                          onChange={(e) => handleProgressChange(task.id, e.target.value)}
-                          min="0"
-                          max="100"
-                          className="w-14 px-1 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
-                        />
-                      </div>
-                      <div className="mt-0.5 text-[10px] text-center text-navy-400 dark:text-navy-500">
-                        {calculatedProgress.toFixed(0)}
+                      <input
+                        type="number"
+                        value={progressValues[task.id] || 0}
+                        onChange={(e) => handleProgressChange(task.id, e.target.value)}
+                        min="0"
+                        max="100"
+                        className="w-16 h-7 px-2 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center text-sm font-bold"
+                      />
+                      <div className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                        Calc: {calculatedProgress.toFixed(0)}%
                       </div>
                     </div>
 
-                    {/* Notes Icon - 1 column (5%) */}
-                    <div className="md:col-span-1 flex justify-center">
+                    {/* Comment Icon - 5% */}
+                    <div className="flex items-center justify-center" style={{ flexBasis: '5%', minWidth: '40px' }}>
                       <button
                         onClick={() => handleOpenNotesModal(task.id)}
-                        className="p-2 text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200 hover:bg-navy-100 dark:hover:bg-navy-700 rounded transition-colors"
+                        className="w-9 h-9 flex items-center justify-center text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200 hover:bg-navy-100 dark:hover:bg-navy-700 rounded-lg transition-colors"
                         title={notes[task.id] ? "Edit notes" : "Add notes"}
                       >
                         <svg
