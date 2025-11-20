@@ -25,6 +25,9 @@ vi.mock('../../services/database', () => {
   }
 
   return {
+    saveDatabase: () => {
+      // Mock save database - no-op for tests
+    },
     getDatabase: () => ({
       prepare: () => {
         return {

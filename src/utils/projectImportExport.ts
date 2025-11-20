@@ -1,5 +1,5 @@
 import type { Project, Task, Milestone, ProgressSnapshot } from '../types/entities.types'
-import { getDatabase } from '../services/database'
+import { getDatabase, saveDatabase } from '../services/database'
 
 export interface ProjectExport {
   version: string
@@ -300,9 +300,7 @@ export const importProject = (data: ProjectExport): string => {
   }
 
   // Save database
-  const data_1 = database.export()
-  const buffer = Buffer.from(data_1)
-  localStorage.setItem('nostradamus_db', buffer.toString())
+  saveDatabase(database)
 
   return newProjectId
 }
