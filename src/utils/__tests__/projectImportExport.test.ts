@@ -17,7 +17,7 @@ vi.mock('../../services/database', () => {
 
   return {
     getDatabase: () => ({
-      prepare: (query: string) => {
+      prepare: (_query: string) => {
         return {
           bind: () => {},
           step: () => {
@@ -94,8 +94,9 @@ Object.defineProperty(window, 'localStorage', {
 describe('Project Import/Export', () => {
   beforeEach(async () => {
     localStorageMock.clear()
-    const { clearMockData } = await import('../../services/database')
-    clearMockData()
+    const db = await import('../../services/database')
+    // @ts-expect-error - clearMockData is only available in mocked module
+    if (db.clearMockData) db.clearMockData()
   })
 
   describe('importProject', () => {
@@ -114,7 +115,7 @@ describe('Project Import/Export', () => {
     })
 
     it('should generate new IDs for imported project', async () => {
-      const { getMockData } = await import('../../services/database')
+      const db = await import('../../services/database')
 
       const oldProjectId = crypto.randomUUID()
       const exportData: ProjectExport = {
@@ -141,14 +142,15 @@ describe('Project Import/Export', () => {
       expect(newProjectId).not.toBe(oldProjectId)
 
       // Project should be inserted
-      const mockData = getMockData()
+      // @ts-expect-error - getMockData is only available in mocked module
+      const mockData = db.getMockData()
       expect(mockData.projects.length).toBe(1)
       expect(mockData.projects[0].id).toBe(newProjectId)
       expect(mockData.projects[0].title).toContain('(Imported)')
     })
 
     it('should import tasks with remapped IDs', async () => {
-      const { getMockData } = await import('../../services/database')
+      const db = await import('../../services/database')
 
       const oldProjectId = crypto.randomUUID()
       const oldTaskId = crypto.randomUUID()
@@ -186,7 +188,8 @@ describe('Project Import/Export', () => {
 
       const newProjectId = importProject(exportData)
 
-      const mockData = getMockData()
+      // @ts-expect-error - getMockData is only available in mocked module
+      const mockData = db.getMockData()
 
       // Task should be imported with new IDs
       expect(mockData.tasks.length).toBe(1)
@@ -196,7 +199,7 @@ describe('Project Import/Export', () => {
     })
 
     it('should preserve task dependencies with remapped IDs', async () => {
-      const { getMockData } = await import('../../services/database')
+      const db = await import('../../services/database')
 
       const oldProjectId = crypto.randomUUID()
       const oldTask1Id = crypto.randomUUID()
@@ -248,7 +251,8 @@ describe('Project Import/Export', () => {
 
       importProject(exportData)
 
-      const mockData = getMockData()
+      // @ts-expect-error - getMockData is only available in mocked module
+      const mockData = db.getMockData()
 
       // Dependencies should be created
       expect(mockData.taskDependencies.length).toBe(1)
@@ -260,7 +264,7 @@ describe('Project Import/Export', () => {
     })
 
     it('should import milestones with new IDs', async () => {
-      const { getMockData } = await import('../../services/database')
+      const db = await import('../../services/database')
 
       const oldProjectId = crypto.randomUUID()
 
@@ -294,7 +298,8 @@ describe('Project Import/Export', () => {
 
       const newProjectId = importProject(exportData)
 
-      const mockData = getMockData()
+      // @ts-expect-error - getMockData is only available in mocked module
+      const mockData = db.getMockData()
 
       // Milestone should be imported
       expect(mockData.milestones.length).toBe(1)
@@ -303,7 +308,7 @@ describe('Project Import/Export', () => {
     })
 
     it('should import progress snapshots with remapped task IDs', async () => {
-      const { getMockData } = await import('../../services/database')
+      const db = await import('../../services/database')
 
       const oldProjectId = crypto.randomUUID()
       const oldTaskId = crypto.randomUUID()
@@ -353,7 +358,8 @@ describe('Project Import/Export', () => {
 
       const newProjectId = importProject(exportData)
 
-      const mockData = getMockData()
+      // @ts-expect-error - getMockData is only available in mocked module
+      const mockData = db.getMockData()
 
       // Progress snapshot should be imported with remapped IDs
       expect(mockData.progressSnapshots.length).toBe(1)
