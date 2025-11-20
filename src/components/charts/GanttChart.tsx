@@ -365,22 +365,49 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
               },
               // Milestone markers (only show those within the visible date range)
-              ...milestones
-                .filter(milestone => {
-                  const milestoneDate = new Date(milestone.date)
-                  return milestoneDate >= minDate && milestoneDate <= maxDate
-                })
-                .map(milestone => {
-                  // Map icon names to Unicode symbols
-                  const iconSymbols: Record<string, string> = {
-                    flag: '🚩',
-                    star: '⭐',
-                    trophy: '🏆',
-                    target: '🎯',
-                    check: '✅',
-                    calendar: '📅',
-                    rocket: '🚀',
+              ...(() => {
+                // Filter and sort milestones by date
+                const filteredMilestones = milestones
+                  .filter(milestone => {
+                    const milestoneDate = new Date(milestone.date)
+                    return milestoneDate >= minDate && milestoneDate <= maxDate
+                  })
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+                // Map icon names to Unicode symbols
+                const iconSymbols: Record<string, string> = {
+                  flag: '🚩',
+                  star: '⭐',
+                  trophy: '🏆',
+                  target: '🎯',
+                  check: '✅',
+                  calendar: '📅',
+                  rocket: '🚀',
+                }
+
+                // Calculate stair-step offsets for overlapping labels
+                // Threshold: milestones within 5 days are considered overlapping
+                const proximityThresholdMs = 5 * 24 * 60 * 60 * 1000 // 5 days in milliseconds
+                const baseDistance = 5
+                const distanceIncrement = 20 // pixels to offset each overlapping label
+
+                let currentOffset = 0
+                let previousMilestoneTime = 0
+
+                return filteredMilestones.map((milestone, index) => {
+                  const milestoneTime = new Date(milestone.date).getTime()
+
+                  // Check if this milestone is close to the previous one
+                  if (index > 0 && (milestoneTime - previousMilestoneTime) < proximityThresholdMs) {
+                    // Increment offset for overlapping milestone
+                    currentOffset += distanceIncrement
+                  } else {
+                    // Reset offset for well-separated milestones
+                    currentOffset = 0
                   }
+
+                  previousMilestoneTime = milestoneTime
+
                   // Normalize icon name (trim, lowercase) for case-insensitive matching
                   const normalizedIcon = (milestone.icon || '').trim().toLowerCase()
                   const iconSymbol = iconSymbols[normalizedIcon] || '📍'
@@ -392,7 +419,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
 
                   return {
                     name: milestone.title,
-                    xAxis: new Date(milestone.date).getTime(),
+                    xAxis: milestoneTime,
                     label: {
                       show: true,
                       position: 'end' as const,
@@ -400,7 +427,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                       color: milestone.color,
                       fontSize: 11,
                       fontWeight: 600 as const,
-                      distance: 5,
+                      distance: baseDistance + currentOffset,
                       rotate: 0,
                     },
                     lineStyle: {
@@ -409,7 +436,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                       type: 'dashed' as const,
                     },
                   }
-                }),
+                })
+              })(),
             ],
           },
         },
