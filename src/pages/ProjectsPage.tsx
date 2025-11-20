@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Project, Resource, Configuration } from '../types/entities.types'
+import { downloadProjectExport, uploadAndImportProject } from '../utils/projectImportExport'
 
 const ProjectsPage = () => {
   const {
@@ -28,6 +29,9 @@ const ProjectsPage = () => {
     return (saved === 'list' || saved === 'card') ? saved : 'card'
   })
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const [importError, setImportError] = useState<string>('')
+  const [importSuccess, setImportSuccess] = useState<string>('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -110,6 +114,42 @@ const ProjectsPage = () => {
     }
   }
 
+  const handleExportProject = (project: Project) => {
+    try {
+      downloadProjectExport(project.id, project.title)
+    } catch (error) {
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleImportClick = () => {
+    setImportError('')
+    setImportSuccess('')
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setImportError('')
+    setImportSuccess('')
+
+    try {
+      const newProjectId = await uploadAndImportProject(file)
+      setImportSuccess('Project imported successfully!')
+      loadProjects()
+      setTimeout(() => setImportSuccess(''), 3000)
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Failed to import project')
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const openEditModal = (project: Project) => {
     setEditingProject(project)
     setFormData({
@@ -139,18 +179,85 @@ const ProjectsPage = () => {
             Manage your projects, resources, and configurations
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-6 py-3 text-sm font-medium
-                   text-white bg-salmon-600 hover:bg-salmon-700
-                   rounded-lg transition-colors duration-200"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Create Project
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-2 px-6 py-3 text-sm font-medium
+                     text-navy-700 dark:text-navy-300 bg-white dark:bg-navy-800
+                     border border-navy-200 dark:border-navy-700
+                     hover:bg-navy-50 dark:hover:bg-navy-700
+                     rounded-lg transition-colors duration-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import Project
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-6 py-3 text-sm font-medium
+                     text-white bg-salmon-600 hover:bg-salmon-700
+                     rounded-lg transition-colors duration-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Project
+          </button>
+        </div>
       </div>
+
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileSelected}
+        className="hidden"
+      />
+
+      {/* Import Error/Success Messages */}
+      {importError && (
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm text-red-800 dark:text-red-200">{importError}</p>
+            </div>
+            <button
+              onClick={() => setImportError('')}
+              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {importSuccess && (
+        <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm text-green-800 dark:text-green-200">{importSuccess}</p>
+            </div>
+            <button
+              onClick={() => setImportSuccess('')}
+              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filters & View Toggle */}
       <div className="flex items-center justify-between mb-6">
@@ -303,6 +410,15 @@ const ProjectsPage = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
+                    <button
+                      onClick={() => handleExportProject(project)}
+                      className="text-sm text-navy-600 dark:text-navy-400 hover:text-blue-600 dark:hover:text-blue-400"
+                      title="Export project data"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </button>
                     {project.status === 'Active' ? (
                       <button
                         onClick={() => archiveProject(project.id)}
@@ -410,6 +526,15 @@ const ProjectsPage = () => {
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleExportProject(project)}
+                        className="text-navy-600 dark:text-navy-400 hover:text-blue-600 dark:hover:text-blue-400"
+                        title="Export project data"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                       </button>
                       {project.status === 'Active' ? (

@@ -316,10 +316,7 @@ const ProgressPage = () => {
                           {task.title}
                         </h3>
                       </div>
-                      <p className="text-xs text-navy-500 dark:text-navy-400 mb-1 line-clamp-1">
-                        {project?.title}
-                      </p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-1">
                         <span className={`px-1.5 py-0.5 rounded text-[10px] ${
                           task.status === 'In Progress'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
@@ -328,14 +325,29 @@ const ProgressPage = () => {
                           {task.status}
                         </span>
                       </div>
+                      {/* Resource Profile Summary */}
+                      <div className="flex items-center gap-1">
+                        {resources.map((resource, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-1 px-1.5 py-0.5 bg-navy-100 dark:bg-navy-700 rounded text-[10px] text-navy-600 dark:text-navy-300"
+                            title={`${resource.numberOfProfiles}x ${resource.resourceTitle} @ ${resource.focusFactor}%`}
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span>{resource.numberOfProfiles}x</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Remaining Estimate Input */}
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
-                        Rem.
+                    <div className="md:col-span-3 text-right">
+                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1 text-right">
+                        Remaining estimate
                       </label>
-                      <div className="flex items-center gap-0.5">
+                      <div className="flex items-center gap-0.5 justify-end">
                         <button
                           onClick={() => handleQuickAdjust(task.id, -0.5)}
                           className="px-1.5 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors text-sm"
@@ -349,7 +361,7 @@ const ProgressPage = () => {
                           onChange={(e) => handleEstimateChange(task.id, e.target.value)}
                           step="0.5"
                           min="0"
-                          className="flex-1 px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
+                          className="w-20 px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
                         />
                         <button
                           onClick={() => handleQuickAdjust(task.id, 0.5)}
@@ -360,34 +372,34 @@ const ProgressPage = () => {
                         </button>
                       </div>
                       {calculatedDuration > 0 && (
-                        <div className="mt-0.5 text-[10px] text-center text-navy-400 dark:text-navy-500">
-                          ~{calculatedDuration.toFixed(1)}d
+                        <div className="mt-0.5 text-[10px] text-right text-navy-400 dark:text-navy-500">
+                          Estimated duration: ~{calculatedDuration.toFixed(1)}d
                         </div>
                       )}
                     </div>
 
                     {/* Progress Percentage Input */}
-                    <div className="md:col-span-1">
-                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
-                        %
+                    <div className="md:col-span-2 text-right">
+                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1 text-right">
+                        Progress
                       </label>
-                      <div>
+                      <div className="flex justify-end">
                         <input
                           type="number"
                           value={progressValues[task.id] || 0}
                           onChange={(e) => handleProgressChange(task.id, e.target.value)}
                           min="0"
                           max="100"
-                          className="w-full px-1 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
+                          className="w-16 px-1 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
                         />
-                        <div className="mt-0.5 text-[10px] text-center text-navy-400 dark:text-navy-500">
-                          {calculatedProgress.toFixed(0)}
-                        </div>
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-right text-navy-400 dark:text-navy-500">
+                        Calc: {calculatedProgress.toFixed(0)}%
                       </div>
                     </div>
 
                     {/* Notes Icon */}
-                    <div className="md:col-span-1 flex justify-center">
+                    <div className="md:col-span-1 flex justify-end">
                       <button
                         onClick={() => handleOpenNotesModal(task.id)}
                         className="p-2 text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200 hover:bg-navy-100 dark:hover:bg-navy-700 rounded transition-colors"
