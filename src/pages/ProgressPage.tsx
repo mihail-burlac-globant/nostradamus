@@ -298,17 +298,43 @@ const ProgressPage = () => {
               // Calculate original total effort
               const resources = getTaskResources(task.id)
 
+              // Debug logging to check resource data
+              if (resources.length > 0) {
+                console.log(`Task "${task.title}" resources:`, resources.map(r => ({
+                  id: r.id,
+                  title: r.title,
+                  numberOfProfiles: r.numberOfProfiles,
+                  estimatedDays: r.estimatedDays
+                })))
+              }
+
               // Aggregate resources by resource ID to get total profiles per resource type
-              const aggregatedResources = resources.reduce((acc, resource) => {
-                const existing = acc.find(r => r.id === resource.id)
+              // Use Map for more reliable aggregation
+              const resourceMap = new Map<string, typeof resources[0]>()
+
+              resources.forEach(resource => {
+                const existing = resourceMap.get(resource.id)
                 if (existing) {
+                  // Aggregate: sum up profiles and estimated days
                   existing.numberOfProfiles += resource.numberOfProfiles
                   existing.estimatedDays += resource.estimatedDays
                 } else {
-                  acc.push({ ...resource })
+                  // First occurrence: create a copy
+                  resourceMap.set(resource.id, { ...resource })
                 }
-                return acc
-              }, [] as typeof resources)
+              })
+
+              const aggregatedResources = Array.from(resourceMap.values())
+
+              // Debug logging to check aggregated result
+              if (aggregatedResources.length > 0) {
+                console.log(`Task "${task.title}" aggregated:`, aggregatedResources.map(r => ({
+                  id: r.id,
+                  title: r.title,
+                  numberOfProfiles: r.numberOfProfiles,
+                  estimatedDays: r.estimatedDays
+                })))
+              }
 
               const totalEffort = resources.reduce((sum, resource) => {
                 return sum + (resource.estimatedDays * (resource.focusFactor / 100))
