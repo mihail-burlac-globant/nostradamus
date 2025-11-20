@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format } from 'date-fns'
+import { format, isWeekend, addDays } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { addWatermarkToChart } from '../../utils/chartWatermark'
 
@@ -27,6 +27,31 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       console.log(`  Milestone "${m.title}": icon="${m.icon}", color="${m.color}"`)
     })
 
+    // Helper function to add working days (excluding weekends)
+    const addWorkingDays = (startDate: Date, workingDays: number): Date => {
+      let result = new Date(startDate)
+      let daysAdded = 0
+
+      while (daysAdded < workingDays) {
+        result = addDays(result, 1)
+        // Only count weekdays
+        if (!isWeekend(result)) {
+          daysAdded++
+        }
+      }
+
+      return result
+    }
+
+    // Helper function to skip to next weekday if date is on weekend
+    const skipToNextWeekday = (date: Date): Date => {
+      let result = new Date(date)
+      while (isWeekend(result)) {
+        result = addDays(result, 1)
+      }
+      return result
+    }
+
     // Calculate effective start and end dates for each task
     const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
       // Check if already calculated
@@ -47,8 +72,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           return depDates.end
         })
         earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
-        // Add 1 day buffer after dependency completes
-        earliestStart.setDate(earliestStart.getDate() + 1)
+        // Skip to next working day after dependency completes
+        earliestStart = addWorkingDays(earliestStart, 1)
       } else {
         // No dependencies - use task start date or project start date
         if (task.startDate) {
@@ -58,6 +83,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         } else {
           earliestStart = new Date() // Fallback to today
         }
+        // Make sure start date is not on a weekend
+        earliestStart = skipToNextWeekday(earliestStart)
       }
 
       // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
@@ -86,9 +113,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         ? Math.ceil(Math.max(...resourceDurations))
         : 1
 
-      // Calculate end date
-      const endDate = new Date(earliestStart)
-      endDate.setDate(endDate.getDate() + durationDays)
+      // Calculate end date using working days (excluding weekends)
+      const endDate = addWorkingDays(earliestStart, durationDays)
 
       const result = { start: earliestStart, end: endDate }
       taskDateMap.set(task.id, result)
