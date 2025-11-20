@@ -131,9 +131,27 @@ export const exportProject = (projectId: string): ProjectExport => {
 export const importProject = (data: ProjectExport): string => {
   const database = getDatabase()
 
+  // Validate the data structure
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid import file: The file does not contain valid project data')
+  }
+
+  if (!data.version) {
+    throw new Error('Invalid import file: Missing version field. This file may not be a valid Nostradamus project export.')
+  }
+
   // Validate version
   if (data.version !== '1.0.0') {
-    throw new Error(`Unsupported export version: ${data.version}`)
+    throw new Error(`Unsupported export version: ${data.version}. This application supports version 1.0.0.`)
+  }
+
+  // Validate required fields
+  if (!data.project) {
+    throw new Error('Invalid import file: Missing project data')
+  }
+
+  if (!Array.isArray(data.tasks)) {
+    throw new Error('Invalid import file: Missing or invalid tasks data')
   }
 
   // Generate new IDs for all entities
