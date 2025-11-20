@@ -202,6 +202,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     // For each day, simulate work
     const taskRemainingSimulation = new Map<string, number>()
+    // Initialize with current remaining as fallback (will be overwritten by today's values if today exists in range)
     validTasks.forEach(task => {
       taskRemainingSimulation.set(task.id, taskCurrentRemaining.get(task.id) || 0)
     })
@@ -219,17 +220,24 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           const idx = validTasks.indexOf(task)
           const snapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
 
+          let theoreticalRemaining: number
           if (snapshot) {
             // Calculate theoretical remaining from snapshot's progress
             const resources = getTaskResources(task.id)
             const totalEffort = resources.reduce((sum, resource) => {
               return sum + (resource.estimatedDays * (resource.focusFactor / 100))
             }, 0)
-            const theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
-            taskRemainingByDay[idx].data.push(theoreticalRemaining)
+            theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
           } else {
             // No snapshot - use current remaining
-            taskRemainingByDay[idx].data.push(taskCurrentRemaining.get(task.id) || 0)
+            theoreticalRemaining = taskCurrentRemaining.get(task.id) || 0
+          }
+
+          taskRemainingByDay[idx].data.push(theoreticalRemaining)
+
+          // Initialize simulation with today's values for future projections
+          if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
+            taskRemainingSimulation.set(task.id, theoreticalRemaining)
           }
         })
       } else {
@@ -392,15 +400,16 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       ? calculateVelocityMetrics(projectSnapshots, totalCurrentRemaining, plannedVelocity)
       : null
 
-    // Generate theoretical projection (from today forward using planned velocity)
-    const theoreticalProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
+    // Generate theoretical projection from the simulated bars (accounts for dependencies)
+    const theoreticalProjectionSeries: (number | null)[] = finalDays.map((day, index) => {
       if (index < todayIndex) return null // No projection for past
-      if (index === todayIndex) return totalCurrentRemaining // Start from current remaining
-      if (plannedVelocity <= 0) return totalCurrentRemaining // No planned velocity
 
-      const daysFromToday = index - todayIndex
-      const projected = Math.max(0, totalCurrentRemaining - (plannedVelocity * daysFromToday))
-      return projected
+      // Sum all task remaining values from the simulation
+      const totalForDay = taskRemainingByDay.reduce((sum, taskData) => {
+        return sum + (taskData.data[index] || 0)
+      }, 0)
+
+      return totalForDay
     })
 
     // Generate realistic projection (from today forward using actual velocity from past 15 days)
