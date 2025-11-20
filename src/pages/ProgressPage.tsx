@@ -304,16 +304,6 @@ const ProgressPage = () => {
               // Calculate original total effort
               const resources = getTaskResources(task.id)
 
-              // Debug logging to check resource data
-              if (resources.length > 0) {
-                console.log(`Task "${task.title}" resources:`, resources.map(r => ({
-                  id: r.id,
-                  title: r.title,
-                  numberOfProfiles: r.numberOfProfiles,
-                  estimatedDays: r.estimatedDays
-                })))
-              }
-
               // Aggregate resources by resource ID to get total profiles per resource type
               // Use Map for more reliable aggregation
               const resourceMap = new Map<string, typeof resources[0]>()
@@ -331,16 +321,6 @@ const ProgressPage = () => {
               })
 
               const aggregatedResources = Array.from(resourceMap.values())
-
-              // Debug logging to check aggregated result
-              if (aggregatedResources.length > 0) {
-                console.log(`Task "${task.title}" aggregated:`, aggregatedResources.map(r => ({
-                  id: r.id,
-                  title: r.title,
-                  numberOfProfiles: r.numberOfProfiles,
-                  estimatedDays: r.estimatedDays
-                })))
-              }
 
               const totalEffort = resources.reduce((sum, resource) => {
                 return sum + (resource.estimatedDays * (resource.focusFactor / 100))

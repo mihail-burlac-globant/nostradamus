@@ -1978,7 +1978,7 @@ const TasksPage = () => {
                         <div>
                           <span className="font-medium text-navy-800 dark:text-navy-100">{resource.title}</span>
                           <div className="text-sm text-navy-600 dark:text-navy-400">
-                            {resource.estimatedDays} days | {resource.focusFactor}% focus
+                            {resource.numberOfProfiles}x profiles | {resource.estimatedDays} days | {resource.focusFactor}% focus
                           </div>
                         </div>
                         <button
@@ -2050,6 +2050,26 @@ const TasksPage = () => {
                     <div className="flex justify-between text-sm text-navy-600 dark:text-navy-400">
                       <span>0%</span>
                       <span>100%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-navy-700 dark:text-navy-300 mb-2">
+                      Number of Profiles: {resourceFormData.numberOfProfiles}
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={resourceFormData.numberOfProfiles}
+                      onChange={(e) =>
+                        setResourceFormData({ ...resourceFormData, numberOfProfiles: parseInt(e.target.value, 10) })
+                      }
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-sm text-navy-600 dark:text-navy-400">
+                      <span>1 profile</span>
+                      <span>10 profiles</span>
                     </div>
                   </div>
                   <button
