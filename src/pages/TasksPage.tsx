@@ -447,47 +447,109 @@ const TasksPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-gray-950 dark:to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Page Title with Inline Tabs */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">Tasks & Milestones</h1>
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-6">
-          <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
-            <button
-              onClick={() => setActiveTab('tasks')}
-              className={`
-                px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
-                ${
-                  activeTab === 'tasks'
-                    ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                    : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                }
-              `}
-            >
-              Tasks
-            </button>
-            <button
-              onClick={() => setActiveTab('milestones')}
-              className={`
-                px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
-                ${
-                  activeTab === 'milestones'
-                    ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                    : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                }
-              `}
-            >
-              Milestones
-            </button>
+          <div className="flex items-center gap-6">
+            <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">Tasks & Milestones</h1>
+            <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
+              <button
+                onClick={() => setActiveTab('tasks')}
+                className={`
+                  px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
+                  ${
+                    activeTab === 'tasks'
+                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                  }
+                `}
+              >
+                Tasks
+              </button>
+              <button
+                onClick={() => setActiveTab('milestones')}
+                className={`
+                  px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
+                  ${
+                    activeTab === 'milestones'
+                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                  }
+                `}
+              >
+                Milestones
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Tasks Tab Content */}
         {activeTab === 'tasks' && (
           <>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100">Tasks</h2>
+            {/* Filters and Actions */}
+            <div className="mb-6 flex gap-6 items-center flex-wrap justify-between">
+              <div className="flex gap-6 items-center flex-wrap">
+                <div className="flex gap-4 items-center">
+                  <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
+                  <select
+                    value={selectedProjectFilter}
+                    onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                    className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                  >
+                    <option value="all">All Projects</option>
+                    {activeProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-4 items-center">
+                  <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
+                  <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
+                    <button
+                      onClick={() => setViewMode('detailed')}
+                      className={`
+                        px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                        ${
+                          viewMode === 'detailed'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      Detailed
+                    </button>
+                    <button
+                      onClick={() => setViewMode('compact')}
+                      className={`
+                        px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                        ${
+                          viewMode === 'compact'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      Compact
+                    </button>
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      className={`
+                        px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                        ${
+                          viewMode === 'cards'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      Cards
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-3">
                 {/* Export Button with Dropdown */}
                 <div className="relative">
@@ -554,70 +616,6 @@ const TasksPage = () => {
                 </button>
               </div>
             </div>
-
-            {/* Filters */}
-        <div className="mb-6 flex gap-6 items-center flex-wrap">
-          <div className="flex gap-4 items-center">
-            <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
-            <select
-              value={selectedProjectFilter}
-              onChange={(e) => setSelectedProjectFilter(e.target.value)}
-              className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-            >
-              <option value="all">All Projects</option>
-              {activeProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-4 items-center">
-            <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
-            <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
-              <button
-                onClick={() => setViewMode('detailed')}
-                className={`
-                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                  ${
-                    viewMode === 'detailed'
-                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                  }
-                `}
-              >
-                Detailed
-              </button>
-              <button
-                onClick={() => setViewMode('compact')}
-                className={`
-                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                  ${
-                    viewMode === 'compact'
-                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                  }
-                `}
-              >
-                Compact
-              </button>
-              <button
-                onClick={() => setViewMode('cards')}
-                className={`
-                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                  ${
-                    viewMode === 'cards'
-                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                  }
-                `}
-              >
-                Cards
-              </button>
-            </div>
-          </div>
-        </div>
 
             {/* Tasks - Cards View or List View */}
         {viewMode === 'cards' ? (
@@ -832,8 +830,24 @@ const TasksPage = () => {
         {/* Milestones Tab Content */}
         {activeTab === 'milestones' && (
           <>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100">Milestones</h2>
+            {/* Filter and Actions */}
+            <div className="mb-6 flex gap-6 items-center flex-wrap justify-between">
+              <div className="flex gap-4 items-center">
+                <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
+                <select
+                  value={selectedProjectFilter}
+                  onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                  className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                >
+                  <option value="all">All Projects</option>
+                  {activeProjects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {selectedProjectFilter !== 'all' && (
                 <button
                   onClick={() => {
@@ -846,23 +860,6 @@ const TasksPage = () => {
                   + Add Milestone
                 </button>
               )}
-            </div>
-
-            {/* Project Filter for Milestones */}
-            <div className="mb-6">
-              <label className="text-navy-700 dark:text-navy-300 font-medium mr-4">Filter by Project:</label>
-              <select
-                value={selectedProjectFilter}
-                onChange={(e) => setSelectedProjectFilter(e.target.value)}
-                className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-              >
-                <option value="all">All Projects</option>
-                {activeProjects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.title}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {selectedProjectFilter === 'all' ? (
