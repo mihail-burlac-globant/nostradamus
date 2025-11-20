@@ -55,6 +55,35 @@ export const calculateActualVelocity = (
 }
 
 /**
+ * Calculate actual velocity from the past N days of snapshots
+ * More accurate for recent performance tracking
+ */
+export const calculateRecentVelocity = (
+  snapshots: ProgressSnapshot[],
+  days: number = 15
+): { velocity: number; confidence: 'high' | 'medium' | 'low' } => {
+  if (snapshots.length < 2) {
+    return { velocity: 0, confidence: 'low' }
+  }
+
+  const today = startOfDay(new Date())
+  const cutoffDate = addDays(today, -days)
+
+  // Filter snapshots from the past N days
+  const recentSnapshots = snapshots.filter(s =>
+    new Date(s.date) >= cutoffDate
+  )
+
+  if (recentSnapshots.length < 2) {
+    // Fall back to all available data if not enough recent data
+    return calculateActualVelocity(snapshots)
+  }
+
+  // Use the filtered snapshots to calculate velocity
+  return calculateActualVelocity(recentSnapshots)
+}
+
+/**
  * Calculate planned velocity based on resource allocation
  */
 export const calculatePlannedVelocity = (
