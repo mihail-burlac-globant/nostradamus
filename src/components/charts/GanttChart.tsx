@@ -114,20 +114,35 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       if (todaySnapshot && todaySnapshot.remainingEstimate > 0) {
         // Use TODAY's remaining estimate from progress snapshot
         const remainingEstimate = todaySnapshot.remainingEstimate
-      resources.forEach(taskResource => {
-        // Person-days of work needed
-        const workDays = taskResource.estimatedDays
 
-        // Number of profiles assigned to work on this task (from task resource, not project max)
-        const numberOfProfiles = taskResource.numberOfProfiles || 1
-        // Priority: task-specific focus factor, or fallback to project resource focus factor
-        const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-        const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
+        // Calculate duration based on remaining work distributed across all resources
+        const totalEffort = resources.reduce((sum, resource) => {
+          const numberOfProfiles = resource.numberOfProfiles || 1
+          const projectResource = projectResources.find(pr => pr.id === resource.id)
+          const focusFactor = (resource.focusFactor || projectResource?.focusFactor || 100) / 100
+          return sum + (numberOfProfiles * focusFactor)
+        }, 0)
 
-        // Duration = workDays / (numberOfProfiles * focusFactor)
-        const duration = workDays / (numberOfProfiles * focusFactor)
+        // Remaining estimate distributed across available capacity
+        const duration = totalEffort > 0 ? remainingEstimate / totalEffort : remainingEstimate
         resourceDurations.push(duration)
-      })
+      } else {
+        // Use original estimates from task resources
+        resources.forEach(taskResource => {
+          // Person-days of work needed
+          const workDays = taskResource.estimatedDays
+
+          // Number of profiles assigned to work on this task (from task resource, not project max)
+          const numberOfProfiles = taskResource.numberOfProfiles || 1
+          // Priority: task-specific focus factor, or fallback to project resource focus factor
+          const projectResource = projectResources.find(pr => pr.id === taskResource.id)
+          const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
+
+          // Duration = workDays / (numberOfProfiles * focusFactor)
+          const duration = workDays / (numberOfProfiles * focusFactor)
+          resourceDurations.push(duration)
+        })
+      }
 
       // Task duration is the longest duration among all resource types (they work in parallel)
       const durationDays = resourceDurations.length > 0
@@ -169,8 +184,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
 
     // Calculate scope increases for each task based on TODAY's snapshot
     const taskScopeInfo = new Map<string, { hasScopeIncrease: boolean; scopeIncreaseDays: number }>()
-    const today = new Date()
-    const todayDateKey = format(today, 'yyyy-MM-dd')
+    const todayDate = new Date()
+    const todayDateKey = format(todayDate, 'yyyy-MM-dd')
 
     validTasks.forEach(task => {
       // Get TODAY's snapshot for this task
