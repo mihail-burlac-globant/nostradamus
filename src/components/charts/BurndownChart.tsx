@@ -4,7 +4,6 @@ import type { Task, Milestone } from '../../types/entities.types'
 import { format, eachDayOfInterval, isAfter, startOfDay } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import {
-  calculateActualVelocity,
   calculateRecentVelocity,
   calculatePlannedVelocity,
   calculateVelocityMetrics,
@@ -353,7 +352,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       data: [] as number[]
     }))
 
-    finalDays.forEach((day, dayIndex) => {
+    finalDays.forEach((day, _dayIndex) => {
       const dateKey = format(day, 'yyyy-MM-dd')
       const isFuture = isAfter(day, today)
 
@@ -392,7 +391,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       }))
     )
 
-    const { velocity: actualVelocity, confidence } = calculateActualVelocity(projectSnapshots)
     const { velocity: recentVelocity } = calculateRecentVelocity(projectSnapshots, 15)
 
     // Calculate velocity metrics for display
@@ -401,7 +399,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       : null
 
     // Generate theoretical projection from the simulated bars (accounts for dependencies)
-    const theoreticalProjectionSeries: (number | null)[] = finalDays.map((day, index) => {
+    const theoreticalProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
       if (index < todayIndex) return null // No projection for past
 
       // Sum all task remaining values from the simulation
@@ -613,7 +611,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           smooth: false,
           z: 10, // Higher z-index to appear on top
           connectNulls: false, // Don't connect gaps in data
-          showInLegend: false, // Hide from legend
         },
         // Theoretical projection line (planned velocity from today forward)
         {
