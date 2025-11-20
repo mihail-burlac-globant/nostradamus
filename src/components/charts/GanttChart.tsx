@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, isWeekend, addDays } from 'date-fns'
+import { format, isWeekend, addDays, getWeek, differenceInDays, getYear } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { addWatermarkToChart } from '../../utils/chartWatermark'
 
@@ -224,6 +224,10 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
     const minDate = new Date(Math.min(...allDates))
     const maxDate = new Date(Math.max(...allDates))
 
+    // Determine if we should show week numbers based on time span
+    const daySpan = differenceInDays(maxDate, minDate)
+    const useWeekNumbers = daySpan > 60 // Show week numbers if more than 60 days
+
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
@@ -291,7 +295,17 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         min: minDate.getTime(),
         max: maxDate.getTime(),
         axisLabel: {
-          formatter: (value: number) => format(new Date(value), 'MMM dd'),
+          formatter: (value: number) => {
+            const date = new Date(value)
+            if (useWeekNumbers) {
+              const weekNum = getWeek(date, { weekStartsOn: 1 }) // ISO week (Monday start)
+              const year = getYear(date)
+              // Show year if we cross year boundaries
+              const showYear = getYear(minDate) !== getYear(maxDate)
+              return showYear ? `W${weekNum} '${year.toString().slice(-2)}` : `W${weekNum}`
+            }
+            return format(date, 'MMM dd')
+          },
           color: textColor,
           rotate: 45,
         },

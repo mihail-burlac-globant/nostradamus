@@ -943,7 +943,9 @@ const TasksPage = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto py-12">
             <div className="flex min-h-full items-center justify-center p-4">
               <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-5xl w-full my-8">
-                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">Create New Task</h2>
+                <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">
+                  Create New Task{formData.title.trim() ? ` - ${formData.title}` : ''}
+                </h2>
 
                 {/* Tabs */}
                 <div className="border-b border-navy-200 dark:border-navy-700 mb-4">
@@ -1250,7 +1252,15 @@ const TasksPage = () => {
                           <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
                           <select
                             value={resourceFormData.resourceId}
-                            onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
+                            onChange={(e) => {
+                              const selectedResourceId = e.target.value
+                              const projectResource = getProjectResources(formData.projectId).find(r => r.id === selectedResourceId)
+                              setResourceFormData({
+                                ...resourceFormData,
+                                resourceId: selectedResourceId,
+                                focusFactor: projectResource?.focusFactor || 80
+                              })
+                            }}
                             className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
                           >
                             <option value="">Select a resource</option>
@@ -1658,7 +1668,15 @@ const TasksPage = () => {
                           <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">Resource</label>
                           <select
                             value={resourceFormData.resourceId}
-                            onChange={(e) => setResourceFormData({ ...resourceFormData, resourceId: e.target.value })}
+                            onChange={(e) => {
+                              const selectedResourceId = e.target.value
+                              const projectResource = getProjectResources(formData.projectId).find(r => r.id === selectedResourceId)
+                              setResourceFormData({
+                                ...resourceFormData,
+                                resourceId: selectedResourceId,
+                                focusFactor: projectResource?.focusFactor || 80
+                              })
+                            }}
                             className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
                           >
                             <option value="">Select a resource</option>
