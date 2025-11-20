@@ -5,6 +5,7 @@ import { format, eachDayOfInterval, isAfter, startOfDay } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import {
   calculateActualVelocity,
+  calculateRecentVelocity,
   calculatePlannedVelocity,
   calculateVelocityMetrics,
   getHistoricalData,
@@ -189,6 +190,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       resourceCapacity.set(pr.id, capacity)
     })
 
+    // Get progress snapshots for this project (needed for calculations below)
+    const projectSnapshots = progressSnapshots.filter(s => s.projectId === projectId)
+
     // Simulate work day by day to calculate remaining effort
     const taskRemainingByDay = validTasks.map(task => ({
       task,
@@ -304,9 +308,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Track which days are in the past for opacity
     const todayIndex = finalDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd'))
 
-    // Get progress snapshots for this project
-    const projectSnapshots = progressSnapshots.filter(s => s.projectId === projectId)
-
     // Calculate total current remaining effort
     const totalCurrentRemaining = Array.from(taskCurrentRemaining.values()).reduce((sum, val) => sum + val, 0)
 
@@ -384,20 +385,32 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     )
 
     const { velocity: actualVelocity, confidence } = calculateActualVelocity(projectSnapshots)
+    const { velocity: recentVelocity } = calculateRecentVelocity(projectSnapshots, 15)
 
     // Calculate velocity metrics for display
     const velocityMetrics = projectSnapshots.length >= 2
       ? calculateVelocityMetrics(projectSnapshots, totalCurrentRemaining, plannedVelocity)
       : null
 
-    // Generate realistic projection (from today forward using actual velocity)
+    // Generate theoretical projection (from today forward using planned velocity)
+    const theoreticalProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
+      if (index < todayIndex) return null // No projection for past
+      if (index === todayIndex) return totalCurrentRemaining // Start from current remaining
+      if (plannedVelocity <= 0) return totalCurrentRemaining // No planned velocity
+
+      const daysFromToday = index - todayIndex
+      const projected = Math.max(0, totalCurrentRemaining - (plannedVelocity * daysFromToday))
+      return projected
+    })
+
+    // Generate realistic projection (from today forward using actual velocity from past 15 days)
     const realisticProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
       if (index < todayIndex) return null // No projection for past
       if (index === todayIndex) return totalCurrentRemaining // Start from current remaining
-      if (actualVelocity <= 0) return totalCurrentRemaining // No velocity data yet
+      if (recentVelocity <= 0) return totalCurrentRemaining // No velocity data yet
 
       const daysFromToday = index - todayIndex
-      const projected = Math.max(0, totalCurrentRemaining - (actualVelocity * daysFromToday))
+      const projected = Math.max(0, totalCurrentRemaining - (recentVelocity * daysFromToday))
       return projected
     })
 
@@ -408,9 +421,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     const backgroundColor = isDarkMode ? '#262629' : '#ffffff'
 
     // Build velocity subtitle
-    const velocitySubtitle = velocityMetrics
-      ? `Velocity: ${actualVelocity.toFixed(2)} p-d/day (${confidence}) | Planned: ${plannedVelocity.toFixed(2)} p-d/day | ` +
-        `Trend: ${velocityMetrics.velocityTrend === 'improving' ? '📈' : velocityMetrics.velocityTrend === 'declining' ? '📉' : '➡️'} ${velocityMetrics.velocityTrend}`
+    const velocitySubtitle = recentVelocity > 0
+      ? `Recent Velocity (15d): ${recentVelocity.toFixed(2)} p-d/day | Planned: ${plannedVelocity.toFixed(2)} p-d/day | ` +
+        `Trend: ${velocityMetrics ? (velocityMetrics.velocityTrend === 'improving' ? '📈' : velocityMetrics.velocityTrend === 'declining' ? '📉' : '➡️') + ' ' + velocityMetrics.velocityTrend : '―'}`
       : `Planned Velocity: ${plannedVelocity.toFixed(2)} person-days/day (no actual data yet)`
 
     const option: echarts.EChartsOption = {
@@ -479,7 +492,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       },
       legend: {
         data: [
-          'Actual Progress',
+          'Theoretical Projection',
           'Realistic Projection',
         ],
         top: 50,
@@ -573,7 +586,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             focus: 'series' as const,
           },
         })),
-        // Actual progress line (historical data from snapshots)
+        // Actual progress line (historical data from snapshots) - not in legend
         {
           name: 'Actual Progress',
           type: 'line' as const,
@@ -591,19 +604,38 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           smooth: false,
           z: 10, // Higher z-index to appear on top
           connectNulls: false, // Don't connect gaps in data
+          showInLegend: false, // Hide from legend
         },
-        // Realistic projection line (actual velocity from today forward)
+        // Theoretical projection line (planned velocity from today forward)
+        {
+          name: 'Theoretical Projection',
+          type: 'line' as const,
+          data: theoreticalProjectionSeries,
+          lineStyle: {
+            color: '#10b981', // Green
+            width: 2,
+            type: 'dashed',
+          },
+          itemStyle: {
+            color: '#10b981',
+          },
+          symbol: 'none',
+          smooth: true,
+          z: 8,
+          connectNulls: false,
+        },
+        // Realistic projection line (recent actual velocity from past 15 days, projected forward)
         {
           name: 'Realistic Projection',
           type: 'line' as const,
           data: realisticProjectionSeries,
           lineStyle: {
-            color: actualVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444', // Orange or Red based on velocity
+            color: recentVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444', // Orange or Red based on velocity
             width: 2,
             type: 'dashed',
           },
           itemStyle: {
-            color: actualVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444',
+            color: recentVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444',
           },
           symbol: 'none',
           smooth: true,
