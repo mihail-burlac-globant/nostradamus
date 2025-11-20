@@ -17,6 +17,7 @@ const ProgressPage = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all')
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [estimates, setEstimates] = useState<Record<string, number>>({})
+  const [progressValues, setProgressValues] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const lastInitKey = useRef<string>('')
@@ -51,6 +52,7 @@ const ProgressPage = () => {
     lastInitKey.current = initKey
 
     const newEstimates: Record<string, number> = {}
+    const newProgress: Record<string, number> = {}
     const newNotes: Record<string, string> = {}
 
     filteredTasks.forEach(task => {
@@ -61,6 +63,7 @@ const ProgressPage = () => {
 
       if (existingSnapshot) {
         newEstimates[task.id] = existingSnapshot.remainingEstimate
+        newProgress[task.id] = existingSnapshot.progress
         newNotes[task.id] = existingSnapshot.notes || ''
       } else {
         // Calculate remaining estimate from resources
@@ -70,11 +73,13 @@ const ProgressPage = () => {
         }, 0)
         const remaining = totalEstimate * (1 - task.progress / 100)
         newEstimates[task.id] = Math.max(0, Number(remaining.toFixed(2)))
+        newProgress[task.id] = task.progress
         newNotes[task.id] = ''
       }
     })
 
     setEstimates(newEstimates)
+    setProgressValues(newProgress)
     setNotes(newNotes)
   }, [selectedDate, selectedProjectId, progressSnapshots, getTaskResources, filteredTasks])
 
@@ -84,14 +89,15 @@ const ProgressPage = () => {
     // Create snapshots for all tasks with estimates
     for (const task of filteredTasks) {
       const estimate = estimates[task.id]
-      if (estimate !== undefined) {
+      const progress = progressValues[task.id]
+      if (estimate !== undefined && progress !== undefined) {
         addProgressSnapshot({
           taskId: task.id,
           projectId: task.projectId,
           date: selectedDate,
           remainingEstimate: estimate,
           status: task.status,
-          progress: task.progress,
+          progress: Math.min(100, Math.max(0, progress)),
           notes: notes[task.id] || undefined,
         })
       }
@@ -104,6 +110,11 @@ const ProgressPage = () => {
   const handleEstimateChange = (taskId: string, value: string) => {
     const numValue = parseFloat(value) || 0
     setEstimates(prev => ({ ...prev, [taskId]: Math.max(0, numValue) }))
+  }
+
+  const handleProgressChange = (taskId: string, value: string) => {
+    const numValue = parseInt(value) || 0
+    setProgressValues(prev => ({ ...prev, [taskId]: Math.min(100, Math.max(0, numValue)) }))
   }
 
   const handleNotesChange = (taskId: string, value: string) => {
@@ -204,7 +215,7 @@ const ProgressPage = () => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                     {/* Task Info */}
-                    <div className="md:col-span-5">
+                    <div className="md:col-span-4">
                       <div className="flex items-center gap-2 mb-1">
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
@@ -225,14 +236,11 @@ const ProgressPage = () => {
                         }`}>
                           {task.status}
                         </span>
-                        <span className="text-navy-600 dark:text-navy-400">
-                          Progress: {task.progress}%
-                        </span>
                       </div>
                     </div>
 
                     {/* Remaining Estimate Input */}
-                    <div className="md:col-span-3">
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                         Remaining (days)
                       </label>
@@ -260,6 +268,21 @@ const ProgressPage = () => {
                           +
                         </button>
                       </div>
+                    </div>
+
+                    {/* Progress Percentage Input */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                        Progress (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={progressValues[task.id] || 0}
+                        onChange={(e) => handleProgressChange(task.id, e.target.value)}
+                        min="0"
+                        max="100"
+                        className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center font-semibold"
+                      />
                     </div>
 
                     {/* Notes */}
