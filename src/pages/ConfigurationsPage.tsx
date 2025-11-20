@@ -84,10 +84,11 @@ const ConfigurationsPage = () => {
 
   const handleResourceChange = (resourceId: string, field: 'numberOfResources' | 'focusFactor', value: number) => {
     const newAllocations = new Map(pendingAllocations)
+    const resource = resources.find(r => r.id === resourceId)
     const current = newAllocations.get(resourceId) || {
       resourceId,
       numberOfResources: 1,
-      focusFactor: 80,
+      focusFactor: resource?.defaultVelocity || 80,
     }
 
     newAllocations.set(resourceId, { ...current, [field]: value })
