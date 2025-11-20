@@ -13,6 +13,7 @@ const ProgressPage = () => {
     progressSnapshots,
     loadProgressSnapshots,
     addProgressSnapshot,
+    updateTask,
     initialize,
     isInitialized,
   } = useEntitiesStore()
@@ -132,20 +133,27 @@ const ProgressPage = () => {
       const estimate = estimates[task.id]
       const progress = progressValues[task.id]
       if (estimate !== undefined && progress !== undefined) {
+        const clampedProgress = Math.min(100, Math.max(0, progress))
+
+        // Save to progress snapshot
         addProgressSnapshot({
           taskId: task.id,
           projectId: task.projectId,
           date: selectedDate,
           remainingEstimate: estimate,
           status: task.status,
-          progress: Math.min(100, Math.max(0, progress)),
+          progress: clampedProgress,
           notes: notes[task.id] || undefined,
         })
+
+        // Also update the task's base progress field
+        updateTask(task.id, { progress: clampedProgress })
       }
     }
 
-    // Reload progress snapshots to ensure we have the latest data
+    // Reload progress snapshots and tasks to ensure we have the latest data
     loadProgressSnapshots()
+    loadTasks()
 
     // Clear changed tasks after saving
     setChangedTasks(new Set())
