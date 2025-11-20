@@ -3,6 +3,7 @@ import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Task, Resource, TaskStatus, Milestone } from '../types/entities.types'
 import { getIconById } from '../utils/resourceIcons'
 import { exportToJSON, exportToCSV, exportToExcel } from '../utils/taskExporter'
+import KanbanBoard from '../components/KanbanBoard'
 
 interface TaskWithResources extends Task {
   resources: (Resource & { estimatedDays: number; focusFactor: number })[]
@@ -38,9 +39,9 @@ const TasksPage = () => {
     const saved = localStorage.getItem('nostradamus_tasks_project_filter')
     return saved || 'all'
   })
-  const [viewMode, setViewMode] = useState<'detailed' | 'compact'>(() => {
+  const [viewMode, setViewMode] = useState<'detailed' | 'compact' | 'cards'>(() => {
     const saved = localStorage.getItem('nostradamus_tasks_view_mode')
-    return (saved as 'detailed' | 'compact') || 'detailed'
+    return (saved as 'detailed' | 'compact' | 'cards') || 'detailed'
   })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -601,17 +602,54 @@ const TasksPage = () => {
               >
                 Compact
               </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`
+                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                  ${
+                    viewMode === 'cards'
+                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                  }
+                `}
+              >
+                Cards
+              </button>
             </div>
           </div>
         </div>
 
-            {/* Tasks grouped by project */}
-        <div className="space-y-8">
-          {Object.entries(groupedTasks).length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
-              <p className="text-navy-500 dark:text-navy-400">No tasks found. Create your first task!</p>
-            </div>
-          ) : (
+            {/* Tasks - Cards View or List View */}
+        {viewMode === 'cards' ? (
+          // Kanban Board View
+          <div className="mt-6">
+            {filteredTasks.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
+                <p className="text-navy-500 dark:text-navy-400">No tasks found. Create your first task!</p>
+              </div>
+            ) : (
+              <KanbanBoard
+                tasks={tasksWithResources.filter(task =>
+                  selectedProjectFilter === 'all' ? true : task.projectId === selectedProjectFilter
+                )}
+                onEditTask={openEditModal}
+                onDeleteTask={openDeleteModal}
+                onResourcesClick={openResourceModal}
+                onDependenciesClick={openDependenciesModal}
+                getTaskDependencies={getTaskDependencies}
+                canTaskBeStarted={canTaskBeStarted}
+                calculateTotalEstimate={calculateTotalEstimate}
+              />
+            )}
+          </div>
+        ) : (
+          // List View (Detailed or Compact)
+          <div className="space-y-8">
+            {Object.entries(groupedTasks).length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
+                <p className="text-navy-500 dark:text-navy-400">No tasks found. Create your first task!</p>
+              </div>
+            ) : (
             Object.entries(groupedTasks).map(([projectId, projectTasks]) => (
               <div key={projectId} className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
                 <h2 className="text-2xl font-bold text-navy-800 dark:text-navy-100 mb-4">
@@ -771,7 +809,8 @@ const TasksPage = () => {
               </div>
             ))
           )}
-        </div>
+          </div>
+        )}
           </>
         )}
 
