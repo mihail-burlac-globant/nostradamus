@@ -267,7 +267,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           // Group workable tasks by resource type and calculate work done
           const workDoneByTask = new Map<string, number>()
 
-          // For each resource type, distribute capacity across tasks that need it
+          // For each resource type, work on ONE task at a time (Rule 1: Resource exclusivity)
           resourceCapacity.forEach((capacity, resourceId) => {
             const tasksNeedingResource = workableTasks.filter(task => {
               const types = taskResourceTypes.get(task.id) || []
@@ -276,13 +276,11 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
             if (tasksNeedingResource.length === 0) return
 
-            // Distribute capacity evenly across tasks needing this resource
-            const capacityPerTask = capacity / tasksNeedingResource.length
-
-            tasksNeedingResource.forEach(task => {
-              const currentWork = workDoneByTask.get(task.id) || 0
-              workDoneByTask.set(task.id, currentWork + capacityPerTask)
-            })
+            // Work on the FIRST task only (resource can only do one task at a time)
+            // Tasks are ordered by dependencies, so we work on the first available one
+            const firstTask = tasksNeedingResource[0]
+            const currentWork = workDoneByTask.get(firstTask.id) || 0
+            workDoneByTask.set(firstTask.id, currentWork + capacity)
           })
 
           // Apply work done and update remaining effort
