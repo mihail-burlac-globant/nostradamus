@@ -331,20 +331,8 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Calculate total current remaining effort (theoretical)
     const totalCurrentRemaining = Array.from(taskCurrentRemaining.values()).reduce((sum, val) => sum + val, 0)
 
-    // Calculate total actual remaining from today's snapshots (manual estimates)
+    // Get today's date key for snapshot lookups
     const todayDateKey = format(today, 'yyyy-MM-dd')
-    const totalActualRemaining = validTasks.reduce((sum, task) => {
-      const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
-      if (todaySnapshot) {
-        return sum + todaySnapshot.remainingEstimate
-      }
-      // If no snapshot for today, use theoretical remaining
-      const resources = getTaskResources(task.id)
-      const totalEffort = resources.reduce((effortSum, resource) => {
-        return effortSum + resource.estimatedDays
-      }, 0)
-      return sum + (totalEffort * (1 - task.progress / 100))
-    }, 0)
 
     // Get historical actual data from snapshots
     const historicalData = getHistoricalData(
