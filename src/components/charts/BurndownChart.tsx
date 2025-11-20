@@ -329,6 +329,37 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       return null
     })
 
+    // Calculate scope increase per task per day
+    // For each task and day, check if remaining increased compared to previous day
+    const taskScopeIncreaseByDay = validTasks.map(task => ({
+      task,
+      color: taskColors[validTasks.indexOf(task) % taskColors.length],
+      data: [] as number[]
+    }))
+
+    finalDays.forEach((day, dayIndex) => {
+      const dateKey = format(day, 'yyyy-MM-dd')
+      const prevDateKey = dayIndex > 0 ? format(finalDays[dayIndex - 1], 'yyyy-MM-dd') : null
+
+      validTasks.forEach((task, taskIndex) => {
+        // Get today's and yesterday's snapshots for this task
+        const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
+        const yesterdaySnapshot = prevDateKey ? projectSnapshots.find(s => s.taskId === task.id && s.date === prevDateKey) : null
+
+        let scopeIncrease = 0
+
+        if (todaySnapshot && yesterdaySnapshot) {
+          // If both exist, check if remaining increased
+          const increase = todaySnapshot.remainingEstimate - yesterdaySnapshot.remainingEstimate
+          if (increase > 0) {
+            scopeIncrease = increase
+          }
+        }
+
+        taskScopeIncreaseByDay[taskIndex].data.push(scopeIncrease)
+      })
+    })
+
     // Calculate velocities
     const plannedVelocity = calculatePlannedVelocity(
       projectResources.map(r => ({
@@ -353,32 +384,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       const daysFromToday = index - todayIndex
       const projected = Math.max(0, totalCurrentRemaining - (actualVelocity * daysFromToday))
       return projected
-    })
-
-    // Calculate scope increase indicator (when actual > expected)
-    // This shows when today's remaining is higher than expected based on velocity trend
-    const scopeIncreaseSeries: (number | null)[] = finalDays.map((_day, index) => {
-      // Only show scope increase at today and the point before
-      if (todayIndex > 0 && actualVelocity > 0) {
-        const yesterdayActual = actualDataSeries[todayIndex - 1]
-
-        if (yesterdayActual !== null && yesterdayActual !== undefined) {
-          // Expected remaining today = yesterday's actual - velocity
-          const expectedToday = Math.max(0, yesterdayActual - actualVelocity)
-
-          // If today's actual is higher than expected, show the increase
-          if (totalCurrentRemaining > expectedToday) {
-            // Draw a vertical-ish line from expected to actual
-            if (index === todayIndex - 1) {
-              return expectedToday // Start point (expected value at today)
-            } else if (index === todayIndex) {
-              return totalCurrentRemaining // End point (actual value today)
-            }
-          }
-        }
-      }
-
-      return null
     })
 
     // Detect dark mode
@@ -461,7 +466,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         data: [
           'Actual Progress',
           'Realistic Projection',
-          'Scope Increase',
         ],
         top: 50,
         textStyle: {
@@ -535,6 +539,25 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             focus: 'series' as const,
           },
         })),
+        // Create scope increase bar series for each task (stacked on top, with border)
+        ...taskScopeIncreaseByDay.map(taskData => ({
+          name: `${taskData.task.title} (Scope +)`,
+          type: 'bar' as const,
+          stack: 'total',
+          data: taskData.data.map((value, index) => ({
+            value,
+            itemStyle: {
+              color: taskData.color,
+              borderColor: '#ef4444', // Red border
+              borderWidth: 2,
+              borderType: 'solid' as const,
+              opacity: index <= todayIndex ? 0.4 : 1,
+            },
+          })),
+          emphasis: {
+            focus: 'series' as const,
+          },
+        })),
         // Actual progress line (historical data from snapshots)
         {
           name: 'Actual Progress',
@@ -571,24 +594,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           smooth: true,
           z: 9,
           connectNulls: false,
-        },
-        // Scope Increase indicator (red dotted line when estimates increase)
-        {
-          name: 'Scope Increase',
-          type: 'line' as const,
-          data: scopeIncreaseSeries,
-          lineStyle: {
-            color: '#ef4444', // Red
-            width: 3,
-            type: 'dotted',
-          },
-          itemStyle: {
-            color: '#ef4444',
-          },
-          symbol: 'circle',
-          symbolSize: 6,
-          z: 11, // Higher than other lines
-          connectNulls: false, // Don't connect gaps - only draw when there's scope increase
         },
         // Add "Today" and milestone markers using a dummy line series
         {
