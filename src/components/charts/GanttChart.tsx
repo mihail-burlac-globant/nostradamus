@@ -90,23 +90,16 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         earliestStart = skipToNextWeekday(earliestStart)
       }
 
-      // Check if there's a recent progress snapshot with updated remaining estimate
-      const taskSnapshots = progressSnapshots
-        .filter(s => s.taskId === task.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      // Check if there's a progress snapshot for TODAY with updated remaining estimate
+      const today = new Date()
+      const todayDateKey = format(today, 'yyyy-MM-dd')
+      const todaySnapshot = progressSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
 
-      const latestSnapshot = taskSnapshots.length > 0 ? taskSnapshots[0] : null
-
-      // If we have a snapshot with progress > 0, task is in progress
-      // Use the latest snapshot date or "today" as the continuation point
-      if (latestSnapshot && latestSnapshot.progress > 0 && latestSnapshot.remainingEstimate > 0) {
-        // Task is in progress, continue from the snapshot date
-        const snapshotDate = new Date(latestSnapshot.date)
-        const today = new Date()
-
-        // Use the more recent of snapshot date or today
-        const continueFrom = snapshotDate > today ? snapshotDate : today
-        earliestStart = skipToNextWeekday(continueFrom)
+      // If we have a snapshot for today with progress > 0, task is in progress
+      // Use today as the continuation point
+      if (todaySnapshot && todaySnapshot.progress > 0 && todaySnapshot.remainingEstimate > 0) {
+        // Task is in progress, continue from today
+        earliestStart = skipToNextWeekday(today)
       }
 
       // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
@@ -116,9 +109,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       // For each resource type, calculate how long it takes considering team size
       const resourceDurations: number[] = []
 
-      if (latestSnapshot && latestSnapshot.remainingEstimate > 0) {
-        // Use the latest remaining estimate from progress snapshot
-        const remainingEstimate = latestSnapshot.remainingEstimate
+      if (todaySnapshot && todaySnapshot.remainingEstimate > 0) {
+        // Use TODAY's remaining estimate from progress snapshot
+        const remainingEstimate = todaySnapshot.remainingEstimate
 
         // Calculate duration based on remaining work distributed across all resources
         const totalEffort = resources.reduce((sum, resource) => {
@@ -187,27 +180,25 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       chartInstance.current = echarts.init(chartRef.current)
     }
 
-    // Calculate scope increases for each task
+    // Calculate scope increases for each task based on TODAY's snapshot
     const taskScopeInfo = new Map<string, { hasScopeIncrease: boolean; scopeIncreaseDays: number }>()
+    const today = new Date()
+    const todayDateKey = format(today, 'yyyy-MM-dd')
 
     validTasks.forEach(task => {
-      // Get latest snapshot for this task
-      const taskSnapshots = progressSnapshots
-        .filter(s => s.taskId === task.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      // Get TODAY's snapshot for this task
+      const todaySnapshot = progressSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
 
-      if (taskSnapshots.length > 0) {
-        const latestSnapshot = taskSnapshots[0]
-
+      if (todaySnapshot) {
         // Calculate theoretical remaining based on snapshot's progress
         const resources = getTaskResources(task.id)
         const totalEffort = resources.reduce((sum, resource) => {
           return sum + (resource.estimatedDays * (resource.focusFactor / 100))
         }, 0)
-        const theoreticalRemaining = totalEffort * (1 - latestSnapshot.progress / 100)
+        const theoreticalRemaining = totalEffort * (1 - todaySnapshot.progress / 100)
 
         // Scope increase = manual remaining - theoretical remaining
-        const scopeIncrease = latestSnapshot.remainingEstimate - theoreticalRemaining
+        const scopeIncrease = todaySnapshot.remainingEstimate - theoreticalRemaining
 
         if (scopeIncrease > 0) {
           taskScopeInfo.set(task.id, {
