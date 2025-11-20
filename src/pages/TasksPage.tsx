@@ -636,6 +636,21 @@ const TasksPage = () => {
                 onDeleteTask={openDeleteModal}
                 onResourcesClick={openResourceModal}
                 onDependenciesClick={openDependenciesModal}
+                onStatusChange={(taskId: string, newStatus: TaskStatus) => {
+                  const task = tasks.find(t => t.id === taskId)
+                  if (task) {
+                    editTask(taskId, {
+                      title: task.title,
+                      description: task.description,
+                      projectId: task.projectId,
+                      status: newStatus,
+                      progress: task.progress,
+                      color: task.color,
+                      startDate: task.startDate || '',
+                      endDate: task.endDate || '',
+                    })
+                  }
+                }}
                 getTaskDependencies={getTaskDependencies}
                 canTaskBeStarted={canTaskBeStarted}
                 calculateTotalEstimate={calculateTotalEstimate}
