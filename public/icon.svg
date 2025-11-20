@@ -1,16 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="6" fill="#E8845C"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="gradient-icon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9A66;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E8845C;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="orb-gradient-icon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#FFAE80;stop-opacity:0.15" />
+    </linearGradient>
+  </defs>
 
-  <!-- Simplified crystal ball -->
-  <circle cx="16" cy="14" r="6" fill="white" opacity="0.95"/>
-  <circle cx="16" cy="14" r="5" fill="none" stroke="#2E2E36" stroke-width="1.2" opacity="0.8"/>
+  <!-- Outer Ring (Mystical Circle) -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="url(#gradient-icon)" stroke-width="3" opacity="0.3"/>
 
-  <!-- Prediction lines -->
-  <path d="M 16 14 L 19 9" stroke="#2E2E36" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
-  <path d="M 16 14 L 13 9" stroke="#2E2E36" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+  <!-- Inner Crystal Orb -->
+  <circle cx="100" cy="100" r="65" fill="url(#orb-gradient-icon)" stroke="url(#gradient-icon)" stroke-width="2"/>
 
-  <!-- Chart bars -->
-  <rect x="10" y="22" width="5" height="1.5" rx="0.75" fill="white" opacity="0.9"/>
-  <rect x="10" y="25" width="8" height="1.5" rx="0.75" fill="white" opacity="0.75"/>
-  <rect x="10" y="28" width="6" height="1.5" rx="0.75" fill="white" opacity="0.6"/>
+  <!-- Central Eye/Vision Symbol -->
+  <ellipse cx="100" cy="100" rx="28" ry="18" fill="none" stroke="#2E2E36" stroke-width="2.5" opacity="0.8"/>
+  <circle cx="100" cy="100" r="8" fill="#2E2E36" opacity="0.9"/>
+  <circle cx="102" cy="98" r="3" fill="#FF9A66"/>
+
+  <!-- Prediction Rays (Data Streams) -->
+  <g opacity="0.6">
+    <line x1="100" y1="35" x2="100" y2="55" stroke="#FF9A66" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="142" y1="58" x2="127" y2="73" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="165" y1="100" x2="145" y2="100" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="142" y1="142" x2="127" y2="127" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="58" y1="58" x2="73" y2="73" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="35" y1="100" x2="55" y2="100" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+    <line x1="58" y1="142" x2="73" y2="127" stroke="#FF9A66" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Timeline Visualization (Bottom) -->
+  <g opacity="0.7">
+    <rect x="70" y="145" width="25" height="3" rx="1.5" fill="#2E2E36"/>
+    <rect x="70" y="152" width="40" height="3" rx="1.5" fill="#2E2E36"/>
+    <rect x="70" y="159" width="32" height="3" rx="1.5" fill="#2E2E36"/>
+  </g>
+
+  <!-- Celestial Stars (Data Points) -->
+  <g>
+    <circle cx="85" cy="75" r="2" fill="#FF9A66"/>
+    <circle cx="115" cy="75" r="2" fill="#FF9A66"/>
+    <circle cx="75" cy="100" r="1.5" fill="#E8845C"/>
+    <circle cx="125" cy="100" r="1.5" fill="#E8845C"/>
+    <circle cx="85" cy="125" r="2" fill="#FF9A66"/>
+    <circle cx="115" cy="125" r="2" fill="#FF9A66"/>
+  </g>
 </svg>

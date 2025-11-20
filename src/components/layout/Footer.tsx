@@ -1,4 +1,29 @@
+import { useState, useEffect } from 'react'
+
 const Footer = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Check initial dark mode state
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark')
+      setIsDarkMode(isDark)
+    }
+
+    checkDarkMode()
+
+    // Watch for changes in dark mode
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
   return (
     <footer className="bg-white dark:bg-navy-900 border-t border-navy-100 dark:border-navy-700 mt-auto">
       <div className="container-wide">
@@ -6,9 +31,9 @@ const Footer = () => {
           {/* Nostradamus Logo */}
           <div className="flex items-center gap-3">
             <img
-              src="/icon.svg"
+              src={isDarkMode ? '/logo-dark.svg' : '/logo-light.svg'}
               alt="Nostradamus"
-              className="w-8 h-8"
+              className="w-10 h-10 transition-opacity duration-200"
             />
             <span className="text-lg font-serif font-semibold text-navy-900 dark:text-white">
               Nostradamus
