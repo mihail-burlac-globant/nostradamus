@@ -154,8 +154,10 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     validTasks.forEach(task => {
       const resources = getTaskResources(task.id)
+      // Total effort is just the sum of estimated days (person-days of work)
+      // Focus factor affects duration/velocity, not the amount of work
       const effort = resources.reduce((sum, resource) => {
-        return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+        return sum + resource.estimatedDays
       }, 0)
       taskInitialEffort.set(task.id, effort)
 
@@ -224,7 +226,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             // Calculate theoretical remaining from snapshot's progress
             const resources = getTaskResources(task.id)
             const totalEffort = resources.reduce((sum, resource) => {
-              return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+              return sum + resource.estimatedDays
             }, 0)
             theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
           } else {
@@ -341,7 +343,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       // If no snapshot for today, use theoretical remaining
       const resources = getTaskResources(task.id)
       const totalEffort = resources.reduce((effortSum, resource) => {
-        return effortSum + (resource.estimatedDays * (resource.focusFactor / 100))
+        return effortSum + resource.estimatedDays
       }, 0)
       return sum + (totalEffort * (1 - task.progress / 100))
     }, 0)
@@ -395,7 +397,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             // Calculate theoretical remaining based on progress and total effort
             const resources = getTaskResources(task.id)
             const totalEffort = resources.reduce((sum, resource) => {
-              return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+              return sum + resource.estimatedDays
             }, 0)
             const theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
 

@@ -452,9 +452,9 @@ const TasksPage = () => {
 
   const calculateTotalEstimate = (resources: (Resource & { estimatedDays: number; focusFactor: number })[]) => {
     return resources.reduce((total, resource) => {
-      // Adjusted estimate = estimatedDays * (focusFactor / 100)
-      const adjustedEstimate = resource.estimatedDays * (resource.focusFactor / 100)
-      return total + adjustedEstimate
+      // Total is just the sum of estimated days (person-days of work)
+      // Focus factor doesn't change the amount of work, only the duration
+      return total + resource.estimatedDays
     }, 0)
   }
 
@@ -791,7 +791,9 @@ const TasksPage = () => {
                             </h4>
                             <div className="space-y-2">
                               {task.resources.map((resource) => {
-                                const adjustedEstimate = resource.estimatedDays * (resource.focusFactor / 100)
+                                // Adjusted = calendar duration accounting for focus factor
+                                // If 10 days work at 75% focus = 10 / 0.75 = 13.33 calendar days
+                                const adjustedEstimate = resource.estimatedDays / (resource.focusFactor / 100)
                                 const ResourceIcon = getIconById(resource.icon || 'generic')
                                 return (
                                   <div
