@@ -13,7 +13,7 @@ const ProgressPage = () => {
     progressSnapshots,
     loadProgressSnapshots,
     addProgressSnapshot,
-    updateTask,
+    editTask,
     initialize,
     isInitialized,
   } = useEntitiesStore()
@@ -146,14 +146,13 @@ const ProgressPage = () => {
           notes: notes[task.id] || undefined,
         })
 
-        // Also update the task's base progress field
-        updateTask(task.id, { progress: clampedProgress })
+        // Also update the task's base progress field (editTask reloads tasks automatically)
+        editTask(task.id, { progress: clampedProgress })
       }
     }
 
-    // Reload progress snapshots and tasks to ensure we have the latest data
+    // Reload progress snapshots to ensure we have the latest data
     loadProgressSnapshots()
-    loadTasks()
 
     // Clear changed tasks after saving
     setChangedTasks(new Set())
