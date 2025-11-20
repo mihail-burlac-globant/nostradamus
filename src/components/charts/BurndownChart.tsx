@@ -147,13 +147,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Generate days for the burndown chart (from project start to far future)
     const allDays = eachDayOfInterval({ start: chartStart, end: initialChartEnd })
 
-    // Task colors (consistent color per task)
-    const taskColors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-      '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#AAB7B8',
-      '#EC7063', '#48C9B0', '#5DADE2', '#F5B041', '#AF7AC5'
-    ]
-
     // Calculate initial effort and current remaining effort for each task
     const taskInitialEffort = new Map<string, number>()
     const taskCurrentRemaining = new Map<string, number>()
@@ -199,7 +192,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Simulate work day by day to calculate remaining effort
     const taskRemainingByDay = validTasks.map(task => ({
       task,
-      color: taskColors[validTasks.indexOf(task) % taskColors.length],
+      color: task.color,
       data: [] as number[]
     }))
 
@@ -333,7 +326,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // For each task and day, check if remaining increased compared to previous day
     const taskScopeIncreaseByDay = validTasks.map(task => ({
       task,
-      color: taskColors[validTasks.indexOf(task) % taskColors.length],
+      color: task.color,
       data: [] as number[]
     }))
 
