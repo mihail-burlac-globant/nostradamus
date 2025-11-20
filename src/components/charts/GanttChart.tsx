@@ -343,72 +343,89 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           markLine: {
             silent: false,
             symbol: ['none', 'none'],
-            data: [
-              // Today marker
-              {
-                name: 'Today',
-                xAxis: new Date().setHours(0, 0, 0, 0),
-                label: {
-                  show: true,
-                  position: 'end' as const,
-                  formatter: 'Today',
-                  color: '#ef4444',
-                  fontSize: 12,
-                  fontWeight: 'bold' as const,
-                  distance: 5,
-                  rotate: 0,
-                },
-                lineStyle: {
-                  color: '#ef4444',
-                  width: 3,
-                  type: 'solid' as const,
-                },
-              },
-              // Milestone markers (only show those within the visible date range)
-              ...(() => {
-                // Filter and sort milestones by date
-                const filteredMilestones = milestones
-                  .filter(milestone => {
-                    const milestoneDate = new Date(milestone.date)
-                    return milestoneDate >= minDate && milestoneDate <= maxDate
-                  })
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            data: (() => {
+              // Map icon names to Unicode symbols
+              const iconSymbols: Record<string, string> = {
+                flag: '🚩',
+                star: '⭐',
+                trophy: '🏆',
+                target: '🎯',
+                check: '✅',
+                calendar: '📅',
+                rocket: '🚀',
+              }
 
-                // Map icon names to Unicode symbols
-                const iconSymbols: Record<string, string> = {
-                  flag: '🚩',
-                  star: '⭐',
-                  trophy: '🏆',
-                  target: '🎯',
-                  check: '✅',
-                  calendar: '📅',
-                  rocket: '🚀',
+              // Create all markers including Today
+              const todayTime = new Date().setHours(0, 0, 0, 0)
+
+              // Filter milestones within date range
+              const filteredMilestones = milestones
+                .filter(milestone => {
+                  const milestoneDate = new Date(milestone.date)
+                  return milestoneDate >= minDate && milestoneDate <= maxDate
+                })
+
+              // Create marker objects with time for sorting
+              const allMarkers: Array<{
+                time: number
+                isToday: boolean
+                milestone?: Milestone
+              }> = [
+                { time: todayTime, isToday: true },
+                ...filteredMilestones.map(m => ({
+                  time: new Date(m.date).getTime(),
+                  isToday: false,
+                  milestone: m
+                }))
+              ]
+
+              // Sort all markers by time
+              allMarkers.sort((a, b) => a.time - b.time)
+
+              // Calculate stair-step offsets for overlapping labels
+              const proximityThresholdMs = 5 * 24 * 60 * 60 * 1000 // 5 days in milliseconds
+              const baseDistance = 5
+              const distanceIncrement = 20 // pixels to offset each overlapping label
+
+              let currentOffset = 0
+              let previousTime = 0
+
+              return allMarkers.map((marker, index) => {
+                // Check if this marker is close to the previous one
+                if (index > 0 && (marker.time - previousTime) < proximityThresholdMs) {
+                  // Increment offset for overlapping marker
+                  currentOffset += distanceIncrement
+                } else {
+                  // Reset offset for well-separated markers
+                  currentOffset = 0
                 }
 
-                // Calculate stair-step offsets for overlapping labels
-                // Threshold: milestones within 5 days are considered overlapping
-                const proximityThresholdMs = 5 * 24 * 60 * 60 * 1000 // 5 days in milliseconds
-                const baseDistance = 5
-                const distanceIncrement = 20 // pixels to offset each overlapping label
+                previousTime = marker.time
 
-                let currentOffset = 0
-                let previousMilestoneTime = 0
-
-                return filteredMilestones.map((milestone, index) => {
-                  const milestoneTime = new Date(milestone.date).getTime()
-
-                  // Check if this milestone is close to the previous one
-                  if (index > 0 && (milestoneTime - previousMilestoneTime) < proximityThresholdMs) {
-                    // Increment offset for overlapping milestone
-                    currentOffset += distanceIncrement
-                  } else {
-                    // Reset offset for well-separated milestones
-                    currentOffset = 0
+                if (marker.isToday) {
+                  // Today marker
+                  return {
+                    name: 'Today',
+                    xAxis: marker.time,
+                    label: {
+                      show: true,
+                      position: 'end' as const,
+                      formatter: 'Today',
+                      color: '#ef4444',
+                      fontSize: 12,
+                      fontWeight: 'bold' as const,
+                      distance: baseDistance + currentOffset,
+                      rotate: 0,
+                    },
+                    lineStyle: {
+                      color: '#ef4444',
+                      width: 3,
+                      type: 'solid' as const,
+                    },
                   }
-
-                  previousMilestoneTime = milestoneTime
-
-                  // Normalize icon name (trim, lowercase) for case-insensitive matching
+                } else {
+                  // Milestone marker
+                  const milestone = marker.milestone!
                   const normalizedIcon = (milestone.icon || '').trim().toLowerCase()
                   const iconSymbol = iconSymbols[normalizedIcon] || '📍'
 
@@ -419,7 +436,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
 
                   return {
                     name: milestone.title,
-                    xAxis: milestoneTime,
+                    xAxis: marker.time,
                     label: {
                       show: true,
                       position: 'end' as const,
@@ -436,9 +453,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                       type: 'dashed' as const,
                     },
                   }
-                })
-              })(),
-            ],
+                }
+              })
+            })(),
           },
         },
       ],
