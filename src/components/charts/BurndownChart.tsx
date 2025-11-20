@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, eachDayOfInterval, isAfter, startOfDay } from 'date-fns'
+import { format, eachDayOfInterval, isAfter, startOfDay, isWeekend } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import {
   calculateRecentVelocity,
@@ -242,61 +242,74 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       } else {
         // For future dates: simulate work with dependencies
 
-        // Find tasks that can be worked on (dependencies satisfied)
-        const workableTasks = validTasks.filter(task => {
-          if (simulationCompletedTasks.has(task.id)) return false
+        // Check if it's a weekend - no work happens on weekends
+        const isWeekendDay = isWeekend(date)
 
-          const deps = taskDependencies.get(task.id) || []
-          return deps.every(depId => simulationCompletedTasks.has(depId))
-        })
+        if (isWeekendDay) {
+          // Weekend: no work done, just record current remaining
+          validTasks.forEach(task => {
+            const idx = validTasks.indexOf(task)
+            taskRemainingByDay[idx].data.push(taskRemainingSimulation.get(task.id) || 0)
+          })
+        } else {
+          // Weekday: simulate work with dependencies
 
-        // Group workable tasks by resource type and calculate work done
-        const workDoneByTask = new Map<string, number>()
+          // Find tasks that can be worked on (dependencies satisfied)
+          const workableTasks = validTasks.filter(task => {
+            if (simulationCompletedTasks.has(task.id)) return false
 
-        // For each resource type, distribute capacity across tasks that need it
-        resourceCapacity.forEach((capacity, resourceId) => {
-          const tasksNeedingResource = workableTasks.filter(task => {
-            const types = taskResourceTypes.get(task.id) || []
-            return types.includes(resourceId) && (taskRemainingSimulation.get(task.id) || 0) > 0
+            const deps = taskDependencies.get(task.id) || []
+            return deps.every(depId => simulationCompletedTasks.has(depId))
           })
 
-          if (tasksNeedingResource.length === 0) return
+          // Group workable tasks by resource type and calculate work done
+          const workDoneByTask = new Map<string, number>()
 
-          // Distribute capacity evenly across tasks needing this resource
-          const capacityPerTask = capacity / tasksNeedingResource.length
+          // For each resource type, distribute capacity across tasks that need it
+          resourceCapacity.forEach((capacity, resourceId) => {
+            const tasksNeedingResource = workableTasks.filter(task => {
+              const types = taskResourceTypes.get(task.id) || []
+              return types.includes(resourceId) && (taskRemainingSimulation.get(task.id) || 0) > 0
+            })
 
-          tasksNeedingResource.forEach(task => {
-            const currentWork = workDoneByTask.get(task.id) || 0
-            workDoneByTask.set(task.id, currentWork + capacityPerTask)
+            if (tasksNeedingResource.length === 0) return
+
+            // Distribute capacity evenly across tasks needing this resource
+            const capacityPerTask = capacity / tasksNeedingResource.length
+
+            tasksNeedingResource.forEach(task => {
+              const currentWork = workDoneByTask.get(task.id) || 0
+              workDoneByTask.set(task.id, currentWork + capacityPerTask)
+            })
           })
-        })
 
-        // Apply work done and update remaining effort
-        workableTasks.forEach(task => {
-          const workDone = workDoneByTask.get(task.id) || 0
-          const remaining = taskRemainingSimulation.get(task.id) || 0
-          const newRemaining = Math.max(0, remaining - workDone)
-          taskRemainingSimulation.set(task.id, newRemaining)
+          // Apply work done and update remaining effort
+          workableTasks.forEach(task => {
+            const workDone = workDoneByTask.get(task.id) || 0
+            const remaining = taskRemainingSimulation.get(task.id) || 0
+            const newRemaining = Math.max(0, remaining - workDone)
+            taskRemainingSimulation.set(task.id, newRemaining)
 
-          // Mark as completed if done
-          if (newRemaining <= 0.01) {
-            simulationCompletedTasks.add(task.id)
+            // Mark as completed if done
+            if (newRemaining <= 0.01) {
+              simulationCompletedTasks.add(task.id)
+            }
+          })
+
+          // Record remaining effort for this day
+          validTasks.forEach(task => {
+            const idx = validTasks.indexOf(task)
+            taskRemainingByDay[idx].data.push(taskRemainingSimulation.get(task.id) || 0)
+          })
+
+          // Check if all work is complete
+          const totalRemaining = validTasks.reduce((sum, task) => {
+            return sum + (taskRemainingSimulation.get(task.id) || 0)
+          }, 0)
+
+          if (totalRemaining <= 0.01 && completionDayIndex === -1) {
+            completionDayIndex = dayIndex
           }
-        })
-
-        // Record remaining effort for this day
-        validTasks.forEach(task => {
-          const idx = validTasks.indexOf(task)
-          taskRemainingByDay[idx].data.push(taskRemainingSimulation.get(task.id) || 0)
-        })
-
-        // Check if all work is complete
-        const totalRemaining = validTasks.reduce((sum, task) => {
-          return sum + (taskRemainingSimulation.get(task.id) || 0)
-        }, 0)
-
-        if (totalRemaining <= 0.01 && completionDayIndex === -1) {
-          completionDayIndex = dayIndex
         }
       }
     })
