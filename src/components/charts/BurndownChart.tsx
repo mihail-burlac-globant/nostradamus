@@ -429,84 +429,129 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           markLine: {
             silent: false,
             symbol: ['none', 'none'],
-            data: [
-              // Today marker
-              {
-                name: 'Today',
-                xAxis: todayIndex,
-                label: {
-                  show: true,
-                  position: 'end' as const,
-                  formatter: 'Today',
-                  color: '#ef4444',
-                  fontSize: 12,
-                  fontWeight: 'bold' as const,
-                  distance: 5,
-                  rotate: 0,
-                },
-                lineStyle: {
-                  color: '#ef4444',
-                  width: 3,
-                  type: 'solid' as const,
-                },
-              },
-              // Milestone markers (only show those within the visible date range)
-              ...(() => {
-                // Filter milestones and calculate their indices
-                const milestonesWithIndices = milestones
-                  .filter(milestone => {
-                    const milestoneDate = new Date(milestone.date)
-                    const finalChartEnd = finalDays[finalDays.length - 1]
-                    return milestoneDate >= chartStart && milestoneDate <= finalChartEnd
-                  })
-                  .map(milestone => {
-                    const milestoneDate = new Date(milestone.date)
-                    const dateStr = format(milestoneDate, 'MMM dd')
-                    const index = finalDays.findIndex(day => format(day, 'MMM dd') === dateStr)
+            data: (() => {
+              // Map icon names to Unicode symbols
+              const iconSymbols: Record<string, string> = {
+                flag: '🚩',
+                star: '⭐',
+                trophy: '🏆',
+                target: '🎯',
+                check: '✅',
+                calendar: '📅',
+                rocket: '🚀',
+              }
 
-                    if (index < 0) {
-                      console.warn(`Milestone "${milestone.title}" date not found in chart range`)
-                      return null
-                    }
+              // Filter milestones and calculate their indices
+              const milestonesWithIndices = milestones
+                .filter(milestone => {
+                  const milestoneDate = new Date(milestone.date)
+                  const finalChartEnd = finalDays[finalDays.length - 1]
+                  return milestoneDate >= chartStart && milestoneDate <= finalChartEnd
+                })
+                .map(milestone => {
+                  const milestoneDate = new Date(milestone.date)
+                  const dateStr = format(milestoneDate, 'MMM dd')
+                  const index = finalDays.findIndex(day => format(day, 'MMM dd') === dateStr)
 
-                    return { milestone, index }
-                  })
-                  .filter((item): item is { milestone: Milestone; index: number } => item !== null)
-                  .sort((a, b) => a.index - b.index) // Sort by index (chronological order)
-
-                // Map icon names to Unicode symbols
-                const iconSymbols: Record<string, string> = {
-                  flag: '🚩',
-                  star: '⭐',
-                  trophy: '🏆',
-                  target: '🎯',
-                  check: '✅',
-                  calendar: '📅',
-                  rocket: '🚀',
-                }
-
-                // Calculate stair-step offsets for overlapping labels
-                // Threshold: milestones within 5 indices are considered overlapping
-                const proximityThreshold = 5
-                const baseDistance = 5
-                const distanceIncrement = 20 // pixels to offset each overlapping label
-
-                let currentOffset = 0
-                let previousIndex = -999 // Start with a value that won't trigger overlap
-
-                return milestonesWithIndices.map(({ milestone, index }, i) => {
-                  // Check if this milestone is close to the previous one
-                  if (i > 0 && (index - previousIndex) < proximityThreshold) {
-                    // Increment offset for overlapping milestone
-                    currentOffset += distanceIncrement
-                  } else {
-                    // Reset offset for well-separated milestones
-                    currentOffset = 0
+                  if (index < 0) {
+                    console.warn(`Milestone "${milestone.title}" date not found in chart range`)
+                    return null
                   }
 
-                  previousIndex = index
+                  return { milestone, index }
+                })
+                .filter((item): item is { milestone: Milestone; index: number } => item !== null)
 
-                  // Normalize icon name (trim, lowercase) for case-insensitive matching
+              // Create all markers including Today and Project Complete
+              const allMarkers: Array<{
+                index: number
+                type: 'today' | 'milestone' | 'complete'
+                milestone?: Milestone
+              }> = [
+                { index: todayIndex, type: 'today' },
+                ...milestonesWithIndices.map(m => ({
+                  index: m.index,
+                  type: 'milestone' as const,
+                  milestone: m.milestone
+                }))
+              ]
+
+              // Add Project Complete marker if applicable
+              if (completionDayIndex > -1) {
+                allMarkers.push({
+                  index: completionDayIndex,
+                  type: 'complete'
+                })
+              }
+
+              // Sort all markers by index
+              allMarkers.sort((a, b) => a.index - b.index)
+
+              // Calculate stair-step offsets for overlapping labels
+              const proximityThreshold = 5
+              const baseDistance = 5
+              const distanceIncrement = 20 // pixels to offset each overlapping label
+
+              let currentOffset = 0
+              let previousIndex = -999
+
+              return allMarkers.map((marker, i) => {
+                // Check if this marker is close to the previous one
+                if (i > 0 && (marker.index - previousIndex) < proximityThreshold) {
+                  // Increment offset for overlapping marker
+                  currentOffset += distanceIncrement
+                } else {
+                  // Reset offset for well-separated markers
+                  currentOffset = 0
+                }
+
+                previousIndex = marker.index
+
+                if (marker.type === 'today') {
+                  // Today marker
+                  return {
+                    name: 'Today',
+                    xAxis: marker.index,
+                    label: {
+                      show: true,
+                      position: 'end' as const,
+                      formatter: 'Today',
+                      color: '#ef4444',
+                      fontSize: 12,
+                      fontWeight: 'bold' as const,
+                      distance: baseDistance + currentOffset,
+                      rotate: 0,
+                    },
+                    lineStyle: {
+                      color: '#ef4444',
+                      width: 3,
+                      type: 'solid' as const,
+                    },
+                  }
+                } else if (marker.type === 'complete') {
+                  // Project Complete marker
+                  return {
+                    name: 'Project Complete',
+                    xAxis: marker.index,
+                    label: {
+                      show: true,
+                      position: 'end' as const,
+                      formatter: '🎉 Project Complete',
+                      color: '#10b981',
+                      fontSize: 11,
+                      fontWeight: 600 as const,
+                      distance: baseDistance + currentOffset,
+                      rotate: 0,
+                    },
+                    lineStyle: {
+                      color: '#10b981',
+                      width: 3,
+                      type: 'solid' as const,
+                    },
+                  }
+                } else {
+                  // Milestone marker
+                  const milestone = marker.milestone!
                   const normalizedIcon = (milestone.icon || '').trim().toLowerCase()
                   const iconSymbol = iconSymbols[normalizedIcon] || '📍'
 
@@ -517,7 +562,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
                   return {
                     name: milestone.title,
-                    xAxis: index,
+                    xAxis: marker.index,
                     label: {
                       show: true,
                       position: 'end' as const,
@@ -534,29 +579,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                       type: 'dashed' as const,
                     },
                   }
-                })
-              })(),
-              // Project completion milestone (when all work is done)
-              ...(completionDayIndex > -1 ? [{
-                name: 'Project Complete',
-                xAxis: completionDayIndex,
-                label: {
-                  show: true,
-                  position: 'end' as const,
-                  formatter: '🎉 Project Complete',
-                  color: '#10b981',
-                  fontSize: 11,
-                  fontWeight: 600 as const,
-                  distance: 5,
-                  rotate: 0,
-                },
-                lineStyle: {
-                  color: '#10b981',
-                  width: 3,
-                  type: 'solid' as const,
-                },
-              }] : []),
-            ],
+                }
+              })
+            })(),
           },
         },
       ],
