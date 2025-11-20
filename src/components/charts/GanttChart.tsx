@@ -226,8 +226,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
     const maxDate = new Date(Math.max(...allDates))
 
     // Determine if we should show week numbers based on time span
+    // Only switch to weeks when there's really no space (very long projects)
     const daySpan = differenceInDays(maxDate, minDate)
-    const useWeekNumbers = daySpan > 60 // Show week numbers if more than 60 days
+    const useWeekNumbers = daySpan > 180 // Show week numbers only if more than 6 months (180 days)
 
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
