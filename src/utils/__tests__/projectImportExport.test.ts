@@ -4,20 +4,29 @@ import type { Project } from '../../types/entities.types'
 
 // Mock the database module
 vi.mock('../../services/database', () => {
+  interface MockProject { id: string; title: string }
+  interface MockTask { id: string; projectId: string; title: string }
+  interface MockTaskDependency { taskId: string; dependsOnTaskId: string }
+  interface MockProjectResource { projectId: string; resourceId: string }
+  interface MockTaskResource { taskId: string; resourceId: string; estimatedDays: number; numberOfProfiles: number }
+  interface MockMilestone { id: string; projectId: string; title: string }
+  interface MockProgressSnapshot { id: string; taskId: string; projectId: string }
+  interface MockResource { id: string; title: string }
+
   const mockData = {
-    projects: [] as any[],
-    resources: [] as any[],
-    projectResources: [] as any[],
-    tasks: [] as any[],
-    taskResources: [] as any[],
-    taskDependencies: [] as any[],
-    milestones: [] as any[],
-    progressSnapshots: [] as any[],
+    projects: [] as MockProject[],
+    resources: [] as MockResource[],
+    projectResources: [] as MockProjectResource[],
+    tasks: [] as MockTask[],
+    taskResources: [] as MockTaskResource[],
+    taskDependencies: [] as MockTaskDependency[],
+    milestones: [] as MockMilestone[],
+    progressSnapshots: [] as MockProgressSnapshot[],
   }
 
   return {
     getDatabase: () => ({
-      prepare: (_query: string) => {
+      prepare: () => {
         return {
           bind: () => {},
           step: () => {
@@ -28,29 +37,29 @@ vi.mock('../../services/database', () => {
           free: () => {},
         }
       },
-      run: (query: string, params: any[]) => {
+      run: (query: string, params: unknown[]) => {
         // Simulate INSERT operations
         if (query.includes('INSERT INTO projects')) {
-          mockData.projects.push({ id: params[0], title: params[1] })
+          mockData.projects.push({ id: params[0] as string, title: params[1] as string })
         } else if (query.includes('INSERT INTO tasks')) {
-          mockData.tasks.push({ id: params[0], projectId: params[1], title: params[2] })
+          mockData.tasks.push({ id: params[0] as string, projectId: params[1] as string, title: params[2] as string })
         } else if (query.includes('INSERT INTO task_dependencies')) {
-          mockData.taskDependencies.push({ taskId: params[0], dependsOnTaskId: params[1] })
+          mockData.taskDependencies.push({ taskId: params[0] as string, dependsOnTaskId: params[1] as string })
         } else if (query.includes('INSERT INTO project_resources')) {
-          mockData.projectResources.push({ projectId: params[0], resourceId: params[1] })
+          mockData.projectResources.push({ projectId: params[0] as string, resourceId: params[1] as string })
         } else if (query.includes('INSERT INTO task_resources')) {
           mockData.taskResources.push({
-            taskId: params[0],
-            resourceId: params[1],
-            estimatedDays: params[2],
-            numberOfProfiles: params[4],
+            taskId: params[0] as string,
+            resourceId: params[1] as string,
+            estimatedDays: params[2] as number,
+            numberOfProfiles: params[4] as number,
           })
         } else if (query.includes('INSERT INTO milestones')) {
-          mockData.milestones.push({ id: params[0], projectId: params[1], title: params[2] })
+          mockData.milestones.push({ id: params[0] as string, projectId: params[1] as string, title: params[2] as string })
         } else if (query.includes('INSERT INTO progress_snapshots')) {
-          mockData.progressSnapshots.push({ id: params[0], taskId: params[1], projectId: params[2] })
+          mockData.progressSnapshots.push({ id: params[0] as string, taskId: params[1] as string, projectId: params[2] as string })
         } else if (query.includes('INSERT INTO resources')) {
-          mockData.resources.push({ id: params[0], title: params[1] })
+          mockData.resources.push({ id: params[0] as string, title: params[1] as string })
         }
       },
       export: () => new Uint8Array(),
