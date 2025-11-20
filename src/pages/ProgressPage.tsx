@@ -144,6 +144,9 @@ const ProgressPage = () => {
       }
     }
 
+    // Reload progress snapshots to ensure we have the latest data
+    loadProgressSnapshots()
+
     // Clear changed tasks after saving
     setChangedTasks(new Set())
 
