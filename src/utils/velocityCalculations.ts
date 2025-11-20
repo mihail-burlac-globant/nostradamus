@@ -1,5 +1,5 @@
 import { format, differenceInDays, addDays, startOfDay } from 'date-fns'
-import type { ProgressSnapshot, Task, VelocityMetrics } from '../types/entities.types'
+import type { ProgressSnapshot, VelocityMetrics } from '../types/entities.types'
 
 /**
  * Calculate actual velocity based on progress snapshots
@@ -7,7 +7,7 @@ import type { ProgressSnapshot, Task, VelocityMetrics } from '../types/entities.
  */
 export const calculateActualVelocity = (
   snapshots: ProgressSnapshot[],
-  windowDays: number = 21
+  _windowDays: number = 21
 ): { velocity: number; confidence: 'high' | 'medium' | 'low' } => {
   if (snapshots.length < 2) {
     return { velocity: 0, confidence: 'low' }

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Project, Resource, Configuration, Task, Milestone } from '../types/entities.types'
+import type { Project, Resource, Configuration, Task, Milestone, ProgressSnapshot } from '../types/entities.types'
 import {
   initDatabase,
   createProject,
@@ -38,6 +38,11 @@ import {
   getMilestonesByProject,
   updateMilestone,
   deleteMilestone,
+  createProgressSnapshot,
+  getProgressSnapshots,
+  updateProgressSnapshot,
+  deleteProgressSnapshot,
+  deleteProgressSnapshotsForTask,
 } from '../services/database'
 
 interface EntitiesState {
@@ -47,6 +52,7 @@ interface EntitiesState {
   configurations: Configuration[]
   tasks: Task[]
   milestones: Milestone[]
+  progressSnapshots: ProgressSnapshot[]
   isInitialized: boolean
   isLoading: boolean
 
@@ -102,6 +108,13 @@ interface EntitiesState {
   addMilestone: (milestone: Omit<Milestone, 'id' | 'createdAt' | 'updatedAt'>) => void
   editMilestone: (id: string, updates: Partial<Omit<Milestone, 'id' | 'createdAt'>>) => void
   removeMilestone: (id: string) => void
+
+  // Progress Snapshot actions
+  loadProgressSnapshots: (filters?: { taskId?: string; projectId?: string; startDate?: string; endDate?: string }) => void
+  addProgressSnapshot: (snapshot: Omit<ProgressSnapshot, 'id' | 'createdAt' | 'updatedAt'>) => ProgressSnapshot
+  editProgressSnapshot: (id: string, updates: Partial<Omit<ProgressSnapshot, 'id' | 'taskId' | 'projectId' | 'date' | 'createdAt' | 'updatedAt'>>) => void
+  removeProgressSnapshot: (id: string) => void
+  removeProgressSnapshotsForTask: (taskId: string) => void
 }
 
 export const useEntitiesStore = create<EntitiesState>((set, get) => ({
@@ -111,6 +124,7 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   configurations: [],
   tasks: [],
   milestones: [],
+  progressSnapshots: [],
   isInitialized: false,
   isLoading: false,
 
@@ -315,5 +329,36 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
     deleteMilestone(id)
     const milestones = getMilestones()
     set({ milestones })
+  },
+
+  // Progress Snapshot actions
+  loadProgressSnapshots: (filters) => {
+    const progressSnapshots = getProgressSnapshots(filters)
+    set({ progressSnapshots })
+  },
+
+  addProgressSnapshot: (snapshot) => {
+    const newSnapshot = createProgressSnapshot(snapshot)
+    const progressSnapshots = getProgressSnapshots()
+    set({ progressSnapshots })
+    return newSnapshot
+  },
+
+  editProgressSnapshot: (id, updates) => {
+    updateProgressSnapshot(id, updates)
+    const progressSnapshots = getProgressSnapshots()
+    set({ progressSnapshots })
+  },
+
+  removeProgressSnapshot: (id) => {
+    deleteProgressSnapshot(id)
+    const progressSnapshots = getProgressSnapshots()
+    set({ progressSnapshots })
+  },
+
+  removeProgressSnapshotsForTask: (taskId) => {
+    deleteProgressSnapshotsForTask(taskId)
+    const progressSnapshots = getProgressSnapshots()
+    set({ progressSnapshots })
   },
 }))
