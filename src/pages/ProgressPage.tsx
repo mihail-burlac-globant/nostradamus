@@ -14,9 +14,16 @@ const ProgressPage = () => {
     addProgressSnapshot,
   } = useEntitiesStore()
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('all')
-  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
-  const [searchTerm, setSearchTerm] = useState<string>('')
+  // Load filter selections from localStorage or use defaults
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(() => {
+    return localStorage.getItem('progress_selectedProjectId') || 'all'
+  })
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    return localStorage.getItem('progress_selectedDate') || format(new Date(), 'yyyy-MM-dd')
+  })
+  const [searchTerm, setSearchTerm] = useState<string>(() => {
+    return localStorage.getItem('progress_searchTerm') || ''
+  })
   const [estimates, setEstimates] = useState<Record<string, number>>({})
   const [progressValues, setProgressValues] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
@@ -28,6 +35,19 @@ const ProgressPage = () => {
     loadTasks()
     loadProgressSnapshots()
   }, [loadProjects, loadTasks, loadProgressSnapshots])
+
+  // Persist filter selections to localStorage
+  useEffect(() => {
+    localStorage.setItem('progress_selectedProjectId', selectedProjectId)
+  }, [selectedProjectId])
+
+  useEffect(() => {
+    localStorage.setItem('progress_selectedDate', selectedDate)
+  }, [selectedDate])
+
+  useEffect(() => {
+    localStorage.setItem('progress_searchTerm', searchTerm)
+  }, [searchTerm])
 
   // Filter active projects and tasks
   const activeProjects = projects.filter(p => p.status === 'Active')
