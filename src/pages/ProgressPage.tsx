@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import { format } from 'date-fns'
 
@@ -19,6 +19,7 @@ const ProgressPage = () => {
   const [estimates, setEstimates] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const lastInitKey = useRef<string>('')
 
   useEffect(() => {
     loadProjects()
@@ -38,7 +39,17 @@ const ProgressPage = () => {
     : activeTasks.filter(t => t.projectId === selectedProjectId)
 
   // Initialize estimates from existing snapshots or calculated values
+  // Only run when date or project selection changes, not when tasks update
   useEffect(() => {
+    const initKey = `${selectedDate}-${selectedProjectId}`
+
+    // Skip if we've already initialized for this date/project combo
+    if (lastInitKey.current === initKey) {
+      return
+    }
+
+    lastInitKey.current = initKey
+
     const newEstimates: Record<string, number> = {}
     const newNotes: Record<string, string> = {}
 
@@ -65,7 +76,7 @@ const ProgressPage = () => {
 
     setEstimates(newEstimates)
     setNotes(newNotes)
-  }, [filteredTasks, selectedDate, progressSnapshots, getTaskResources])
+  }, [selectedDate, selectedProjectId, progressSnapshots, getTaskResources, filteredTasks])
 
   const handleSave = async () => {
     setSaveStatus('saving')
