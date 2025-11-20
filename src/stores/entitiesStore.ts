@@ -274,8 +274,8 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
     return getProjectConfigurations(projectId)
   },
 
-  assignResourceToTask: (taskId, resourceId, estimatedDays, focusFactor) => {
-    assignResourceToTask(taskId, resourceId, estimatedDays, focusFactor)
+  assignResourceToTask: (taskId, resourceId, estimatedDays, focusFactor, numberOfProfiles) => {
+    assignResourceToTask(taskId, resourceId, estimatedDays, focusFactor, numberOfProfiles)
   },
 
   removeResourceFromTask: (taskId, resourceId) => {
