@@ -207,12 +207,26 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     allDays.forEach((date, dayIndex) => {
       const isFuture = isAfter(date, today)
+      const dateKey = format(date, 'yyyy-MM-dd')
 
       if (!isFuture) {
-        // For past dates and today: show current remaining effort (flat baseline)
+        // For past dates and today: show theoretical remaining based on snapshot progress (if available)
         validTasks.forEach(task => {
           const idx = validTasks.indexOf(task)
-          taskRemainingByDay[idx].data.push(taskCurrentRemaining.get(task.id) || 0)
+          const snapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
+
+          if (snapshot) {
+            // Calculate theoretical remaining from snapshot's progress
+            const resources = getTaskResources(task.id)
+            const totalEffort = resources.reduce((sum, resource) => {
+              return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+            }, 0)
+            const theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
+            taskRemainingByDay[idx].data.push(theoreticalRemaining)
+          } else {
+            // No snapshot - use current remaining
+            taskRemainingByDay[idx].data.push(taskCurrentRemaining.get(task.id) || 0)
+          }
         })
       } else {
         // For future dates: simulate work with dependencies
@@ -323,7 +337,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     })
 
     // Calculate scope increase per task per day
-    // For each task and day, check if remaining increased compared to previous day
+    // For each task and day, compare manual remaining estimate vs theoretical remaining
     const taskScopeIncreaseByDay = validTasks.map(task => ({
       task,
       color: task.color,
@@ -332,20 +346,28 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     finalDays.forEach((day, dayIndex) => {
       const dateKey = format(day, 'yyyy-MM-dd')
-      const prevDateKey = dayIndex > 0 ? format(finalDays[dayIndex - 1], 'yyyy-MM-dd') : null
+      const isFuture = isAfter(day, today)
 
       validTasks.forEach((task, taskIndex) => {
-        // Get today's and yesterday's snapshots for this task
-        const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
-        const yesterdaySnapshot = prevDateKey ? projectSnapshots.find(s => s.taskId === task.id && s.date === prevDateKey) : null
-
         let scopeIncrease = 0
 
-        if (todaySnapshot && yesterdaySnapshot) {
-          // If both exist, check if remaining increased
-          const increase = todaySnapshot.remainingEstimate - yesterdaySnapshot.remainingEstimate
-          if (increase > 0) {
-            scopeIncrease = increase
+        // Only calculate scope increase for past/present days with snapshots
+        if (!isFuture) {
+          const snapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
+
+          if (snapshot) {
+            // Calculate theoretical remaining based on progress and total effort
+            const resources = getTaskResources(task.id)
+            const totalEffort = resources.reduce((sum, resource) => {
+              return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+            }, 0)
+            const theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
+
+            // Scope increase = manual remaining - theoretical remaining
+            const increase = snapshot.remainingEstimate - theoreticalRemaining
+            if (increase > 0) {
+              scopeIncrease = increase
+            }
           }
         }
 
