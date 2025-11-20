@@ -309,8 +309,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               const showYear = getYear(minDate) !== getYear(maxDate)
               return showYear ? `W${weekNum} '${year.toString().slice(-2)}` : `W${weekNum}`
             } else {
-              // Day view: Show "MMM dd" format
-              return format(date, 'MMM dd')
+              // Day view: Show weekday and date (e.g., "Mon Jan 15")
+              return format(date, 'EEE MMM dd')
             }
           },
           color: textColor,
@@ -328,6 +328,12 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
             type: 'dashed',
           },
         },
+        // Control split intervals based on view
+        splitNumber: timeView === 'day' ? undefined : timeView === 'week' ? 10 : 6,
+        // Set minimum interval for better zoom control
+        minInterval: timeView === 'day' ? 3600 * 1000 * 24 : // 1 day
+                     timeView === 'week' ? 3600 * 1000 * 24 * 7 : // 1 week
+                     3600 * 1000 * 24 * 30, // ~1 month
       },
       yAxis: {
         type: 'category',
