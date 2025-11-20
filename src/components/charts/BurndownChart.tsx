@@ -355,6 +355,32 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       return projected
     })
 
+    // Calculate scope increase indicator (when actual > expected)
+    // This shows when today's remaining is higher than expected based on velocity trend
+    const scopeIncreaseSeries: (number | null)[] = finalDays.map((_day, index) => {
+      // Only show scope increase at today and the point before
+      if (todayIndex > 0 && actualVelocity > 0) {
+        const yesterdayActual = actualDataSeries[todayIndex - 1]
+
+        if (yesterdayActual !== null && yesterdayActual !== undefined) {
+          // Expected remaining today = yesterday's actual - velocity
+          const expectedToday = Math.max(0, yesterdayActual - actualVelocity)
+
+          // If today's actual is higher than expected, show the increase
+          if (totalCurrentRemaining > expectedToday) {
+            // Draw a vertical-ish line from expected to actual
+            if (index === todayIndex - 1) {
+              return expectedToday // Start point (expected value at today)
+            } else if (index === todayIndex) {
+              return totalCurrentRemaining // End point (actual value today)
+            }
+          }
+        }
+      }
+
+      return null
+    })
+
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
@@ -435,6 +461,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         data: [
           'Actual Progress',
           'Realistic Projection',
+          'Scope Increase',
         ],
         top: 50,
         textStyle: {
@@ -544,6 +571,24 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           smooth: true,
           z: 9,
           connectNulls: false,
+        },
+        // Scope Increase indicator (red dotted line when estimates increase)
+        {
+          name: 'Scope Increase',
+          type: 'line' as const,
+          data: scopeIncreaseSeries,
+          lineStyle: {
+            color: '#ef4444', // Red
+            width: 3,
+            type: 'dotted',
+          },
+          itemStyle: {
+            color: '#ef4444',
+          },
+          symbol: 'circle',
+          symbolSize: 6,
+          z: 11, // Higher than other lines
+          connectNulls: false, // Don't connect gaps - only draw when there's scope increase
         },
         // Add "Today" and milestone markers using a dummy line series
         {
