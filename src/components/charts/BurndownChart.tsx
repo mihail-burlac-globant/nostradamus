@@ -438,16 +438,89 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       return totalForDay
     })
 
-    // Generate realistic projection (from today forward using actual velocity from past 15 days)
-    const realisticProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
-      if (index < todayIndex) return null // No projection for past
-      if (index === todayIndex) return totalActualRemaining // Start from actual remaining (manual estimates)
-      if (recentVelocity <= 0) return totalActualRemaining // No velocity data yet
-
-      const daysFromToday = index - todayIndex
-      const projected = Math.max(0, totalActualRemaining - (recentVelocity * daysFromToday))
-      return projected
+    // Generate projection based on today's manual estimates (if updated today on Progress page)
+    // This shows the reality projection when user updates remaining estimates today
+    const todayHasSnapshots = validTasks.some(task => {
+      const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
+      return todaySnapshot !== undefined
     })
+
+    let projectedFromActualSeries: (number | null)[] = []
+
+    if (todayHasSnapshots) {
+      // User has updated estimates today, so show projection based on those estimates
+      // Simulate work from today forward using today's remaining estimates
+      const actualRemainingSimulation = new Map<string, number>()
+
+      // Initialize with today's actual remaining estimates
+      validTasks.forEach(task => {
+        const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
+        if (todaySnapshot) {
+          actualRemainingSimulation.set(task.id, todaySnapshot.remainingEstimate)
+        } else {
+          // No snapshot for today - use theoretical remaining
+          const resources = getTaskResources(task.id)
+          const totalEffort = resources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
+          actualRemainingSimulation.set(task.id, totalEffort * (1 - task.progress / 100))
+        }
+      })
+
+      const actualSimulationCompletedTasks = new Set(completedTasks)
+
+      projectedFromActualSeries = finalDays.map((date, index) => {
+        if (index < todayIndex) return null // No projection for past
+
+        const isWeekendDay = isWeekend(date)
+
+        if (index === todayIndex) {
+          // Today - show total of actual remaining
+          return Array.from(actualRemainingSimulation.values()).reduce((sum, val) => sum + val, 0)
+        }
+
+        if (isWeekendDay) {
+          // Weekend - no work done
+          return Array.from(actualRemainingSimulation.values()).reduce((sum, val) => sum + val, 0)
+        }
+
+        // Weekday - simulate work
+        const workableTasks = validTasks.filter(task => {
+          if (actualSimulationCompletedTasks.has(task.id)) return false
+          const deps = taskDependencies.get(task.id) || []
+          return deps.every(depId => actualSimulationCompletedTasks.has(depId))
+        })
+
+        const workDoneByTask = new Map<string, number>()
+
+        resourceCapacity.forEach((capacity, resourceId) => {
+          const tasksNeedingResource = workableTasks.filter(task => {
+            const types = taskResourceTypes.get(task.id) || []
+            return types.includes(resourceId) && (actualRemainingSimulation.get(task.id) || 0) > 0
+          })
+
+          if (tasksNeedingResource.length === 0) return
+
+          const firstTask = tasksNeedingResource[0]
+          const currentWork = workDoneByTask.get(firstTask.id) || 0
+          workDoneByTask.set(firstTask.id, currentWork + capacity)
+        })
+
+        workableTasks.forEach(task => {
+          const workDone = workDoneByTask.get(task.id) || 0
+          const remaining = actualRemainingSimulation.get(task.id) || 0
+          const newRemaining = Math.max(0, remaining - workDone)
+          actualRemainingSimulation.set(task.id, newRemaining)
+
+          if (newRemaining <= 0.01) {
+            actualSimulationCompletedTasks.add(task.id)
+          }
+        })
+
+        return Array.from(actualRemainingSimulation.values()).reduce((sum, val) => sum + val, 0)
+      })
+    } else {
+      // No snapshots for today - don't show projection
+      projectedFromActualSeries = finalDays.map(() => null)
+    }
 
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
@@ -563,7 +636,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       legend: {
         data: [
           'Theoretical Projection',
-          'Realistic Projection',
+          'Reality Projection',
         ],
         top: 50,
         textStyle: {
@@ -693,20 +766,21 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           z: 8,
           connectNulls: false,
         },
-        // Realistic projection line (recent actual velocity from past 15 days, projected forward)
+        // Reality projection line (based on today's manual estimates from Progress page)
         {
-          name: 'Realistic Projection',
+          name: 'Reality Projection',
           type: 'line' as const,
-          data: realisticProjectionSeries,
+          data: projectedFromActualSeries,
           lineStyle: {
-            color: recentVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444', // Orange or Red based on velocity
-            width: 2,
+            color: '#f59e0b', // Orange for reality projection
+            width: 3,
             type: 'dashed',
           },
           itemStyle: {
-            color: recentVelocity >= plannedVelocity * 0.9 ? '#f59e0b' : '#ef4444',
+            color: '#f59e0b',
           },
-          symbol: 'none',
+          symbol: 'circle',
+          symbolSize: 4,
           smooth: true,
           z: 9,
           connectNulls: false,
