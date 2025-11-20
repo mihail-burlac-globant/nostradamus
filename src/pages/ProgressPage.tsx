@@ -20,6 +20,7 @@ const ProgressPage = () => {
   const [estimates, setEstimates] = useState<Record<string, number>>({})
   const [progressValues, setProgressValues] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
+  const [changedTasks, setChangedTasks] = useState<Set<string>>(new Set())
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const lastInitKey = useRef<string>('')
 
@@ -88,13 +89,17 @@ const ProgressPage = () => {
     setEstimates(newEstimates)
     setProgressValues(newProgress)
     setNotes(newNotes)
+    setChangedTasks(new Set()) // Clear changed tasks when reinitializing
   }, [selectedDate, selectedProjectId, progressSnapshots, getTaskResources, filteredTasks])
 
   const handleSave = async () => {
     setSaveStatus('saving')
 
-    // Create snapshots for all tasks with estimates
+    // Create snapshots only for changed tasks
     for (const task of filteredTasks) {
+      // Only save if this task was explicitly changed
+      if (!changedTasks.has(task.id)) continue
+
       const estimate = estimates[task.id]
       const progress = progressValues[task.id]
       if (estimate !== undefined && progress !== undefined) {
@@ -110,6 +115,9 @@ const ProgressPage = () => {
       }
     }
 
+    // Clear changed tasks after saving
+    setChangedTasks(new Set())
+
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 2000)
   }
@@ -117,15 +125,18 @@ const ProgressPage = () => {
   const handleEstimateChange = (taskId: string, value: string) => {
     const numValue = parseFloat(value) || 0
     setEstimates(prev => ({ ...prev, [taskId]: Math.max(0, numValue) }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
   }
 
   const handleProgressChange = (taskId: string, value: string) => {
     const numValue = parseInt(value) || 0
     setProgressValues(prev => ({ ...prev, [taskId]: Math.min(100, Math.max(0, numValue)) }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
   }
 
   const handleNotesChange = (taskId: string, value: string) => {
     setNotes(prev => ({ ...prev, [taskId]: value }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
   }
 
   const handleQuickAdjust = (taskId: string, delta: number) => {
@@ -133,6 +144,7 @@ const ProgressPage = () => {
       ...prev,
       [taskId]: Math.max(0, (prev[taskId] || 0) + delta)
     }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
   }
 
   // Calculate total remaining work
