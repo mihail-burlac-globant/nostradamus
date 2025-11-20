@@ -315,8 +315,23 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Track which days are in the past for opacity
     const todayIndex = finalDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd'))
 
-    // Calculate total current remaining effort
+    // Calculate total current remaining effort (theoretical)
     const totalCurrentRemaining = Array.from(taskCurrentRemaining.values()).reduce((sum, val) => sum + val, 0)
+
+    // Calculate total actual remaining from today's snapshots (manual estimates)
+    const todayDateKey = format(today, 'yyyy-MM-dd')
+    const totalActualRemaining = validTasks.reduce((sum, task) => {
+      const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
+      if (todaySnapshot) {
+        return sum + todaySnapshot.remainingEstimate
+      }
+      // If no snapshot for today, use theoretical remaining
+      const resources = getTaskResources(task.id)
+      const totalEffort = resources.reduce((effortSum, resource) => {
+        return effortSum + (resource.estimatedDays * (resource.focusFactor / 100))
+      }, 0)
+      return sum + (totalEffort * (1 - task.progress / 100))
+    }, 0)
 
     // Get historical actual data from snapshots
     const historicalData = getHistoricalData(
@@ -413,11 +428,11 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Generate realistic projection (from today forward using actual velocity from past 15 days)
     const realisticProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
       if (index < todayIndex) return null // No projection for past
-      if (index === todayIndex) return totalCurrentRemaining // Start from current remaining
-      if (recentVelocity <= 0) return totalCurrentRemaining // No velocity data yet
+      if (index === todayIndex) return totalActualRemaining // Start from actual remaining (manual estimates)
+      if (recentVelocity <= 0) return totalActualRemaining // No velocity data yet
 
       const daysFromToday = index - todayIndex
-      const projected = Math.max(0, totalCurrentRemaining - (recentVelocity * daysFromToday))
+      const projected = Math.max(0, totalActualRemaining - (recentVelocity * daysFromToday))
       return projected
     })
 
