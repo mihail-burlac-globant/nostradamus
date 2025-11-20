@@ -90,28 +90,64 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         earliestStart = skipToNextWeekday(earliestStart)
       }
 
-      // Calculate duration based on original estimates
+      // Check if there's a recent progress snapshot with updated remaining estimate
+      const taskSnapshots = progressSnapshots
+        .filter(s => s.taskId === task.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+      const latestSnapshot = taskSnapshots.length > 0 ? taskSnapshots[0] : null
+
+      // If we have a snapshot with progress > 0, task is in progress
+      // Use the latest snapshot date or "today" as the continuation point
+      if (latestSnapshot && latestSnapshot.progress > 0 && latestSnapshot.remainingEstimate > 0) {
+        // Task is in progress, continue from the snapshot date
+        const snapshotDate = new Date(latestSnapshot.date)
+        const today = new Date()
+
+        // Use the more recent of snapshot date or today
+        const continueFrom = snapshotDate > today ? snapshotDate : today
+        earliestStart = skipToNextWeekday(continueFrom)
+      }
+
+      // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
       const resources = getTaskResources(task.id)
       const projectResources = getProjectResources(projectId)
 
       // For each resource type, calculate how long it takes considering team size
       const resourceDurations: number[] = []
 
-      // Always use original estimates from task resources for the main plan
-      resources.forEach(taskResource => {
-        // Person-days of work needed
-        const workDays = taskResource.estimatedDays
+      if (latestSnapshot && latestSnapshot.remainingEstimate > 0) {
+        // Use the latest remaining estimate from progress snapshot
+        const remainingEstimate = latestSnapshot.remainingEstimate
 
-        // Number of profiles assigned to work on this task (from task resource, not project max)
-        const numberOfProfiles = taskResource.numberOfProfiles || 1
-        // Priority: task-specific focus factor, or fallback to project resource focus factor
-        const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-        const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
+        // Calculate duration based on remaining work distributed across all resources
+        const totalEffort = resources.reduce((sum, resource) => {
+          const numberOfProfiles = resource.numberOfProfiles || 1
+          const projectResource = projectResources.find(pr => pr.id === resource.id)
+          const focusFactor = (resource.focusFactor || projectResource?.focusFactor || 100) / 100
+          return sum + (numberOfProfiles * focusFactor)
+        }, 0)
 
-        // Duration = workDays / (numberOfProfiles * focusFactor)
-        const duration = workDays / (numberOfProfiles * focusFactor)
+        // Remaining estimate distributed across available capacity
+        const duration = totalEffort > 0 ? remainingEstimate / totalEffort : remainingEstimate
         resourceDurations.push(duration)
-      })
+      } else {
+        // Use original estimates from task resources
+        resources.forEach(taskResource => {
+          // Person-days of work needed
+          const workDays = taskResource.estimatedDays
+
+          // Number of profiles assigned to work on this task (from task resource, not project max)
+          const numberOfProfiles = taskResource.numberOfProfiles || 1
+          // Priority: task-specific focus factor, or fallback to project resource focus factor
+          const projectResource = projectResources.find(pr => pr.id === taskResource.id)
+          const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
+
+          // Duration = workDays / (numberOfProfiles * focusFactor)
+          const duration = workDays / (numberOfProfiles * focusFactor)
+          resourceDurations.push(duration)
+        })
+      }
 
       // Task duration is the longest duration among all resource types (they work in parallel)
       const durationDays = resourceDurations.length > 0
@@ -126,7 +162,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       return result
     }
 
-    // Calculate dates for all tasks using original estimates (the plan)
+    // Calculate dates for all tasks
     const taskDateMap = new Map<string, { start: Date; end: Date }>()
     const validTasks = tasks.map(task => {
       const dates = calculateTaskDates(task, taskDateMap)
@@ -136,75 +172,6 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         endDate: dates.end.toISOString().split('T')[0]
       }
     })
-
-    // Calculate projected dates for tasks with today's remaining estimates (the reality)
-    const today = format(new Date(), 'yyyy-MM-dd')
-    const projectedTaskDateMap = new Map<string, { start: Date; end: Date }>()
-    const projectedTasks = tasks
-      .filter(task => {
-        // Only include tasks that have a snapshot for today
-        const todaySnapshot = progressSnapshots.find(
-          s => s.taskId === task.id && s.date === today
-        )
-        return todaySnapshot !== undefined
-      })
-      .map(task => {
-        // Get today's snapshot
-        const todaySnapshot = progressSnapshots.find(
-          s => s.taskId === task.id && s.date === today
-        )!
-
-        // Calculate projected dates using remaining estimate from today's snapshot
-        const dependencies = getTaskDependencies(task.id)
-        let earliestStart: Date
-
-        if (dependencies.length > 0) {
-          // Use projected dates for dependencies if available, otherwise use plan dates
-          const dependencyEndDates = dependencies.map(dep => {
-            const projectedDep = projectedTaskDateMap.get(dep.id)
-            if (projectedDep) {
-              return projectedDep.end
-            }
-            const planDep = taskDateMap.get(dep.id)
-            return planDep ? planDep.end : new Date()
-          })
-          earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
-          earliestStart = addWorkingDays(earliestStart, 1)
-        } else {
-          // Start from today or task's original start date, whichever is later
-          const taskStart = task.startDate ? new Date(task.startDate) : new Date()
-          const now = new Date()
-          earliestStart = taskStart > now ? taskStart : now
-          earliestStart = skipToNextWeekday(earliestStart)
-        }
-
-        // Calculate duration using today's remaining estimate
-        const resources = getTaskResources(task.id)
-        const projectResources = getProjectResources(projectId)
-        const resourceDurations: number[] = []
-
-        resources.forEach(taskResource => {
-          const numberOfProfiles = taskResource.numberOfProfiles || 1
-          const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-          const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100
-          const duration = todaySnapshot.remainingEstimate / (numberOfProfiles * focusFactor)
-          resourceDurations.push(duration)
-        })
-
-        const durationDays = resourceDurations.length > 0
-          ? Math.ceil(Math.max(...resourceDurations))
-          : 1
-
-        const endDate = addWorkingDays(earliestStart, durationDays)
-        const result = { start: earliestStart, end: endDate }
-        projectedTaskDateMap.set(task.id, result)
-
-        return {
-          ...task,
-          startDate: earliestStart.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0]
-        }
-      })
 
     if (validTasks.length === 0) {
       // Show message if no tasks
@@ -220,16 +187,48 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       chartInstance.current = echarts.init(chartRef.current)
     }
 
-    // Create a lookup map for projected tasks to match them with plan tasks
-    const projectedTaskMap = new Map<string, typeof projectedTasks[0]>()
-    projectedTasks.forEach(task => {
-      projectedTaskMap.set(task.id, task)
+    // Calculate scope increases for each task
+    const taskScopeInfo = new Map<string, { hasScopeIncrease: boolean; scopeIncreaseDays: number }>()
+
+    validTasks.forEach(task => {
+      // Get latest snapshot for this task
+      const taskSnapshots = progressSnapshots
+        .filter(s => s.taskId === task.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+      if (taskSnapshots.length > 0) {
+        const latestSnapshot = taskSnapshots[0]
+
+        // Calculate theoretical remaining based on snapshot's progress
+        const resources = getTaskResources(task.id)
+        const totalEffort = resources.reduce((sum, resource) => {
+          return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+        }, 0)
+        const theoreticalRemaining = totalEffort * (1 - latestSnapshot.progress / 100)
+
+        // Scope increase = manual remaining - theoretical remaining
+        const scopeIncrease = latestSnapshot.remainingEstimate - theoreticalRemaining
+
+        if (scopeIncrease > 0) {
+          taskScopeInfo.set(task.id, {
+            hasScopeIncrease: true,
+            scopeIncreaseDays: scopeIncrease
+          })
+        }
+      }
     })
 
-    // Convert plan tasks to chart format
+    // Convert tasks to chart format
     const chartData = validTasks.map((task) => {
       const startDate = new Date(task.startDate!)
-      const endDate = new Date(task.endDate!)
+      let endDate = new Date(task.endDate!)
+
+      // Extend end date if task has scope increase
+      const scopeInfo = taskScopeInfo.get(task.id)
+      if (scopeInfo?.hasScopeIncrease) {
+        endDate = new Date(endDate)
+        endDate.setDate(endDate.getDate() + Math.ceil(scopeInfo.scopeIncreaseDays))
+      }
 
       // Determine color based on status
       let color = '#B3B3BA' // Default gray for Todo
@@ -254,53 +253,15 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         itemStyle: {
           color: color,
         },
+        scopeInfo: scopeInfo, // Pass scope info to renderItem
       }
     })
 
-    // Convert projected tasks to chart format
-    const projectedChartData = projectedTasks.map((task) => {
-      const startDate = new Date(task.startDate!)
-      const endDate = new Date(task.endDate!)
-
-      // Use same color as plan but with reduced opacity
-      let color = '#B3B3BA'
-      if (task.status === 'Done') {
-        color = '#10b981'
-      } else if (task.status === 'In Progress') {
-        color = '#f59e0b'
-      }
-      if (task.color) {
-        color = task.color
-      }
-
-      return {
-        name: task.title + ' (Projected)',
-        value: [
-          startDate.getTime(),
-          endDate.getTime(),
-          0,
-        ],
-        itemStyle: {
-          color: color,
-          opacity: 0.4,
-          borderColor: color,
-          borderWidth: 2,
-          borderType: 'dashed',
-        },
-      }
-    })
-
-    // Calculate project bounds including projected tasks
-    const allDates = [
-      ...validTasks.flatMap(t => [
-        new Date(t.startDate!).getTime(),
-        new Date(t.endDate!).getTime()
-      ]),
-      ...projectedTasks.flatMap(t => [
-        new Date(t.startDate!).getTime(),
-        new Date(t.endDate!).getTime()
-      ])
-    ]
+    // Calculate project bounds
+    const allDates = validTasks.flatMap(t => [
+      new Date(t.startDate!).getTime(),
+      new Date(t.endDate!).getTime()
+    ])
     const minDate = new Date(Math.min(...allDates))
     const maxDate = new Date(Math.max(...allDates))
 
@@ -442,20 +403,33 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
             const task = validTasks[params.dataIndex]
             const color = dataItem?.itemStyle?.color || '#B3B3BA'
             const progress = task.progress / 100
+            const scopeInfo = dataItem?.scopeInfo
 
             const totalWidth = end[0] - start[0]
             const completedWidth = totalWidth * progress
 
+            // Calculate width of scope increase portion if it exists
+            let baseWidth = totalWidth
+            let scopeIncreaseWidth = 0
+
+            if (scopeInfo?.hasScopeIncrease) {
+              // Calculate original end date
+              const originalEndDate = new Date(task.endDate!)
+              const originalEndCoord = api.coord([originalEndDate.getTime(), categoryIndex])
+              baseWidth = originalEndCoord[0] - start[0]
+              scopeIncreaseWidth = totalWidth - baseWidth
+            }
+
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const children: any[] = [
-              // Background bar (remaining work) with reduced opacity
+              // Background bar (remaining work) with reduced opacity - base portion
               {
                 type: 'rect',
                 shape: {
                   x: start[0],
                   y: start[1] - height / 2,
-                  width: totalWidth,
+                  width: baseWidth,
                   height: height,
                 },
                 style: {
@@ -478,6 +452,41 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
               },
             ]
+
+            // Add scope increase section if it exists
+            if (scopeInfo?.hasScopeIncrease && scopeIncreaseWidth > 0) {
+              children.push(
+                // Scope increase background with striped pattern
+                {
+                  type: 'rect',
+                  shape: {
+                    x: start[0] + baseWidth,
+                    y: start[1] - height / 2,
+                    width: scopeIncreaseWidth,
+                    height: height,
+                  },
+                  style: {
+                    fill: color,
+                    opacity: 0.15,
+                  },
+                },
+                // Red border around scope increase
+                {
+                  type: 'rect',
+                  shape: {
+                    x: start[0] + baseWidth,
+                    y: start[1] - height / 2,
+                    width: scopeIncreaseWidth,
+                    height: height,
+                  },
+                  style: {
+                    fill: 'transparent',
+                    stroke: '#ef4444',
+                    lineWidth: 2,
+                  },
+                }
+              )
+            }
 
             // Add progress text only if progress > 0 and < 100
             if (progress > 0 && progress < 1) {
@@ -628,57 +637,6 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               })
             })(),
           },
-        },
-        // Second series: Projected tasks based on today's remaining estimates
-        {
-          type: 'custom',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          renderItem: (params: any, api: any) => {
-            // Find the corresponding task index in validTasks
-            const projectedTask = projectedTasks[params.dataIndex]
-            const taskIndex = validTasks.findIndex(t => t.id === projectedTask.id)
-
-            const categoryIndex = taskIndex // Use same Y position as the plan task
-            const start = api.coord([api.value(0), categoryIndex])
-            const end = api.coord([api.value(1), categoryIndex])
-            const height = api.size([0, 1])[1] * 0.4 // Slightly smaller height
-
-            const dataItem = projectedChartData[params.dataIndex]
-            const color = dataItem?.itemStyle?.borderColor || '#B3B3BA'
-
-            const totalWidth = end[0] - start[0]
-
-            // Create dashed border rectangle for projection
-            return {
-              type: 'rect',
-              shape: {
-                x: start[0],
-                y: start[1] - height / 2,
-                width: totalWidth,
-                height: height,
-              },
-              style: {
-                fill: color,
-                opacity: 0.2,
-                stroke: color,
-                lineWidth: 2,
-                lineDash: [5, 5],
-              },
-            }
-          },
-          encode: {
-            x: [0, 1],
-            y: 2,
-          },
-          data: projectedChartData.map((item, index) => {
-            // Find the corresponding task index in validTasks
-            const projectedTask = projectedTasks[index]
-            const taskIndex = validTasks.findIndex(t => t.id === projectedTask.id)
-            return {
-              ...item,
-              value: [item.value[0], item.value[1], taskIndex],
-            }
-          }),
         },
       ],
     }

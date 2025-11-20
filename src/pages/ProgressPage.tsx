@@ -154,6 +154,9 @@ const ProgressPage = () => {
     // Reload progress snapshots to ensure we have the latest data
     loadProgressSnapshots()
 
+    // Clear the lastInitKey to allow useEffect to reinitialize with new data
+    lastInitKey.current = ''
+
     // Clear changed tasks after saving
     setChangedTasks(new Set())
 
