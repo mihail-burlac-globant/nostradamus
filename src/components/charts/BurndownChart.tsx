@@ -623,8 +623,8 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       },
       legend: {
         data: [
-          'Theoretical Projection',
-          'Reality Projection',
+          'Past Projection',
+          'Current Projection',
         ],
         top: 50,
         textStyle: {
@@ -736,9 +736,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           z: 10, // Higher z-index to appear on top
           connectNulls: false, // Don't connect gaps in data
         },
-        // Theoretical projection line (planned velocity from today forward)
+        // Past projection line (based on original plan/theoretical calculation)
         {
-          name: 'Theoretical Projection',
+          name: 'Past Projection',
           type: 'line' as const,
           data: theoreticalProjectionSeries,
           lineStyle: {
@@ -754,13 +754,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           z: 8,
           connectNulls: false,
         },
-        // Reality projection line (based on today's manual estimates from Progress page)
+        // Current projection line (based on today's manual estimates from Progress page)
         {
-          name: 'Reality Projection',
+          name: 'Current Projection',
           type: 'line' as const,
           data: projectedFromActualSeries,
           lineStyle: {
-            color: '#f59e0b', // Orange for reality projection
+            color: '#f59e0b', // Orange for current projection
             width: 3,
             type: 'dashed',
           },
