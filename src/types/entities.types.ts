@@ -85,3 +85,27 @@ export interface Milestone {
   createdAt: string
   updatedAt: string
 }
+
+export interface ProgressSnapshot {
+  id: string
+  taskId: string
+  projectId: string
+  date: string // ISO date string (YYYY-MM-DD) for the snapshot date
+  remainingEstimate: number // Person-days remaining at this point in time
+  status: TaskStatus // Task status at this point in time
+  progress: number // Task progress percentage at this point in time (0-100)
+  notes?: string // Optional notes about progress or blockers
+  createdAt: string
+  updatedAt: string
+}
+
+// Velocity metrics for tracking actual progress
+export interface VelocityMetrics {
+  averageVelocity: number // Average person-days completed per day
+  plannedVelocity: number // Expected velocity based on resource allocation
+  velocityTrend: 'improving' | 'stable' | 'declining'
+  completionDateOptimistic: Date // Based on planned velocity
+  completionDateRealistic: Date // Based on actual velocity
+  daysAnalyzed: number // Number of days used for velocity calculation
+  confidenceLevel: 'high' | 'medium' | 'low' // Based on data points available
+}
