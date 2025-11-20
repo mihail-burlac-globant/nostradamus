@@ -424,17 +424,17 @@ const ResourcesPage = () => {
       {/* Create/Edit Modal */}
       {(showCreateModal || editingResource) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-navy-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-navy-800 rounded-xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
             <div className="p-6 border-b border-navy-100 dark:border-navy-700">
               <h2 className="text-xl font-semibold text-navy-900 dark:text-white">
                 {editingResource ? 'Edit Resource Type' : 'Add New Resource Type'}
               </h2>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6">
               {/* Error Message */}
               {errorMessage && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                   <div className="flex items-start gap-3">
                     <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -444,118 +444,125 @@ const ResourcesPage = () => {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
-                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  placeholder="e.g., PHP, TypeScript, ReactJS, iOS"
-                />
-              </div>
+              {/* Form Grid - 2 columns on larger screens */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                               bg-white dark:bg-navy-900 text-navy-900 dark:text-white
+                               focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      placeholder="e.g., PHP, TypeScript, ReactJS, iOS"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
-                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  placeholder="Describe this resource type"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={2}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                               bg-white dark:bg-navy-900 text-navy-900 dark:text-white
+                               focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      placeholder="Describe this resource type"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Icon <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-10 gap-2 max-h-48 overflow-y-auto p-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900">
-                  {RESOURCE_ICONS.map((icon) => {
-                    const IconComponent = icon.component
-                    const isSelected = formData.icon === icon.id
-                    return (
-                      <button
-                        key={icon.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, icon: icon.id })}
-                        className={`p-3 rounded-lg border-2 transition-all hover:scale-110 ${
-                          isSelected
-                            ? 'border-salmon-600 dark:border-salmon-400 bg-salmon-50 dark:bg-salmon-900/20'
-                            : 'border-navy-200 dark:border-navy-700 hover:border-salmon-300 dark:hover:border-salmon-600'
-                        }`}
-                        title={icon.name}
-                      >
-                        <IconComponent className={`w-6 h-6 ${
-                          isSelected
-                            ? 'text-salmon-600 dark:text-salmon-400'
-                            : 'text-navy-600 dark:text-navy-400'
-                        }`} />
-                      </button>
-                    )
-                  })}
+                  <div>
+                    <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                      Default Velocity (Focus Factor %) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={formData.defaultVelocity}
+                        onChange={(e) => setFormData({ ...formData, defaultVelocity: parseInt(e.target.value) })}
+                        className="flex-1"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.defaultVelocity}
+                        onChange={(e) => setFormData({ ...formData, defaultVelocity: parseInt(e.target.value) || 0 })}
+                        className="w-20 px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                                 bg-white dark:bg-navy-900 text-navy-900 dark:text-white text-center
+                                 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                      />
+                      <span className="text-sm text-navy-600 dark:text-navy-400">%</span>
+                    </div>
+                    <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                      Typical velocity for this resource type (0-100%)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                      Status
+                    </label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Archived' })}
+                      className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                               bg-white dark:bg-navy-900 text-navy-900 dark:text-white
+                               focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Archived">Archived</option>
+                    </select>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
-                  Select an icon that represents this resource type
-                </p>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Default Velocity (Focus Factor %) <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formData.defaultVelocity}
-                    onChange={(e) => setFormData({ ...formData, defaultVelocity: parseInt(e.target.value) })}
-                    className="flex-1"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={formData.defaultVelocity}
-                    onChange={(e) => setFormData({ ...formData, defaultVelocity: parseInt(e.target.value) || 0 })}
-                    className="w-20 px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                             bg-white dark:bg-navy-900 text-navy-900 dark:text-white text-center
-                             focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  />
-                  <span className="text-sm text-navy-600 dark:text-navy-400">%</span>
+                {/* Right Column - Icon Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                    Icon <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900">
+                    {RESOURCE_ICONS.map((icon) => {
+                      const IconComponent = icon.component
+                      const isSelected = formData.icon === icon.id
+                      return (
+                        <button
+                          key={icon.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, icon: icon.id })}
+                          className={`p-2.5 rounded-lg border-2 transition-all hover:scale-110 ${
+                            isSelected
+                              ? 'border-salmon-600 dark:border-salmon-400 bg-salmon-50 dark:bg-salmon-900/20'
+                              : 'border-navy-200 dark:border-navy-700 hover:border-salmon-300 dark:hover:border-salmon-600'
+                          }`}
+                          title={icon.name}
+                        >
+                          <IconComponent className={`w-5 h-5 ${
+                            isSelected
+                              ? 'text-salmon-600 dark:text-salmon-400'
+                              : 'text-navy-600 dark:text-navy-400'
+                          }`} />
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                    Select an icon that represents this resource type
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
-                  Typical velocity for this resource type (0-100%)
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Archived' })}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
-                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Archived">Archived</option>
-                </select>
               </div>
             </div>
 
-            <div className="p-6 border-t border-navy-100 dark:border-navy-700 flex justify-end gap-3">
+            <div className="px-6 pb-6 pt-0 border-t border-navy-100 dark:border-navy-700 flex justify-end gap-3">
               <button
                 onClick={closeModal}
                 className="px-6 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
