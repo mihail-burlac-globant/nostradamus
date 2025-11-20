@@ -121,7 +121,7 @@ const ProgressPage = () => {
   const totalRemaining = Object.values(estimates).reduce((sum, val) => sum + val, 0)
 
   return (
-    <div className="min-h-screen bg-navy-50 dark:bg-navy-950 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-gray-950 dark:to-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

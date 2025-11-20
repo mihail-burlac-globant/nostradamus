@@ -3,6 +3,7 @@ import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
 import { format } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
+import { addWatermarkToChart } from '../../utils/chartWatermark'
 
 interface GanttChartProps {
   projectId: string
@@ -478,7 +479,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
     }
   }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources])
 
-  const handleExportPNG = () => {
+  const handleExportPNG = async () => {
     if (chartInstance.current) {
       const url = chartInstance.current.getDataURL({
         type: 'png',
@@ -486,9 +487,12 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         backgroundColor: '#fff'
       })
 
+      // Add watermark to the chart
+      const watermarkedUrl = await addWatermarkToChart(url)
+
       const link = document.createElement('a')
       link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '-')}-gantt-chart.png`
-      link.href = url
+      link.href = watermarkedUrl
       link.click()
     }
   }

@@ -9,6 +9,7 @@ import {
   calculateVelocityMetrics,
   getHistoricalData,
 } from '../../utils/velocityCalculations'
+import { addWatermarkToChart } from '../../utils/chartWatermark'
 
 interface BurndownChartProps {
   projectId: string
@@ -729,7 +730,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     }
   }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies, progressSnapshots])
 
-  const handleExportPNG = () => {
+  const handleExportPNG = async () => {
     if (chartInstance.current) {
       const url = chartInstance.current.getDataURL({
         type: 'png',
@@ -737,9 +738,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         backgroundColor: '#fff'
       })
 
+      // Add watermark to the chart
+      const watermarkedUrl = await addWatermarkToChart(url)
+
       const link = document.createElement('a')
       link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '-')}-burndown-chart.png`
-      link.href = url
+      link.href = watermarkedUrl
       link.click()
     }
   }
