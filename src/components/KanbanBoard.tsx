@@ -139,17 +139,20 @@ const KanbanBoard = ({
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {task.resources.slice(0, 3).map((resource) => (
-                            <div
-                              key={resource.id}
-                              className="flex items-center gap-1 bg-white dark:bg-navy-800 px-2 py-1 rounded text-xs"
-                            >
-                              <span className="text-base">{getIconById(resource.iconId)}</span>
-                              <span className="text-navy-700 dark:text-navy-300 truncate max-w-[80px]">
-                                {resource.title}
-                              </span>
-                            </div>
-                          ))}
+                          {task.resources.slice(0, 3).map((resource) => {
+                            const ResourceIcon = getIconById(resource.icon || 'generic')
+                            return (
+                              <div
+                                key={resource.id}
+                                className="flex items-center gap-1 bg-white dark:bg-navy-800 px-2 py-1 rounded text-xs"
+                              >
+                                <ResourceIcon className="w-4 h-4 text-navy-600 dark:text-navy-400" />
+                                <span className="text-navy-700 dark:text-navy-300 truncate max-w-[80px]">
+                                  {resource.title}
+                                </span>
+                              </div>
+                            )
+                          })}
                           {task.resources.length > 3 && (
                             <div className="flex items-center justify-center bg-navy-200 dark:bg-navy-700 px-2 py-1 rounded text-xs text-navy-600 dark:text-navy-400">
                               +{task.resources.length - 3}
