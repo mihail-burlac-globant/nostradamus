@@ -78,12 +78,13 @@ const TasksPage = () => {
     startDate: '',
     endDate: '',
     dependencies: [] as string[],
-    resources: [] as { resourceId: string; estimatedDays: number; focusFactor: number }[],
+    resources: [] as { resourceId: string; estimatedDays: number; focusFactor: number; numberOfProfiles: number }[],
   })
   const [resourceFormData, setResourceFormData] = useState({
     resourceId: '',
     estimatedDays: 1,
     focusFactor: 80,
+    numberOfProfiles: 1,
   })
   const [milestoneFormData, setMilestoneFormData] = useState({
     title: '',
@@ -169,7 +170,7 @@ const TasksPage = () => {
     // Add resources if any were selected
     if (formData.resources.length > 0 && newTask) {
       formData.resources.forEach((res) => {
-        assignResourceToTask(newTask.id, res.resourceId, res.estimatedDays, res.focusFactor)
+        assignResourceToTask(newTask.id, res.resourceId, res.estimatedDays, res.focusFactor, res.numberOfProfiles)
       })
     }
 
@@ -215,7 +216,7 @@ const TasksPage = () => {
       if (currentResourceIds.includes(res.resourceId)) {
         removeResourceFromTask(currentTask.id, res.resourceId)
       }
-      assignResourceToTask(currentTask.id, res.resourceId, res.estimatedDays, res.focusFactor)
+      assignResourceToTask(currentTask.id, res.resourceId, res.estimatedDays, res.focusFactor, res.numberOfProfiles)
     })
 
     // Update dependencies - remove old ones and add new ones
@@ -315,7 +316,7 @@ const TasksPage = () => {
       resourceFormData.focusFactor
     )
     loadTasks()
-    setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+    setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80, numberOfProfiles: 1 })
     setShowResourceModal(false)
   }
 
@@ -394,6 +395,7 @@ const TasksPage = () => {
         resourceId: r.id,
         estimatedDays: r.estimatedDays,
         focusFactor: r.focusFactor,
+        numberOfProfiles: r.numberOfProfiles || 1,
       })),
     })
     setActiveModalTab('basic')
@@ -407,7 +409,7 @@ const TasksPage = () => {
 
   const openResourceModal = (task: Task) => {
     setCurrentTask(task)
-    setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+    setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80, numberOfProfiles: 1 })
     setShowResourceModal(true)
   }
 
@@ -1224,7 +1226,7 @@ const TasksPage = () => {
                                   {resource?.title || 'Unknown Resource'}
                                 </span>
                                 <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
-                                  {res.estimatedDays}d @ {res.focusFactor}%
+                                  {res.numberOfProfiles}x {res.estimatedDays}d @ {res.focusFactor}%
                                 </span>
                               </div>
                               <button
@@ -1258,7 +1260,8 @@ const TasksPage = () => {
                               setResourceFormData({
                                 ...resourceFormData,
                                 resourceId: selectedResourceId,
-                                focusFactor: projectResource?.focusFactor || 80
+                                focusFactor: projectResource?.focusFactor || 80,
+                                numberOfProfiles: 1
                               })
                             }}
                             className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
@@ -1273,7 +1276,26 @@ const TasksPage = () => {
                               ))}
                           </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                              Profiles: {resourceFormData.numberOfProfiles}
+                            </label>
+                            <select
+                              value={resourceFormData.numberOfProfiles}
+                              onChange={(e) => setResourceFormData({ ...resourceFormData, numberOfProfiles: parseInt(e.target.value) })}
+                              className="w-full px-2 py-1 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
+                            >
+                              {resourceFormData.resourceId && (() => {
+                                const projectResource = getProjectResources(formData.projectId).find(r => r.id === resourceFormData.resourceId)
+                                const maxProfiles = projectResource?.numberOfResources || 1
+                                return Array.from({ length: maxProfiles }, (_, i) => i + 1).map(num => (
+                                  <option key={num} value={num}>{num}</option>
+                                ))
+                              })()}
+                              {!resourceFormData.resourceId && <option value="1">1</option>}
+                            </select>
+                          </div>
                           <div>
                             <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
                               Days: {resourceFormData.estimatedDays}
@@ -1311,7 +1333,7 @@ const TasksPage = () => {
                                 ...formData,
                                 resources: [...formData.resources, { ...resourceFormData }]
                               })
-                              setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+                              setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80, numberOfProfiles: 1 })
                             }
                           }}
                           disabled={!resourceFormData.resourceId}
@@ -1640,7 +1662,7 @@ const TasksPage = () => {
                                   {resource?.title || 'Unknown Resource'}
                                 </span>
                                 <span className="text-sm text-navy-600 dark:text-navy-400 ml-2">
-                                  {res.estimatedDays}d @ {res.focusFactor}%
+                                  {res.numberOfProfiles}x {res.estimatedDays}d @ {res.focusFactor}%
                                 </span>
                               </div>
                               <button
@@ -1674,7 +1696,8 @@ const TasksPage = () => {
                               setResourceFormData({
                                 ...resourceFormData,
                                 resourceId: selectedResourceId,
-                                focusFactor: projectResource?.focusFactor || 80
+                                focusFactor: projectResource?.focusFactor || 80,
+                                numberOfProfiles: 1
                               })
                             }}
                             className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
@@ -1689,7 +1712,26 @@ const TasksPage = () => {
                               ))}
                           </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
+                              Profiles: {resourceFormData.numberOfProfiles}
+                            </label>
+                            <select
+                              value={resourceFormData.numberOfProfiles}
+                              onChange={(e) => setResourceFormData({ ...resourceFormData, numberOfProfiles: parseInt(e.target.value) })}
+                              className="w-full px-2 py-1 border border-navy-200 dark:border-navy-700 rounded bg-white dark:bg-navy-900 text-navy-800 dark:text-navy-100 text-sm"
+                            >
+                              {resourceFormData.resourceId && (() => {
+                                const projectResource = getProjectResources(formData.projectId).find(r => r.id === resourceFormData.resourceId)
+                                const maxProfiles = projectResource?.numberOfResources || 1
+                                return Array.from({ length: maxProfiles }, (_, i) => i + 1).map(num => (
+                                  <option key={num} value={num}>{num}</option>
+                                ))
+                              })()}
+                              {!resourceFormData.resourceId && <option value="1">1</option>}
+                            </select>
+                          </div>
                           <div>
                             <label className="block text-navy-700 dark:text-navy-300 mb-1 text-sm">
                               Days: {resourceFormData.estimatedDays}
@@ -1727,7 +1769,7 @@ const TasksPage = () => {
                                 ...formData,
                                 resources: [...formData.resources, { ...resourceFormData }]
                               })
-                              setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80 })
+                              setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80, numberOfProfiles: 1 })
                             }
                           }}
                           disabled={!resourceFormData.resourceId}
