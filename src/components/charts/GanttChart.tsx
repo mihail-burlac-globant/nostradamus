@@ -16,7 +16,7 @@ interface GanttChartProps {
 const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, milestones = [] }: GanttChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
-  const { getTaskResources, getTaskDependencies, getProjectResources } = useEntitiesStore()
+  const { getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots } = useEntitiesStore()
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -120,10 +120,48 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       chartInstance.current = echarts.init(chartRef.current)
     }
 
+    // Calculate scope increases for each task
+    const taskScopeInfo = new Map<string, { hasScopeIncrease: boolean; scopeIncreaseDays: number }>()
+
+    validTasks.forEach(task => {
+      // Get latest snapshot for this task
+      const taskSnapshots = progressSnapshots
+        .filter(s => s.taskId === task.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+      if (taskSnapshots.length > 0) {
+        const latestSnapshot = taskSnapshots[0]
+
+        // Calculate theoretical remaining based on snapshot's progress
+        const resources = getTaskResources(task.id)
+        const totalEffort = resources.reduce((sum, resource) => {
+          return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+        }, 0)
+        const theoreticalRemaining = totalEffort * (1 - latestSnapshot.progress / 100)
+
+        // Scope increase = manual remaining - theoretical remaining
+        const scopeIncrease = latestSnapshot.remainingEstimate - theoreticalRemaining
+
+        if (scopeIncrease > 0) {
+          taskScopeInfo.set(task.id, {
+            hasScopeIncrease: true,
+            scopeIncreaseDays: scopeIncrease
+          })
+        }
+      }
+    })
+
     // Convert tasks to chart format
     const chartData = validTasks.map((task) => {
       const startDate = new Date(task.startDate!)
-      const endDate = new Date(task.endDate!)
+      let endDate = new Date(task.endDate!)
+
+      // Extend end date if task has scope increase
+      const scopeInfo = taskScopeInfo.get(task.id)
+      if (scopeInfo?.hasScopeIncrease) {
+        endDate = new Date(endDate)
+        endDate.setDate(endDate.getDate() + Math.ceil(scopeInfo.scopeIncreaseDays))
+      }
 
       // Determine color based on status
       let color = '#B3B3BA' // Default gray for Todo
@@ -148,6 +186,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         itemStyle: {
           color: color,
         },
+        scopeInfo: scopeInfo, // Pass scope info to renderItem
       }
     })
 
@@ -272,20 +311,33 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
             const task = validTasks[params.dataIndex]
             const color = dataItem?.itemStyle?.color || '#B3B3BA'
             const progress = task.progress / 100
+            const scopeInfo = dataItem?.scopeInfo
 
             const totalWidth = end[0] - start[0]
             const completedWidth = totalWidth * progress
 
+            // Calculate width of scope increase portion if it exists
+            let baseWidth = totalWidth
+            let scopeIncreaseWidth = 0
+
+            if (scopeInfo?.hasScopeIncrease) {
+              // Calculate original end date
+              const originalEndDate = new Date(task.endDate!)
+              const originalEndCoord = api.coord([originalEndDate.getTime(), categoryIndex])
+              baseWidth = originalEndCoord[0] - start[0]
+              scopeIncreaseWidth = totalWidth - baseWidth
+            }
+
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const children: any[] = [
-              // Background bar (remaining work) with reduced opacity
+              // Background bar (remaining work) with reduced opacity - base portion
               {
                 type: 'rect',
                 shape: {
                   x: start[0],
                   y: start[1] - height / 2,
-                  width: totalWidth,
+                  width: baseWidth,
                   height: height,
                 },
                 style: {
@@ -308,6 +360,41 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
               },
             ]
+
+            // Add scope increase section if it exists
+            if (scopeInfo?.hasScopeIncrease && scopeIncreaseWidth > 0) {
+              children.push(
+                // Scope increase background with striped pattern
+                {
+                  type: 'rect',
+                  shape: {
+                    x: start[0] + baseWidth,
+                    y: start[1] - height / 2,
+                    width: scopeIncreaseWidth,
+                    height: height,
+                  },
+                  style: {
+                    fill: color,
+                    opacity: 0.15,
+                  },
+                },
+                // Red border around scope increase
+                {
+                  type: 'rect',
+                  shape: {
+                    x: start[0] + baseWidth,
+                    y: start[1] - height / 2,
+                    width: scopeIncreaseWidth,
+                    height: height,
+                  },
+                  style: {
+                    fill: 'transparent',
+                    stroke: '#ef4444',
+                    lineWidth: 2,
+                  },
+                }
+              )
+            }
 
             // Add progress text only if progress > 0 and < 100
             if (progress > 0 && progress < 1) {
@@ -477,7 +564,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         chartInstance.current = null
       }
     }
-  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources])
+  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots])
 
   const handleExportPNG = async () => {
     if (chartInstance.current) {
