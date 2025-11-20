@@ -342,16 +342,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       ? calculateVelocityMetrics(projectSnapshots, totalCurrentRemaining, plannedVelocity)
       : null
 
-    // Generate ideal projection (from today forward using planned velocity)
-    const idealProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
-      if (index < todayIndex) return null // No projection for past
-      if (index === todayIndex) return totalCurrentRemaining // Start from current remaining
-
-      const daysFromToday = index - todayIndex
-      const projected = Math.max(0, totalCurrentRemaining - (plannedVelocity * daysFromToday))
-      return projected
-    })
-
     // Generate realistic projection (from today forward using actual velocity)
     const realisticProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
       if (index < todayIndex) return null // No projection for past
@@ -441,9 +431,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       },
       legend: {
         data: [
-          ...taskRemainingByDay.map(t => t.task.title),
+          // Only show task names if we have velocity data
+          ...(velocityMetrics ? taskRemainingByDay.map(t => t.task.title) : []),
           'Actual Progress',
-          'Ideal Projection',
           'Realistic Projection',
         ],
         top: 50,
@@ -536,24 +526,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           smooth: false,
           z: 10, // Higher z-index to appear on top
           connectNulls: false, // Don't connect gaps in data
-        },
-        // Ideal projection line (planned velocity from today forward)
-        {
-          name: 'Ideal Projection',
-          type: 'line' as const,
-          data: idealProjectionSeries,
-          lineStyle: {
-            color: '#10b981', // Green
-            width: 2,
-            type: 'dashed',
-          },
-          itemStyle: {
-            color: '#10b981',
-          },
-          symbol: 'none',
-          smooth: true,
-          z: 9,
-          connectNulls: false,
         },
         // Realistic projection line (actual velocity from today forward)
         {
