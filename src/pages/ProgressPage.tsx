@@ -324,9 +324,9 @@ const ProgressPage = () => {
                   style={{ borderLeftColor: task.color || '#6366f1' }}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
-                    {/* Task Info */}
-                    <div className="md:col-span-7">
-                      <div className="flex items-center gap-2 mb-1">
+                    {/* Task Info - 8 columns (67%) */}
+                    <div className="md:col-span-8">
+                      <div className="flex items-center gap-1.5 mb-1">
                         <div
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: task.color || '#6366f1' }}
@@ -334,7 +334,7 @@ const ProgressPage = () => {
                         <h3 className="font-semibold text-sm text-navy-800 dark:text-navy-100 line-clamp-1 flex-1">
                           {task.title}
                         </h3>
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] flex-shrink-0 ${
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] flex-shrink-0 ml-1 ${
                           task.status === 'In Progress'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
@@ -360,7 +360,7 @@ const ProgressPage = () => {
                       </div>
                     </div>
 
-                    {/* Remaining Estimate Input */}
+                    {/* Remaining Estimate Input - 2 columns (17%) */}
                     <div className="md:col-span-2 text-right">
                       <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1 text-right">
                         Remaining
@@ -396,23 +396,23 @@ const ProgressPage = () => {
                       )}
                     </div>
 
-                    {/* Progress Percentage Input */}
-                    <div className="md:col-span-2 text-right">
-                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1 text-right">
-                        Progress
+                    {/* Progress Percentage Input - 1 column (8%) */}
+                    <div className="md:col-span-1 text-center">
+                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                        %
                       </label>
-                      <div className="flex justify-end">
+                      <div className="flex justify-center">
                         <input
                           type="number"
                           value={progressValues[task.id] || 0}
                           onChange={(e) => handleProgressChange(task.id, e.target.value)}
                           min="0"
                           max="100"
-                          className="w-16 px-1 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
+                          className="w-14 px-1 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
                         />
                       </div>
-                      <div className="mt-0.5 text-[10px] text-right text-navy-400 dark:text-navy-500">
-                        Calc: {calculatedProgress.toFixed(0)}%
+                      <div className="mt-0.5 text-[10px] text-center text-navy-400 dark:text-navy-500">
+                        {calculatedProgress.toFixed(0)}
                       </div>
                     </div>
 

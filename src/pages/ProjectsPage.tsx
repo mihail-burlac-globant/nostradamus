@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Project, Resource, Configuration } from '../types/entities.types'
-import { downloadProjectExport, uploadAndImportProject } from '../utils/projectImportExport'
+import { downloadProjectExport, parseImportFile, importProject, type ProjectExport, type ImportProgress } from '../utils/projectImportExport'
 
 const ProjectsPage = () => {
   const {
@@ -32,6 +32,11 @@ const ProjectsPage = () => {
   const [importError, setImportError] = useState<string>('')
   const [importSuccess, setImportSuccess] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showImportDialog, setShowImportDialog] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState<ProjectExport | null>(null)
+  const [importProjectName, setImportProjectName] = useState<string>('')
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -136,18 +141,61 @@ const ProjectsPage = () => {
     setImportSuccess('')
 
     try {
-      await uploadAndImportProject(file)
-      setImportSuccess('Project imported successfully!')
-      loadProjects()
-      setTimeout(() => setImportSuccess(''), 3000)
+      // Parse and validate the file
+      const data = await parseImportFile(file)
+
+      // Show import dialog with project info
+      setPendingImportData(data)
+      setImportProjectName(data.project.title)
+      setShowImportDialog(true)
     } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'Failed to import project')
+      setImportError(error instanceof Error ? error.message : 'Failed to parse import file')
     }
 
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+  }
+
+  const handleExecuteImport = () => {
+    if (!pendingImportData) return
+
+    setIsImporting(true)
+    setImportProgress(null)
+
+    try {
+      importProject(
+        pendingImportData,
+        importProjectName,
+        (progress) => {
+          setImportProgress(progress)
+        }
+      )
+
+      setImportSuccess(`Project "${importProjectName}" imported successfully!`)
+      loadProjects()
+      setShowImportDialog(false)
+      setPendingImportData(null)
+      setImportProjectName('')
+      setImportProgress(null)
+      setTimeout(() => setImportSuccess(''), 5000)
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Failed to import project')
+      setShowImportDialog(false)
+      setPendingImportData(null)
+      setImportProjectName('')
+      setImportProgress(null)
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  const handleCancelImport = () => {
+    setShowImportDialog(false)
+    setPendingImportData(null)
+    setImportProjectName('')
+    setImportProgress(null)
   }
 
   const openEditModal = (project: Project) => {
@@ -775,6 +823,123 @@ const ProjectsPage = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Project Dialog */}
+      {showImportDialog && pendingImportData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-navy-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-navy-100 dark:border-navy-700">
+              <h2 className="text-xl font-semibold text-navy-900 dark:text-white">
+                Import Project
+              </h2>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Project Info */}
+              <div className="bg-navy-50 dark:bg-navy-900/30 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-navy-700 dark:text-navy-300 mb-3">
+                  Project Contents
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span className="text-navy-600 dark:text-navy-400">
+                      {pendingImportData.tasks.length} task{pendingImportData.tasks.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span className="text-navy-600 dark:text-navy-400">
+                      {pendingImportData.projectResources.length} resource{pendingImportData.projectResources.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                    </svg>
+                    <span className="text-navy-600 dark:text-navy-400">
+                      {pendingImportData.milestones.length} milestone{pendingImportData.milestones.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span className="text-navy-600 dark:text-navy-400">
+                      {pendingImportData.progressSnapshots.length} snapshot{pendingImportData.progressSnapshots.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project Name Input */}
+              <div>
+                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  value={importProjectName}
+                  onChange={(e) => setImportProjectName(e.target.value)}
+                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
+                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                  placeholder="Enter project name"
+                  disabled={isImporting}
+                />
+                <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                  You can customize the project name or keep the original
+                </p>
+              </div>
+
+              {/* Import Progress */}
+              {importProgress && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      {importProgress.stage}
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="mt-2 text-xs text-blue-700 dark:text-blue-300">
+                    Step {importProgress.current} of {importProgress.total}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-navy-100 dark:border-navy-700 flex justify-end gap-3">
+              <button
+                onClick={handleCancelImport}
+                disabled={isImporting}
+                className="px-6 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
+                         hover:bg-navy-100 dark:hover:bg-navy-700 rounded-lg transition-colors
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExecuteImport}
+                disabled={isImporting || !importProjectName.trim()}
+                className="px-6 py-2 text-sm font-medium text-white bg-salmon-600 hover:bg-salmon-700
+                         rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isImporting ? 'Importing...' : 'Import Project'}
+              </button>
             </div>
           </div>
         </div>
