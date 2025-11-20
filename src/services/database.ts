@@ -1,11 +1,11 @@
 import initSqlJs, { Database } from 'sql.js'
-import type { Project, Resource, Configuration, Task, Milestone } from '../types/entities.types'
+import type { Project, Resource, Configuration, Task, Milestone, ProgressSnapshot } from '../types/entities.types'
 
 let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
 const DB_VERSION_KEY = 'nostradamus_db_version'
-const CURRENT_DB_VERSION = 9 // Incremented for milestone icon and color fields
+const CURRENT_DB_VERSION = 10 // Incremented for progress_snapshots table
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -138,6 +138,22 @@ const createTables = (database: Database) => {
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS progress_snapshots (
+      id TEXT PRIMARY KEY,
+      taskId TEXT NOT NULL,
+      projectId TEXT NOT NULL,
+      date TEXT NOT NULL,
+      remainingEstimate REAL NOT NULL CHECK(remainingEstimate >= 0),
+      status TEXT NOT NULL CHECK(status IN ('Todo', 'In Progress', 'Done')),
+      progress INTEGER NOT NULL CHECK(progress >= 0 AND progress <= 100),
+      notes TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      UNIQUE(taskId, date)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
     CREATE INDEX IF NOT EXISTS idx_resources_status ON resources(status);
     CREATE INDEX IF NOT EXISTS idx_project_resources_project ON project_resources(projectId);
@@ -148,6 +164,9 @@ const createTables = (database: Database) => {
     CREATE INDEX IF NOT EXISTS idx_task_dependencies_task ON task_dependencies(taskId);
     CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends ON task_dependencies(dependsOnTaskId);
     CREATE INDEX IF NOT EXISTS idx_milestones_project ON milestones(projectId);
+    CREATE INDEX IF NOT EXISTS idx_progress_snapshots_task ON progress_snapshots(taskId);
+    CREATE INDEX IF NOT EXISTS idx_progress_snapshots_project ON progress_snapshots(projectId);
+    CREATE INDEX IF NOT EXISTS idx_progress_snapshots_date ON progress_snapshots(date);
   `)
 
   saveDatabase(database)
@@ -989,5 +1008,181 @@ export const updateMilestone = (id: string, updates: Partial<Omit<Milestone, 'id
 export const deleteMilestone = (id: string): void => {
   const database = getDatabase()
   database.run('DELETE FROM milestones WHERE id = ?', [id])
+  saveDatabase(database)
+}
+
+// ProgressSnapshot CRUD operations
+export const createProgressSnapshot = (snapshot: Omit<ProgressSnapshot, 'id' | 'createdAt' | 'updatedAt'>): ProgressSnapshot => {
+  const database = getDatabase()
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+
+  // Check if a snapshot already exists for this task and date
+  const existing = getProgressSnapshotByTaskAndDate(snapshot.taskId, snapshot.date)
+  if (existing) {
+    // Update instead of create
+    return updateProgressSnapshot(existing.id, {
+      remainingEstimate: snapshot.remainingEstimate,
+      status: snapshot.status,
+      progress: snapshot.progress,
+      notes: snapshot.notes,
+    })!
+  }
+
+  database.run(
+    `INSERT INTO progress_snapshots (id, taskId, projectId, date, remainingEstimate, status, progress, notes, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, snapshot.taskId, snapshot.projectId, snapshot.date, snapshot.remainingEstimate, snapshot.status, snapshot.progress, snapshot.notes || null, now, now]
+  )
+
+  saveDatabase(database)
+
+  return {
+    id,
+    ...snapshot,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export const getProgressSnapshots = (filters?: { taskId?: string; projectId?: string; startDate?: string; endDate?: string }): ProgressSnapshot[] => {
+  const database = getDatabase()
+  let query = 'SELECT * FROM progress_snapshots WHERE 1=1'
+  const params: string[] = []
+
+  if (filters?.taskId) {
+    query += ' AND taskId = ?'
+    params.push(filters.taskId)
+  }
+  if (filters?.projectId) {
+    query += ' AND projectId = ?'
+    params.push(filters.projectId)
+  }
+  if (filters?.startDate) {
+    query += ' AND date >= ?'
+    params.push(filters.startDate)
+  }
+  if (filters?.endDate) {
+    query += ' AND date <= ?'
+    params.push(filters.endDate)
+  }
+
+  query += ' ORDER BY date DESC, createdAt DESC'
+
+  const stmt = database.prepare(query)
+  const results: ProgressSnapshot[] = []
+
+  if (params.length > 0) {
+    stmt.bind(params)
+  }
+
+  while (stmt.step()) {
+    const row = stmt.getAsObject()
+    results.push(row as unknown as ProgressSnapshot)
+  }
+
+  stmt.free()
+  return results
+}
+
+export const getProgressSnapshotById = (id: string): ProgressSnapshot | null => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM progress_snapshots WHERE id = ?')
+  stmt.bind([id])
+
+  let result: ProgressSnapshot | null = null
+
+  if (stmt.step()) {
+    const row = stmt.getAsObject()
+    result = row as unknown as ProgressSnapshot
+  }
+
+  stmt.free()
+  return result
+}
+
+export const getProgressSnapshotByTaskAndDate = (taskId: string, date: string): ProgressSnapshot | null => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM progress_snapshots WHERE taskId = ? AND date = ?')
+  stmt.bind([taskId, date])
+
+  let result: ProgressSnapshot | null = null
+
+  if (stmt.step()) {
+    const row = stmt.getAsObject()
+    result = row as unknown as ProgressSnapshot
+  }
+
+  stmt.free()
+  return result
+}
+
+export const getLatestProgressSnapshotForTask = (taskId: string): ProgressSnapshot | null => {
+  const database = getDatabase()
+  const stmt = database.prepare('SELECT * FROM progress_snapshots WHERE taskId = ? ORDER BY date DESC, createdAt DESC LIMIT 1')
+  stmt.bind([taskId])
+
+  let result: ProgressSnapshot | null = null
+
+  if (stmt.step()) {
+    const row = stmt.getAsObject()
+    result = row as unknown as ProgressSnapshot
+  }
+
+  stmt.free()
+  return result
+}
+
+export const updateProgressSnapshot = (id: string, updates: Partial<Omit<ProgressSnapshot, 'id' | 'taskId' | 'projectId' | 'date' | 'createdAt' | 'updatedAt'>>): ProgressSnapshot | null => {
+  const database = getDatabase()
+  const now = new Date().toISOString()
+
+  const fields: string[] = []
+  const values: (string | number)[] = []
+
+  if (updates.remainingEstimate !== undefined) {
+    fields.push('remainingEstimate = ?')
+    values.push(updates.remainingEstimate)
+  }
+  if (updates.status !== undefined) {
+    fields.push('status = ?')
+    values.push(updates.status)
+  }
+  if (updates.progress !== undefined) {
+    fields.push('progress = ?')
+    values.push(updates.progress)
+  }
+  if (updates.notes !== undefined) {
+    fields.push('notes = ?')
+    values.push(updates.notes || '')
+  }
+
+  if (fields.length === 0) {
+    return getProgressSnapshotById(id)
+  }
+
+  fields.push('updatedAt = ?')
+  values.push(now)
+  values.push(id)
+
+  database.run(
+    `UPDATE progress_snapshots SET ${fields.join(', ')} WHERE id = ?`,
+    values
+  )
+
+  saveDatabase(database)
+
+  return getProgressSnapshotById(id)
+}
+
+export const deleteProgressSnapshot = (id: string): void => {
+  const database = getDatabase()
+  database.run('DELETE FROM progress_snapshots WHERE id = ?', [id])
+  saveDatabase(database)
+}
+
+export const deleteProgressSnapshotsForTask = (taskId: string): void => {
+  const database = getDatabase()
+  database.run('DELETE FROM progress_snapshots WHERE taskId = ?', [taskId])
   saveDatabase(database)
 }
