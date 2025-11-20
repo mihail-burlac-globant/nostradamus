@@ -281,9 +281,9 @@ const ProgressPage = () => {
                   className="bg-white dark:bg-navy-800 rounded-lg shadow-sm p-3 border-l-4 hover:shadow-md transition-shadow"
                   style={{ borderLeftColor: task.color || '#6366f1' }}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                     {/* Task Info */}
-                    <div className="md:col-span-3">
+                    <div className="md:col-span-4">
                       <div className="flex items-center gap-2 mb-0.5">
                         <div
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -310,9 +310,9 @@ const ProgressPage = () => {
                     {/* Remaining Estimate Input */}
                     <div className="md:col-span-2">
                       <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
-                        Remaining
+                        Rem.
                       </label>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5">
                         <button
                           onClick={() => handleQuickAdjust(task.id, -0.5)}
                           className="px-1.5 py-1 bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors text-sm"
@@ -339,9 +339,9 @@ const ProgressPage = () => {
                     </div>
 
                     {/* Progress Percentage Input */}
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-1">
                       <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
-                        Progress
+                        %
                       </label>
                       <div>
                         <input
@@ -350,10 +350,10 @@ const ProgressPage = () => {
                           onChange={(e) => handleProgressChange(task.id, e.target.value)}
                           min="0"
                           max="100"
-                          className="w-full px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
+                          className="w-full px-1 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-sm font-semibold"
                         />
                         <div className="mt-0.5 text-[10px] text-center text-navy-400 dark:text-navy-500">
-                          Calc: {calculatedProgress.toFixed(1)}%
+                          {calculatedProgress.toFixed(0)}
                         </div>
                       </div>
                     </div>
