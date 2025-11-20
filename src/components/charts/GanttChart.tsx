@@ -90,64 +90,28 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         earliestStart = skipToNextWeekday(earliestStart)
       }
 
-      // Check if there's a recent progress snapshot with updated remaining estimate
-      const taskSnapshots = progressSnapshots
-        .filter(s => s.taskId === task.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-      const latestSnapshot = taskSnapshots.length > 0 ? taskSnapshots[0] : null
-
-      // If we have a snapshot with progress > 0, task is in progress
-      // Use the latest snapshot date or "today" as the continuation point
-      if (latestSnapshot && latestSnapshot.progress > 0 && latestSnapshot.remainingEstimate > 0) {
-        // Task is in progress, continue from the snapshot date
-        const snapshotDate = new Date(latestSnapshot.date)
-        const today = new Date()
-
-        // Use the more recent of snapshot date or today
-        const continueFrom = snapshotDate > today ? snapshotDate : today
-        earliestStart = skipToNextWeekday(continueFrom)
-      }
-
-      // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
+      // Always use original estimates for Gantt chart (plan, not reality)
+      // Reality projections are shown in the burndown chart instead
       const resources = getTaskResources(task.id)
       const projectResources = getProjectResources(projectId)
 
       // For each resource type, calculate how long it takes considering team size
       const resourceDurations: number[] = []
 
-      if (latestSnapshot && latestSnapshot.remainingEstimate > 0) {
-        // Use the latest remaining estimate from progress snapshot
-        const remainingEstimate = latestSnapshot.remainingEstimate
+      resources.forEach(taskResource => {
+        // Person-days of work needed
+        const workDays = taskResource.estimatedDays
 
-        // Calculate duration based on remaining work distributed across all resources
-        const totalEffort = resources.reduce((sum, resource) => {
-          const numberOfProfiles = resource.numberOfProfiles || 1
-          const projectResource = projectResources.find(pr => pr.id === resource.id)
-          const focusFactor = (resource.focusFactor || projectResource?.focusFactor || 100) / 100
-          return sum + (numberOfProfiles * focusFactor)
-        }, 0)
+        // Number of profiles assigned to work on this task (from task resource, not project max)
+        const numberOfProfiles = taskResource.numberOfProfiles || 1
+        // Priority: task-specific focus factor, or fallback to project resource focus factor
+        const projectResource = projectResources.find(pr => pr.id === taskResource.id)
+        const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
 
-        // Remaining estimate distributed across available capacity
-        const duration = totalEffort > 0 ? remainingEstimate / totalEffort : remainingEstimate
+        // Duration = workDays / (numberOfProfiles * focusFactor)
+        const duration = workDays / (numberOfProfiles * focusFactor)
         resourceDurations.push(duration)
-      } else {
-        // Use original estimates from task resources
-        resources.forEach(taskResource => {
-          // Person-days of work needed
-          const workDays = taskResource.estimatedDays
-
-          // Number of profiles assigned to work on this task (from task resource, not project max)
-          const numberOfProfiles = taskResource.numberOfProfiles || 1
-          // Priority: task-specific focus factor, or fallback to project resource focus factor
-          const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-          const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
-
-          // Duration = workDays / (numberOfProfiles * focusFactor)
-          const duration = workDays / (numberOfProfiles * focusFactor)
-          resourceDurations.push(duration)
-        })
-      }
+      })
 
       // Task duration is the longest duration among all resource types (they work in parallel)
       const durationDays = resourceDurations.length > 0
