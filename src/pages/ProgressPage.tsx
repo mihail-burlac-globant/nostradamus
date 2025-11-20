@@ -146,9 +146,9 @@ const ProgressPage = () => {
 
         {/* Controls */}
         <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Date Selector */}
-            <div>
+          <div className="flex flex-wrap gap-4 items-end">
+            {/* Date Selector - Narrower */}
+            <div className="w-48">
               <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                 Date
               </label>
@@ -157,19 +157,19 @@ const ProgressPage = () => {
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 max={format(new Date(), 'yyyy-MM-dd')}
-                className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+                className="w-full h-10 px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
               />
             </div>
 
-            {/* Project Filter */}
-            <div>
+            {/* Project Filter - Wider */}
+            <div className="flex-1 min-w-64">
               <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                 Project
               </label>
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
-                className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+                className="w-full h-10 px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
               >
                 <option value="all">All Projects</option>
                 {activeProjects.map(project => (
@@ -181,12 +181,12 @@ const ProgressPage = () => {
             </div>
 
             {/* Summary */}
-            <div className="flex items-end">
-              <div className="bg-salmon-50 dark:bg-salmon-900/20 rounded-lg p-4 w-full">
-                <div className="text-sm text-salmon-700 dark:text-salmon-400 mb-1">
+            <div className="w-48">
+              <div className="bg-salmon-50 dark:bg-salmon-900/20 rounded-lg p-4 h-10 flex items-center justify-between">
+                <div className="text-xs text-salmon-700 dark:text-salmon-400">
                   Total Remaining
                 </div>
-                <div className="text-2xl font-bold text-salmon-800 dark:text-salmon-300">
+                <div className="text-lg font-bold text-salmon-800 dark:text-salmon-300">
                   {totalRemaining.toFixed(1)} days
                 </div>
               </div>
@@ -215,7 +215,7 @@ const ProgressPage = () => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                     {/* Task Info */}
-                    <div className="md:col-span-4">
+                    <div className="md:col-span-3">
                       <div className="flex items-center gap-2 mb-1">
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
@@ -240,7 +240,7 @@ const ProgressPage = () => {
                     </div>
 
                     {/* Remaining Estimate Input */}
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-3">
                       <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                         Remaining (days)
                       </label>
