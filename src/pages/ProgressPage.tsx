@@ -29,6 +29,8 @@ const ProgressPage = () => {
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [changedTasks, setChangedTasks] = useState<Set<string>>(new Set())
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [showNotesModal, setShowNotesModal] = useState(false)
+  const [currentTaskForNotes, setCurrentTaskForNotes] = useState<string | null>(null)
   const lastInitKey = useRef<string>('')
 
   useEffect(() => {
@@ -165,6 +167,16 @@ const ProgressPage = () => {
       [taskId]: Math.max(0, (prev[taskId] || 0) + delta)
     }))
     setChangedTasks(prev => new Set(prev).add(taskId))
+  }
+
+  const handleOpenNotesModal = (taskId: string) => {
+    setCurrentTaskForNotes(taskId)
+    setShowNotesModal(true)
+  }
+
+  const handleCloseNotesModal = () => {
+    setShowNotesModal(false)
+    setCurrentTaskForNotes(null)
   }
 
   // Calculate total remaining work
@@ -313,7 +325,7 @@ const ProgressPage = () => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                     {/* Task Info */}
-                    <div className="md:col-span-4">
+                    <div className="md:col-span-6">
                       <div className="flex items-center gap-2 mb-0.5">
                         <div
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -393,18 +405,22 @@ const ProgressPage = () => {
                       </div>
                     </div>
 
-                    {/* Notes */}
-                    <div className="md:col-span-5">
-                      <label className="block text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        type="text"
-                        value={notes[task.id] || ''}
-                        onChange={(e) => handleNotesChange(task.id, e.target.value)}
-                        placeholder="Blockers, progress..."
-                        className="w-full px-2 py-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-sm"
-                      />
+                    {/* Notes Icon */}
+                    <div className="md:col-span-1 flex justify-center">
+                      <button
+                        onClick={() => handleOpenNotesModal(task.id)}
+                        className="p-2 text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200 hover:bg-navy-100 dark:hover:bg-navy-700 rounded transition-colors"
+                        title={notes[task.id] ? "Edit notes" : "Add notes"}
+                      >
+                        <svg
+                          className={`w-5 h-5 ${notes[task.id] ? 'text-blue-600 dark:text-blue-400' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -429,6 +445,50 @@ const ProgressPage = () => {
             >
               {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? '✓ Saved!' : 'Save Progress Update'}
             </button>
+          </div>
+        )}
+
+        {/* Notes Modal */}
+        {showNotesModal && currentTaskForNotes && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-navy-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-navy-800 dark:text-navy-100">
+                  Task Notes
+                </h3>
+                <button
+                  onClick={handleCloseNotesModal}
+                  className="text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="mb-4">
+                <p className="text-sm text-navy-600 dark:text-navy-400 mb-2">
+                  {tasks.find(t => t.id === currentTaskForNotes)?.title}
+                </p>
+                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  value={notes[currentTaskForNotes] || ''}
+                  onChange={(e) => handleNotesChange(currentTaskForNotes, e.target.value)}
+                  placeholder="Add notes about blockers, progress, issues, or any relevant information..."
+                  rows={6}
+                  className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-lg bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-salmon-500 resize-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleCloseNotesModal}
+                  className="px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
