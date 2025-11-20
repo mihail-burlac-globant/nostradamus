@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, isWeekend, addDays, getWeek, differenceInDays, getYear } from 'date-fns'
+import { format, isWeekend, addDays, getWeek, getYear } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { addWatermarkToChart } from '../../utils/chartWatermark'
 
@@ -13,10 +13,13 @@ interface GanttChartProps {
   milestones?: Milestone[]
 }
 
+type TimeView = 'day' | 'week' | 'month'
+
 const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, milestones = [] }: GanttChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const { getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots } = useEntitiesStore()
+  const [timeView, setTimeView] = useState<TimeView>('day')
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -225,9 +228,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
     const minDate = new Date(Math.min(...allDates))
     const maxDate = new Date(Math.max(...allDates))
 
-    // Determine if we should show week numbers based on time span
-    const daySpan = differenceInDays(maxDate, minDate)
-    const useWeekNumbers = daySpan > 60 // Show week numbers if more than 60 days
+    // Use the selected time view instead of automatic detection
 
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
@@ -298,14 +299,21 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         axisLabel: {
           formatter: (value: number) => {
             const date = new Date(value)
-            if (useWeekNumbers) {
+
+            if (timeView === 'month') {
+              // Month view: show month and year
+              return format(date, 'MMM yyyy')
+            } else if (timeView === 'week') {
+              // Week view: show week number
               const weekNum = getWeek(date, { weekStartsOn: 1 }) // ISO week (Monday start)
               const year = getYear(date)
               // Show year if we cross year boundaries
               const showYear = getYear(minDate) !== getYear(maxDate)
               return showYear ? `W${weekNum} '${year.toString().slice(-2)}` : `W${weekNum}`
+            } else {
+              // Day view: show month and day
+              return format(date, 'MMM dd')
             }
-            return format(date, 'MMM dd')
           },
           color: textColor,
           rotate: 45,
@@ -607,7 +615,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         chartInstance.current = null
       }
     }
-  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots])
+  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots, timeView])
 
   const handleExportPNG = async () => {
     if (chartInstance.current) {
@@ -629,20 +637,60 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
 
   return (
     <div className="w-full relative">
-      <button
-        onClick={handleExportPNG}
-        className="absolute top-2 right-2 z-10 p-2 bg-white dark:bg-navy-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-navy-200 dark:border-navy-600 group"
-        title="Export as PNG"
-      >
-        <svg
-          className="w-5 h-5 text-navy-600 dark:text-navy-300 group-hover:text-salmon-600 dark:group-hover:text-salmon-500 transition-colors"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+        {/* Time View Selector */}
+        <div className="flex bg-white dark:bg-navy-700 rounded-lg shadow-md border border-navy-200 dark:border-navy-600 overflow-hidden">
+          <button
+            onClick={() => setTimeView('day')}
+            className={`px-3 py-2 text-xs font-medium transition-colors ${
+              timeView === 'day'
+                ? 'bg-salmon-600 text-white'
+                : 'text-navy-600 dark:text-navy-300 hover:bg-navy-50 dark:hover:bg-navy-600'
+            }`}
+            title="Day view"
+          >
+            Day
+          </button>
+          <button
+            onClick={() => setTimeView('week')}
+            className={`px-3 py-2 text-xs font-medium transition-colors border-l border-navy-200 dark:border-navy-600 ${
+              timeView === 'week'
+                ? 'bg-salmon-600 text-white'
+                : 'text-navy-600 dark:text-navy-300 hover:bg-navy-50 dark:hover:bg-navy-600'
+            }`}
+            title="Week view"
+          >
+            Week
+          </button>
+          <button
+            onClick={() => setTimeView('month')}
+            className={`px-3 py-2 text-xs font-medium transition-colors border-l border-navy-200 dark:border-navy-600 ${
+              timeView === 'month'
+                ? 'bg-salmon-600 text-white'
+                : 'text-navy-600 dark:text-navy-300 hover:bg-navy-50 dark:hover:bg-navy-600'
+            }`}
+            title="Month view"
+          >
+            Month
+          </button>
+        </div>
+
+        {/* Export Button */}
+        <button
+          onClick={handleExportPNG}
+          className="p-2 bg-white dark:bg-navy-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-navy-200 dark:border-navy-600 group"
+          title="Export as PNG"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-      </button>
+          <svg
+            className="w-5 h-5 text-navy-600 dark:text-navy-300 group-hover:text-salmon-600 dark:group-hover:text-salmon-500 transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </button>
+      </div>
       <div ref={chartRef} style={{ width: '100%', height: '500px' }} />
     </div>
   )
