@@ -13,6 +13,8 @@ const ProgressPage = () => {
     progressSnapshots,
     loadProgressSnapshots,
     addProgressSnapshot,
+    initialize,
+    isInitialized,
   } = useEntitiesStore()
 
   // Load filter selections from localStorage or use defaults
@@ -35,10 +37,14 @@ const ProgressPage = () => {
   const lastInitKey = useRef<string>('')
 
   useEffect(() => {
-    loadProjects()
-    loadTasks()
-    loadProgressSnapshots()
-  }, [loadProjects, loadTasks, loadProgressSnapshots])
+    if (!isInitialized) {
+      initialize()
+    } else {
+      loadProjects()
+      loadTasks()
+      loadProgressSnapshots()
+    }
+  }, [isInitialized, initialize, loadProjects, loadTasks, loadProgressSnapshots])
 
   // Persist filter selections to localStorage
   useEffect(() => {
