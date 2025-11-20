@@ -66,6 +66,7 @@ export interface TaskResource {
   resourceId: string
   estimatedDays: number // Man-days estimate
   focusFactor: number // Task-specific focus factor (0-100)
+  numberOfProfiles: number // How many profiles of this resource type work on this task (1 to project max)
   assignedAt: string
 }
 

@@ -92,9 +92,9 @@ interface EntitiesState {
   assignConfigurationToProject: (projectId: string, configurationId: string) => void
   removeConfigurationFromProject: (projectId: string, configurationId: string) => void
   getProjectConfigurations: (projectId: string) => Configuration[]
-  assignResourceToTask: (taskId: string, resourceId: string, estimatedDays: number, focusFactor?: number) => void
+  assignResourceToTask: (taskId: string, resourceId: string, estimatedDays: number, focusFactor?: number, numberOfProfiles?: number) => void
   removeResourceFromTask: (taskId: string, resourceId: string) => void
-  getTaskResources: (taskId: string) => (Resource & { estimatedDays: number; focusFactor: number })[]
+  getTaskResources: (taskId: string) => (Resource & { estimatedDays: number; focusFactor: number; numberOfProfiles: number })[]
 
   // Task dependency actions
   addTaskDependency: (taskId: string, dependsOnTaskId: string) => void

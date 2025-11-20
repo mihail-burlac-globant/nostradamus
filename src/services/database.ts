@@ -5,7 +5,7 @@ let db: Database | null = null
 
 const DB_KEY = 'nostradamus_db'
 const DB_VERSION_KEY = 'nostradamus_db_version'
-const CURRENT_DB_VERSION = 10 // Incremented for progress_snapshots table
+const CURRENT_DB_VERSION = 11 // Incremented for task_resources.numberOfProfiles column
 
 export const initDatabase = async (): Promise<Database> => {
   if (db) return db
@@ -110,6 +110,7 @@ const createTables = (database: Database) => {
       resourceId TEXT NOT NULL,
       estimatedDays REAL NOT NULL CHECK(estimatedDays > 0),
       focusFactor REAL NOT NULL DEFAULT 80 CHECK(focusFactor >= 0 AND focusFactor <= 100),
+      numberOfProfiles INTEGER NOT NULL DEFAULT 1 CHECK(numberOfProfiles > 0),
       assignedAt TEXT NOT NULL,
       PRIMARY KEY (taskId, resourceId),
       FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE,
@@ -749,14 +750,15 @@ export const assignResourceToTask = (
   taskId: string,
   resourceId: string,
   estimatedDays: number,
-  focusFactor: number = 80
+  focusFactor: number = 80,
+  numberOfProfiles: number = 1
 ): void => {
   const database = getDatabase()
   const now = new Date().toISOString()
 
   database.run(
-    'INSERT OR REPLACE INTO task_resources (taskId, resourceId, estimatedDays, focusFactor, assignedAt) VALUES (?, ?, ?, ?, ?)',
-    [taskId, resourceId, estimatedDays, focusFactor, now]
+    'INSERT OR REPLACE INTO task_resources (taskId, resourceId, estimatedDays, focusFactor, numberOfProfiles, assignedAt) VALUES (?, ?, ?, ?, ?, ?)',
+    [taskId, resourceId, estimatedDays, focusFactor, numberOfProfiles, now]
   )
 
   saveDatabase(database)
@@ -768,10 +770,10 @@ export const removeResourceFromTask = (taskId: string, resourceId: string): void
   saveDatabase(database)
 }
 
-export const getTaskResources = (taskId: string): (Resource & { estimatedDays: number; focusFactor: number })[] => {
+export const getTaskResources = (taskId: string): (Resource & { estimatedDays: number; focusFactor: number; numberOfProfiles: number })[] => {
   const database = getDatabase()
   const stmt = database.prepare(`
-    SELECT r.*, tr.estimatedDays, tr.focusFactor
+    SELECT r.*, tr.estimatedDays, tr.focusFactor, tr.numberOfProfiles
     FROM resources r
     INNER JOIN task_resources tr ON r.id = tr.resourceId
     WHERE tr.taskId = ?
@@ -779,11 +781,11 @@ export const getTaskResources = (taskId: string): (Resource & { estimatedDays: n
   `)
   stmt.bind([taskId])
 
-  const results: (Resource & { estimatedDays: number; focusFactor: number })[] = []
+  const results: (Resource & { estimatedDays: number; focusFactor: number; numberOfProfiles: number })[] = []
 
   while (stmt.step()) {
     const row = stmt.getAsObject()
-    results.push(row as unknown as Resource & { estimatedDays: number; focusFactor: number })
+    results.push(row as unknown as Resource & { estimatedDays: number; focusFactor: number; numberOfProfiles: number })
   }
 
   stmt.free()

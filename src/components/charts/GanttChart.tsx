@@ -98,10 +98,11 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         // Person-days of work needed
         const workDays = taskResource.estimatedDays
 
-        // Find how many people of this resource type are available in the project
+        // Number of profiles assigned to work on this task (from task resource, not project max)
+        const numberOfProfiles = taskResource.numberOfProfiles || 1
+        // Priority: task-specific focus factor, or fallback to project resource focus factor
         const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-        const numberOfProfiles = projectResource?.numberOfResources || 1
-        const focusFactor = (projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
+        const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
 
         // Duration = workDays / (numberOfProfiles * focusFactor)
         const duration = workDays / (numberOfProfiles * focusFactor)
