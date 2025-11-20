@@ -52,7 +52,8 @@ const JavaIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) =
 
 const PHPIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 15h-1l.5-3h-.75c-.69 0-1.25-.56-1.25-1.25v-.5c0-.69.56-1.25 1.25-1.25H11l.5-3h1l-.5 3h1.5l.5-3h1l-.5 3h.75c.69 0 1.25.56 1.25 1.25v.5c0 .69-.56 1.25-1.25 1.25H14l-.5 3h-1l.5-3h-1.5l-.5 3z" />
+    <ellipse cx="12" cy="12" rx="11" ry="6.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M4.5 10.5h1.8c.9 0 1.4.6 1.4 1.3 0 .8-.6 1.3-1.5 1.3H5.3l-.3 1.4H4l1-4zm.8 2h.5c.4 0 .7-.2.7-.6 0-.3-.2-.5-.6-.5h-.5l-.3 1.1zM9.5 10.5h1l-.4 1.8h.9c.6 0 .9-.3 1-.9l.3-1h1l-.3 1c-.2 1-.8 1.5-1.8 1.5h-.9l-.4 1.6h-1l1-4zM14.5 10.5h1.8c.9 0 1.4.6 1.4 1.3 0 .8-.6 1.3-1.5 1.3h-.9l-.3 1.4h-1l1-4zm.8 2h.5c.4 0 .7-.2.7-.6 0-.3-.2-.5-.6-.5h-.5l-.3 1.1z"/>
   </svg>
 )
 
@@ -89,14 +90,35 @@ const ServerIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" })
 )
 
 const DockerIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M13.98 11.08h2.12a.19.19 0 00.19-.19V9.01a.19.19 0 00-.19-.19h-2.12a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm-2.95-5.43h2.12a.19.19 0 00.19-.19V3.58a.19.19 0 00-.19-.19h-2.12a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm0 2.71h2.12a.19.19 0 00.19-.19V6.29a.19.19 0 00-.19-.19h-2.12a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm-2.93 0h2.12a.19.19 0 00.19-.19V6.29a.19.19 0 00-.19-.19H8.1a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm-2.96 0h2.12a.19.19 0 00.19-.19V6.29a.19.19 0 00-.19-.19H5.14a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm5.89 2.71h2.12a.19.19 0 00.19-.19V9.01a.19.19 0 00-.19-.19h-2.12a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm-2.93 0h2.12a.19.19 0 00.19-.19V9.01a.19.19 0 00-.19-.19H8.1a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm-2.96 0h2.12a.19.19 0 00.19-.19V9.01a.19.19 0 00-.19-.19H5.14a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zm-2.92 0h2.12a.19.19 0 00.19-.19V9.01a.19.19 0 00-.19-.19H2.22a.19.19 0 00-.19.19v1.88c0 .11.08.19.19.19zM21.54 7.5c-.52 0-.99.04-1.38.11-.61-1.57-2.03-2.19-3.21-2.19H2.4c-.66 0-1.19.53-1.19 1.19v6.5c0 1.41 1.15 2.56 2.56 2.56h7.88c1.34 0 2.47-.86 2.88-2.06.35-.78.96-1.37 1.75-1.71 1.12-.46 2.42-.63 3.77-.48.7.08 1.3.16 1.8.24h.01c.24.04.48.08.72.11.42.06.81-.2.88-.62.01-.06.01-.12.01-.18v-2.59c0-.53-.31-1.01-.78-1.22-.53-.24-1.24-.46-2.15-.66z" />
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5">
+    {/* Container blocks - 3 rows of boxes */}
+    <rect x="5" y="6" width="2.5" height="2" rx="0.3"/>
+    <rect x="8" y="6" width="2.5" height="2" rx="0.3"/>
+    <rect x="11" y="6" width="2.5" height="2" rx="0.3"/>
+
+    <rect x="8" y="3.5" width="2.5" height="2" rx="0.3"/>
+    <rect x="11" y="3.5" width="2.5" height="2" rx="0.3"/>
+
+    <rect x="11" y="8.5" width="2.5" height="2" rx="0.3"/>
+    <rect x="14" y="8.5" width="2.5" height="2" rx="0.3"/>
+
+    {/* Whale body - simplified whale shape */}
+    <path d="M2 13.5 C2 12, 4 11, 7 11 L17 11 C19 11, 21 11.5, 22 13 C22.5 14, 22 15, 20.5 15.5 C19.5 16, 18 16, 16 15.5 C14 15, 4 15, 2.5 14.5 C1.5 14.2, 1.5 14, 2 13.5 Z" strokeWidth="0"/>
+
+    {/* Whale tail */}
+    <path d="M20.5 15 Q21.5 16, 22 17 Q22.5 18, 21.5 18.5 Q20.5 19, 20 17.5 Z" strokeWidth="0"/>
+
+    {/* Whale eye */}
+    <circle cx="5" cy="13" r="0.6" fill="white" stroke="none"/>
   </svg>
 )
 
 const DotNetIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M3 3h6v2H5v4h4v2H5v4h4v2H3V3zm8 0h3l3 7.5L20 3h3l-5 11v3h-2v-3L11 3zm9 14v-2h3v2h-3zm-1 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
+    {/* Hexagon background */}
+    <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="miter"/>
+    {/* .NET text */}
+    <text x="12" y="14" fontSize="7" fontWeight="bold" textAnchor="middle" fill="currentColor" fontFamily="Arial, sans-serif">.NET</text>
   </svg>
 )
 
