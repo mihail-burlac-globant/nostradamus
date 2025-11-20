@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, isWeekend, addDays, getWeek, differenceInDays, getYear } from 'date-fns'
+import { format, isWeekend, addDays, getWeek, getYear } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { addWatermarkToChart } from '../../utils/chartWatermark'
+
+type TimeView = 'day' | 'week' | 'month'
 
 interface GanttChartProps {
   projectId: string
@@ -17,6 +19,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const { getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots } = useEntitiesStore()
+  const [timeView, setTimeView] = useState<TimeView>('day')
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -225,11 +228,6 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
     const minDate = new Date(Math.min(...allDates))
     const maxDate = new Date(Math.max(...allDates))
 
-    // Determine if we should show week numbers based on time span
-    // Only switch to weeks when there's really no space (very long projects)
-    const daySpan = differenceInDays(maxDate, minDate)
-    const useWeekNumbers = daySpan > 180 // Show week numbers only if more than 6 months (180 days)
-
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
@@ -299,14 +297,21 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         axisLabel: {
           formatter: (value: number) => {
             const date = new Date(value)
-            if (useWeekNumbers) {
+
+            if (timeView === 'month') {
+              // Month view: Show "MMM 'YY" format
+              return format(date, "MMM ''yy")
+            } else if (timeView === 'week') {
+              // Week view: Show week numbers
               const weekNum = getWeek(date, { weekStartsOn: 1 }) // ISO week (Monday start)
               const year = getYear(date)
               // Show year if we cross year boundaries
               const showYear = getYear(minDate) !== getYear(maxDate)
               return showYear ? `W${weekNum} '${year.toString().slice(-2)}` : `W${weekNum}`
+            } else {
+              // Day view: Show "MMM dd" format
+              return format(date, 'MMM dd')
             }
-            return format(date, 'MMM dd')
           },
           color: textColor,
           rotate: 45,
@@ -608,7 +613,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         chartInstance.current = null
       }
     }
-  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots])
+  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots, timeView])
 
   const handleExportPNG = async () => {
     if (chartInstance.current) {
@@ -630,6 +635,44 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
 
   return (
     <div className="w-full relative">
+      {/* Time View Selector */}
+      <div className="absolute top-2 left-2 z-10 flex gap-1 bg-white dark:bg-navy-700 rounded-lg shadow-md border border-navy-200 dark:border-navy-600 p-1">
+        <button
+          onClick={() => setTimeView('day')}
+          className={`px-3 py-1.5 text-sm font-medium rounded transition-all ${
+            timeView === 'day'
+              ? 'bg-salmon-600 text-white shadow-sm'
+              : 'text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-600'
+          }`}
+          title="Day view"
+        >
+          Day
+        </button>
+        <button
+          onClick={() => setTimeView('week')}
+          className={`px-3 py-1.5 text-sm font-medium rounded transition-all ${
+            timeView === 'week'
+              ? 'bg-salmon-600 text-white shadow-sm'
+              : 'text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-600'
+          }`}
+          title="Week view"
+        >
+          Week
+        </button>
+        <button
+          onClick={() => setTimeView('month')}
+          className={`px-3 py-1.5 text-sm font-medium rounded transition-all ${
+            timeView === 'month'
+              ? 'bg-salmon-600 text-white shadow-sm'
+              : 'text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-600'
+          }`}
+          title="Month view"
+        >
+          Month
+        </button>
+      </div>
+
+      {/* Export Button */}
       <button
         onClick={handleExportPNG}
         className="absolute top-2 right-2 z-10 p-2 bg-white dark:bg-navy-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-navy-200 dark:border-navy-600 group"
@@ -644,6 +687,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
       </button>
+
       <div ref={chartRef} style={{ width: '100%', height: '500px' }} />
     </div>
   )
