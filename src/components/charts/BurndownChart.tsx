@@ -754,7 +754,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         chartInstance.current = null
       }
     }
-  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies])
+  }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies, progressSnapshots])
 
   const handleExportPNG = () => {
     if (chartInstance.current) {

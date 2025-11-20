@@ -11,6 +11,7 @@ import {
   createProgressSnapshot,
   getTaskResources,
 } from '../services/database'
+import type { Task } from '../types/entities.types'
 
 // Helper function to add days to a date
 const addDays = (date: Date, days: number): string => {
@@ -426,7 +427,7 @@ export const seedDatabase = (): void => {
     let snapshotCount = 0
 
     // Helper to create snapshots for a task over the past 7 days
-    const createTaskSnapshots = (task: any, initialRemaining: number) => {
+    const createTaskSnapshots = (task: Task, initialRemaining: number) => {
       if (task.status === 'Todo') return // Skip Todo tasks
 
       const daysToTrack = task.status === 'Done' ? 7 : 5 // Track more days for completed tasks

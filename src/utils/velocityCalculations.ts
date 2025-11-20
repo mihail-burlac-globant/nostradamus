@@ -6,8 +6,7 @@ import type { ProgressSnapshot, VelocityMetrics } from '../types/entities.types'
  * Uses weighted average favoring recent data
  */
 export const calculateActualVelocity = (
-  snapshots: ProgressSnapshot[],
-  _windowDays: number = 21
+  snapshots: ProgressSnapshot[]
 ): { velocity: number; confidence: 'high' | 'medium' | 'low' } => {
   if (snapshots.length < 2) {
     return { velocity: 0, confidence: 'low' }
