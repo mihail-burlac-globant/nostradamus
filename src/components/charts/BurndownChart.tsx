@@ -81,7 +81,8 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         // Find how many people of this resource type are available in the project
         const projectResource = projectResources.find(pr => pr.id === taskResource.id)
         const numberOfProfiles = projectResource?.numberOfResources || 1
-        const focusFactor = (projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
+        // Priority: 1) Task assignment focus factor, 2) Project resource focus factor, 3) Default 100
+        const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
 
         // Duration = workDays / (numberOfProfiles * focusFactor)
         const duration = workDays / (numberOfProfiles * focusFactor)
