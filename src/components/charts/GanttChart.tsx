@@ -219,8 +219,10 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (params: any) {
           const task = validTasks[params.dataIndex]
-          const start = format(new Date(params.value[0]), 'MMM dd, yyyy')
-          const end = format(new Date(params.value[1]), 'MMM dd, yyyy')
+          const startDate = new Date(params.value[0])
+          const endDate = new Date(params.value[1])
+          const start = format(startDate, 'EEE, MMM dd, yyyy')
+          const end = format(endDate, 'EEE, MMM dd, yyyy')
           const duration = Math.ceil((params.value[1] - params.value[0]) / (1000 * 60 * 60 * 24))
 
           // Get resources for this task

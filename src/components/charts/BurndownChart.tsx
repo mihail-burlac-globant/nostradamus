@@ -478,9 +478,17 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (params: any) {
+          const dataIndex = params[0]?.dataIndex
           const date = params[0]?.axisValue || ''
+
+          // Get day of week from the actual date
+          let dayOfWeek = ''
+          if (dataIndex !== undefined && finalDays[dataIndex]) {
+            dayOfWeek = format(finalDays[dataIndex], 'EEE') // Mon, Tue, etc.
+          }
+
           let totalRemaining = 0
-          let result = `<div style="padding: 8px; min-width: 200px;"><div style="font-weight: 600; margin-bottom: 8px;">${date}</div>`
+          let result = `<div style="padding: 8px; min-width: 200px;"><div style="font-weight: 600; margin-bottom: 8px;">${dayOfWeek ? `${dayOfWeek}, ` : ''}${date}</div>`
 
           // Group tasks: base remaining + scope increase
           const taskData = new Map<string, { baseValue: number; scopeValue: number; color: string }>()
