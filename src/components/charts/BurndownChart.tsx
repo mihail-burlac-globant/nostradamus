@@ -482,23 +482,50 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           let totalRemaining = 0
           let result = `<div style="padding: 8px; min-width: 200px;"><div style="font-weight: 600; margin-bottom: 8px;">${date}</div>`
 
+          // Group tasks: base remaining + scope increase
+          const taskData = new Map<string, { baseValue: number; scopeValue: number; color: string }>()
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           params.forEach((param: any) => {
             const value = param.value
+            const name = param.seriesName
+            const color = param.color
+
             if (value > 0) {
               totalRemaining += value
-              const color = param.color
-              const name = param.seriesName
-              result += `
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 4px;">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-block; width: 12px; height: 12px; background-color: ${color};"></span>
-                    <span style="font-size: 12px; color: #374151;">${name}</span>
-                  </div>
-                  <span style="font-size: 12px; font-weight: 600; color: #1f2937;">${value.toFixed(1)}d</span>
-                </div>
-              `
+
+              // Check if this is a scope increase series (has " (Scope +)" suffix)
+              if (name.includes('(Scope +)')) {
+                const taskName = name.replace(' (Scope +)', '')
+                const existing = taskData.get(taskName) || { baseValue: 0, scopeValue: 0, color }
+                existing.scopeValue = value
+                taskData.set(taskName, existing)
+              } else {
+                // Base remaining series
+                const existing = taskData.get(name) || { baseValue: 0, scopeValue: 0, color }
+                existing.baseValue = value
+                existing.color = color
+                taskData.set(name, existing)
+              }
             }
+          })
+
+          // Render grouped task data
+          taskData.forEach((data, taskName) => {
+            const total = data.baseValue + data.scopeValue
+            const scopeIndicator = data.scopeValue > 0 ? ` (+${data.scopeValue.toFixed(1)})` : ''
+
+            result += `
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 4px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="display: inline-block; width: 12px; height: 12px; background-color: ${data.color};"></span>
+                  <span style="font-size: 12px; color: #374151;">${taskName}</span>
+                </div>
+                <span style="font-size: 12px; font-weight: 600; color: #1f2937;">
+                  ${total.toFixed(1)}d${data.scopeValue > 0 ? `<span style="color: #ef4444;">${scopeIndicator}</span>` : ''}
+                </span>
+              </div>
+            `
           })
 
           result += `
