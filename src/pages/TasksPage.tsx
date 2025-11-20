@@ -313,7 +313,8 @@ const TasksPage = () => {
       currentTask.id,
       resourceFormData.resourceId,
       resourceFormData.estimatedDays,
-      resourceFormData.focusFactor
+      resourceFormData.focusFactor,
+      resourceFormData.numberOfProfiles
     )
     loadTasks()
     setResourceFormData({ resourceId: '', estimatedDays: 1, focusFactor: 80, numberOfProfiles: 1 })

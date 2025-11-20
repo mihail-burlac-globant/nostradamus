@@ -272,7 +272,9 @@ export const seedDatabase = (): void => {
       }
 
       selectedResources.forEach(resource => {
-        assignResourceToTask(task.id, resource.id, randomInt(2, 5), resource.defaultVelocity)
+        // Randomly assign 1-2 profiles for each resource
+        const numberOfProfiles = randomInt(1, 3) // 1 or 2 profiles
+        assignResourceToTask(task.id, resource.id, randomInt(2, 5), resource.defaultVelocity, numberOfProfiles)
       })
 
       currentDay += taskDef.duration
@@ -315,7 +317,9 @@ export const seedDatabase = (): void => {
       }
 
       selectedResources.forEach(resource => {
-        assignResourceToTask(task.id, resource.id, randomInt(2, 5), resource.defaultVelocity)
+        // Randomly assign 1-2 profiles for each resource
+        const numberOfProfiles = randomInt(1, 3) // 1 or 2 profiles
+        assignResourceToTask(task.id, resource.id, randomInt(2, 5), resource.defaultVelocity, numberOfProfiles)
       })
 
       currentDay += taskDef.duration
