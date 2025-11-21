@@ -450,8 +450,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
             taskEndDate.setHours(0, 0, 0, 0)
             const isPast = taskEndDate < today
 
-            // Inverse opacity: past = 0.3, future = 1.0
-            const taskOpacity = isPast ? 0.3 : 1.0
+            // Inverse opacity: past = 1.0, future = 0.3
+            const taskOpacity = isPast ? 1.0 : 0.3
 
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
