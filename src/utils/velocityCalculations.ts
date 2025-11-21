@@ -204,11 +204,9 @@ export const getHistoricalData = (
     .forEach(snapshot => {
       const dateKey = format(new Date(snapshot.date), 'yyyy-MM-dd')
 
-      // If multiple snapshots on same day, use the latest (most recent update)
-      if (!historicalMap.has(dateKey) ||
-          snapshot.createdAt > (snapshots.find(s => format(new Date(s.date), 'yyyy-MM-dd') === dateKey)?.createdAt || '')) {
-        historicalMap.set(dateKey, snapshot.remainingEstimate)
-      }
+      // SUM all tasks' remaining estimates for each day
+      const currentTotal = historicalMap.get(dateKey) || 0
+      historicalMap.set(dateKey, currentTotal + snapshot.remainingEstimate)
     })
 
   return historicalMap
