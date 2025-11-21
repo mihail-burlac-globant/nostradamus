@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Task, Resource, TaskStatus, Milestone } from '../types/entities.types'
 import { exportToJSON, exportToCSV, exportToExcel } from '../utils/taskExporter'
 import KanbanBoard from '../components/KanbanBoard'
 import { getResourceIconEmoji } from '../utils/resourceIconEmojis'
 import TaskWizardDialog, { type TaskFormData } from '../components/TaskWizardDialog'
+import { format } from 'date-fns'
+import { getIconById } from '../utils/resourceIcons'
 
 interface TaskWithResources extends Task {
-  resources: (Resource & { estimatedDays: number; focusFactor: number })[]
+  resources: (Resource & { estimatedDays: number; focusFactor: number; numberOfProfiles: number })[]
 }
 
 const TasksPage = () => {
@@ -32,6 +34,10 @@ const TasksPage = () => {
     removeTaskDependency,
     getTaskDependencies,
     canTaskBeStarted,
+    progressSnapshots,
+    loadProgressSnapshots,
+    addProgressSnapshot,
+    removeProgressSnapshot,
     initialize,
     isInitialized,
   } = useEntitiesStore()
@@ -40,9 +46,9 @@ const TasksPage = () => {
     const saved = localStorage.getItem('nostradamus_tasks_project_filter')
     return saved || 'all'
   })
-  const [viewMode, setViewMode] = useState<'detailed' | 'compact' | 'cards'>(() => {
+  const [viewMode, setViewMode] = useState<'detailed' | 'compact' | 'cards' | 'progress'>(() => {
     const saved = localStorage.getItem('nostradamus_tasks_view_mode')
-    return (saved as 'detailed' | 'compact' | 'cards') || 'detailed'
+    return (saved as 'detailed' | 'compact' | 'cards' | 'progress') || 'detailed'
   })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -73,14 +79,32 @@ const TasksPage = () => {
   })
   const [dependencySearchTerm, setDependencySearchTerm] = useState('')
 
+  // Progress view state
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    return localStorage.getItem('nostradamus_tasks_progress_date') || format(new Date(), 'yyyy-MM-dd')
+  })
+  const [progressSearchTerm, setProgressSearchTerm] = useState<string>(() => {
+    return localStorage.getItem('nostradamus_tasks_progress_search') || ''
+  })
+  const [estimates, setEstimates] = useState<Record<string, number>>({})
+  const [progressValues, setProgressValues] = useState<Record<string, number>>({})
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const [focusFactorChanges, setFocusFactorChanges] = useState<Record<string, number>>({})
+  const [changedTasks, setChangedTasks] = useState<Set<string>>(new Set())
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [showNotesModal, setShowNotesModal] = useState(false)
+  const [currentTaskForNotes, setCurrentTaskForNotes] = useState<string | null>(null)
+  const lastInitKey = useRef<string>('')
+
   useEffect(() => {
     if (!isInitialized) {
       initialize()
     } else {
       loadProjects('Active')
       loadTasks()
+      loadProgressSnapshots()
     }
-  }, [isInitialized, initialize, loadProjects, loadTasks])
+  }, [isInitialized, initialize, loadProjects, loadTasks, loadProgressSnapshots])
 
   useEffect(() => {
     // Load resources for each task
@@ -112,6 +136,75 @@ const TasksPage = () => {
       loadMilestones(selectedProjectFilter)
     }
   }, [isInitialized, selectedProjectFilter, loadMilestones])
+
+  // Persist progress view selections
+  useEffect(() => {
+    localStorage.setItem('nostradamus_tasks_progress_date', selectedDate)
+  }, [selectedDate])
+
+  useEffect(() => {
+    localStorage.setItem('nostradamus_tasks_progress_search', progressSearchTerm)
+  }, [progressSearchTerm])
+
+  // Initialize estimates for progress view
+  useEffect(() => {
+    if (viewMode !== 'progress') return
+
+    const initKey = `${selectedDate}-${selectedProjectFilter}`
+
+    // Skip if we've already initialized for this date/project combo
+    if (lastInitKey.current === initKey) {
+      return
+    }
+
+    lastInitKey.current = initKey
+
+    const activeTasks = tasksWithResources.filter(t => {
+      const project = projects.find(p => p.id === t.projectId)
+      return project?.status === 'Active' && t.status !== 'Done'
+    })
+
+    const filtered = (selectedProjectFilter === 'all'
+      ? activeTasks
+      : activeTasks.filter(t => t.projectId === selectedProjectFilter)
+    ).filter(t => {
+      if (!progressSearchTerm) return true
+      const search = progressSearchTerm.toLowerCase()
+      return t.title.toLowerCase().includes(search) ||
+             (t.description && t.description.toLowerCase().includes(search))
+    })
+
+    const newEstimates: Record<string, number> = {}
+    const newProgress: Record<string, number> = {}
+    const newNotes: Record<string, string> = {}
+
+    filtered.forEach(task => {
+      // Check if snapshot exists for this task and date
+      const existingSnapshot = progressSnapshots.find(
+        s => s.taskId === task.id && s.date === selectedDate
+      )
+
+      if (existingSnapshot) {
+        newEstimates[task.id] = existingSnapshot.remainingEstimate
+        newProgress[task.id] = existingSnapshot.progress
+        newNotes[task.id] = existingSnapshot.notes || ''
+      } else {
+        // Calculate remaining estimate from resources
+        const totalEstimate = task.resources.reduce((sum, resource) => {
+          return sum + resource.estimatedDays
+        }, 0)
+        const remaining = totalEstimate * (1 - task.progress / 100)
+        newEstimates[task.id] = Math.max(0, Number(remaining.toFixed(2)))
+        newProgress[task.id] = task.progress
+        newNotes[task.id] = ''
+      }
+    })
+
+    setEstimates(newEstimates)
+    setProgressValues(newProgress)
+    setNotes(newNotes)
+    setChangedTasks(new Set())
+  }, [viewMode, selectedDate, selectedProjectFilter, progressSearchTerm, progressSnapshots, tasksWithResources, projects])
 
   const activeProjects = projects.filter((p) => p.status === 'Active')
 
@@ -408,6 +501,174 @@ const TasksPage = () => {
     }
   }
 
+  // Progress view handlers
+  const handleEstimateChange = (taskId: string, value: string) => {
+    const numValue = parseFloat(value) || 0
+    setEstimates(prev => ({ ...prev, [taskId]: Math.max(0, numValue) }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
+  }
+
+  const handleProgressChange = (taskId: string, value: string) => {
+    const numValue = parseInt(value) || 0
+    setProgressValues(prev => ({ ...prev, [taskId]: Math.min(100, Math.max(0, numValue)) }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
+  }
+
+  const handleNotesChange = (taskId: string, value: string) => {
+    setNotes(prev => ({ ...prev, [taskId]: value }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
+  }
+
+  const handleQuickAdjust = (taskId: string, delta: number) => {
+    setEstimates(prev => ({
+      ...prev,
+      [taskId]: Math.max(0, (prev[taskId] || 0) + delta)
+    }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
+  }
+
+  const handleFocusFactorChange = (taskId: string, resourceId: string, value: string) => {
+    const numValue = parseInt(value) || 0
+    const clampedValue = Math.min(100, Math.max(0, numValue))
+    const key = `${taskId}-${resourceId}`
+    setFocusFactorChanges(prev => ({ ...prev, [key]: clampedValue }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
+  }
+
+  const handleOpenNotesModal = (taskId: string) => {
+    setCurrentTaskForNotes(taskId)
+    setShowNotesModal(true)
+  }
+
+  const handleCloseNotesModal = () => {
+    setShowNotesModal(false)
+    setCurrentTaskForNotes(null)
+  }
+
+  const handleSaveProgress = async () => {
+    setSaveStatus('saving')
+
+    const activeTasks = tasksWithResources.filter(t => {
+      const project = projects.find(p => p.id === t.projectId)
+      return project?.status === 'Active' && t.status !== 'Done'
+    })
+
+    const filteredForSave = (selectedProjectFilter === 'all'
+      ? activeTasks
+      : activeTasks.filter(t => t.projectId === selectedProjectFilter)
+    ).filter(t => {
+      if (!progressSearchTerm) return true
+      const search = progressSearchTerm.toLowerCase()
+      return t.title.toLowerCase().includes(search) ||
+             (t.description && t.description.toLowerCase().includes(search))
+    })
+
+    // Create snapshots only for changed tasks
+    for (const task of filteredForSave) {
+      if (!changedTasks.has(task.id)) continue
+
+      const estimate = estimates[task.id]
+      const progress = progressValues[task.id]
+      if (estimate !== undefined && progress !== undefined) {
+        const clampedProgress = Math.min(100, Math.max(0, progress))
+
+        // Save to progress snapshot
+        addProgressSnapshot({
+          taskId: task.id,
+          projectId: task.projectId,
+          date: selectedDate,
+          remainingEstimate: estimate,
+          status: task.status,
+          progress: clampedProgress,
+          notes: notes[task.id] || undefined,
+        })
+
+        // Also update the task's base progress field
+        editTask(task.id, { progress: clampedProgress })
+      }
+
+      // Save focus factor changes for this task's resources
+      const resources = getTaskResources(task.id)
+      resources.forEach(resource => {
+        const key = `${task.id}-${resource.id}`
+        const newFocusFactor = focusFactorChanges[key]
+        if (newFocusFactor !== undefined) {
+          assignResourceToTask(
+            task.id,
+            resource.id,
+            resource.estimatedDays,
+            newFocusFactor,
+            resource.numberOfProfiles
+          )
+        }
+      })
+    }
+
+    loadProgressSnapshots()
+    loadTasks()
+    lastInitKey.current = ''
+    setChangedTasks(new Set())
+    setFocusFactorChanges({})
+
+    setSaveStatus('saved')
+    setTimeout(() => setSaveStatus('idle'), 2000)
+  }
+
+  const handleResetEstimates = () => {
+    if (!confirm('Are you sure you want to reset all remaining estimates to their original values? This will remove all manual updates for the selected date.')) {
+      return
+    }
+
+    const activeTasks = tasksWithResources.filter(t => {
+      const project = projects.find(p => p.id === t.projectId)
+      return project?.status === 'Active' && t.status !== 'Done'
+    })
+
+    const filtered = (selectedProjectFilter === 'all'
+      ? activeTasks
+      : activeTasks.filter(t => t.projectId === selectedProjectFilter)
+    ).filter(t => {
+      if (!progressSearchTerm) return true
+      const search = progressSearchTerm.toLowerCase()
+      return t.title.toLowerCase().includes(search) ||
+             (t.description && t.description.toLowerCase().includes(search))
+    })
+
+    // Remove all snapshots for the selected date and filtered tasks
+    filtered.forEach(task => {
+      const snapshot = progressSnapshots.find(
+        s => s.taskId === task.id && s.date === selectedDate
+      )
+      if (snapshot) {
+        removeProgressSnapshot(snapshot.id)
+      }
+    })
+
+    loadProgressSnapshots()
+    lastInitKey.current = ''
+
+    // Trigger reinitialization
+    const newEstimates: Record<string, number> = {}
+    const newProgress: Record<string, number> = {}
+    const newNotes: Record<string, string> = {}
+
+    filtered.forEach(task => {
+      const totalEstimate = task.resources.reduce((sum, resource) => {
+        return sum + resource.estimatedDays
+      }, 0)
+      const remaining = totalEstimate * (1 - task.progress / 100)
+      newEstimates[task.id] = Math.max(0, Number(remaining.toFixed(2)))
+      newProgress[task.id] = task.progress
+      newNotes[task.id] = ''
+    })
+
+    setEstimates(newEstimates)
+    setProgressValues(newProgress)
+    setNotes(newNotes)
+    setFocusFactorChanges({})
+    setChangedTasks(new Set())
+  }
+
   const calculateTotalEstimate = (resources: (Resource & { estimatedDays: number; focusFactor: number })[]) => {
     return resources.reduce((total, resource) => {
       // Total is just the sum of estimated days (person-days of work)
@@ -513,6 +774,71 @@ const TasksPage = () => {
                   >
                     Cards
                   </button>
+                    <option value="all">All Projects</option>
+                    {activeProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-4 items-center">
+                  <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
+                  <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
+                    <button
+                      onClick={() => setViewMode('detailed')}
+                      className={`
+                        px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                        ${
+                          viewMode === 'detailed'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      Detailed
+                    </button>
+                    <button
+                      onClick={() => setViewMode('compact')}
+                      className={`
+                        px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                        ${
+                          viewMode === 'compact'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      Compact
+                    </button>
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      className={`
+                        px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                        ${
+                          viewMode === 'cards'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      onClick={() => setViewMode('progress')}
+                      className={`
+                        px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                        ${
+                          viewMode === 'progress'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      Progress
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -577,8 +903,328 @@ const TasksPage = () => {
               </div>
             </div>
 
-            {/* Tasks - Cards View or List View */}
-        {viewMode === 'cards' ? (
+            {/* Tasks - Progress View, Cards View, or List View */}
+        {viewMode === 'progress' ? (
+          // Progress View - Inline Editing
+          <div className="space-y-4">
+            {/* Progress View Controls */}
+            <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
+              <div className="flex flex-wrap gap-4 items-end mb-4">
+                {/* Date Selector */}
+                <div className="w-48">
+                  <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    className="w-full h-10 px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+                  />
+                </div>
+
+                {/* Search Field */}
+                <div className="flex-1 min-w-64">
+                  <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                    Search Tasks
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={progressSearchTerm}
+                      onChange={(e) => setProgressSearchTerm(e.target.value)}
+                      placeholder="Search by task name or description..."
+                      className="w-full h-10 px-3 py-2 pl-10 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-salmon-500"
+                    />
+                    <svg
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-navy-400 dark:text-navy-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    {progressSearchTerm && (
+                      <button
+                        onClick={() => setProgressSearchTerm('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-navy-400 hover:text-navy-600 dark:text-navy-500 dark:hover:text-navy-300"
+                        title="Clear search"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Remaining and Reset Button */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 bg-salmon-50 dark:bg-salmon-900/20 rounded-lg p-4 flex items-center justify-between">
+                  <div className="text-sm font-medium text-salmon-700 dark:text-salmon-400">
+                    Total Remaining
+                  </div>
+                  <div className="text-2xl font-bold text-salmon-800 dark:text-salmon-300">
+                    {Object.values(estimates).reduce((sum, val) => sum + val, 0).toFixed(1)} days
+                  </div>
+                </div>
+                <button
+                  onClick={handleResetEstimates}
+                  className="px-4 py-3 bg-navy-100 hover:bg-navy-200 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-700 dark:text-navy-300 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  title="Reset all estimates to original values"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reset Estimates
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Tasks List */}
+            <div className="space-y-2">
+              {(() => {
+                const activeTasks = tasksWithResources.filter(t => {
+                  const project = projects.find(p => p.id === t.projectId)
+                  return project?.status === 'Active' && t.status !== 'Done'
+                })
+
+                const progressFiltered = (selectedProjectFilter === 'all'
+                  ? activeTasks
+                  : activeTasks.filter(t => t.projectId === selectedProjectFilter)
+                ).filter(t => {
+                  if (!progressSearchTerm) return true
+                  const search = progressSearchTerm.toLowerCase()
+                  return t.title.toLowerCase().includes(search) ||
+                         (t.description && t.description.toLowerCase().includes(search))
+                })
+
+                if (progressFiltered.length === 0) {
+                  return (
+                    <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-8 text-center">
+                      <p className="text-navy-500 dark:text-navy-400 text-sm">
+                        {progressSearchTerm
+                          ? `No tasks found matching "${progressSearchTerm}". Try a different search term.`
+                          : 'No active tasks found. All tasks are either completed or no project is selected.'
+                        }
+                      </p>
+                    </div>
+                  )
+                }
+
+                return progressFiltered.map(task => {
+                  const estimate = estimates[task.id] || 0
+
+                  // Aggregate resources by resource ID
+                  const resourceMap = new Map<string, typeof task.resources[0]>()
+                  task.resources.forEach(resource => {
+                    const existing = resourceMap.get(resource.id)
+                    if (existing) {
+                      existing.numberOfProfiles += resource.numberOfProfiles
+                      existing.estimatedDays += resource.estimatedDays
+                    } else {
+                      resourceMap.set(resource.id, { ...resource })
+                    }
+                  })
+                  const aggregatedResources = Array.from(resourceMap.values())
+
+                  const totalEffort = task.resources.reduce((sum, resource) => {
+                    return sum + resource.estimatedDays
+                  }, 0)
+
+                  const calculatedProgress = totalEffort > 0
+                    ? Math.min(100, Math.max(0, ((totalEffort - estimate) / totalEffort) * 100))
+                    : 0
+
+                  const resourceDurations = task.resources.map(resource => {
+                    const numberOfProfiles = resource.numberOfProfiles || 1
+                    const focusFactor = (resource.focusFactor || 80) / 100
+                    return estimate / (numberOfProfiles * focusFactor)
+                  })
+                  const calculatedDuration = resourceDurations.length > 0
+                    ? Math.max(...resourceDurations)
+                    : 0
+
+                  return (
+                    <div
+                      key={task.id}
+                      className="bg-white dark:bg-navy-800 rounded-lg shadow-sm p-4 border-l-4 hover:shadow-md transition-shadow"
+                      style={{ borderLeftColor: task.color || '#6366f1' }}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Task Info Section - 70% */}
+                        <div className="flex-1 min-w-0" style={{ flexBasis: '70%' }}>
+                          {/* Title and Status Row */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <div
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: task.color || '#6366f1' }}
+                            />
+                            <h3 className="font-semibold text-base text-navy-800 dark:text-navy-100 truncate">
+                              {task.title}
+                            </h3>
+                            <span className={`px-2 py-0.5 rounded text-xs flex-shrink-0 font-medium ${
+                              task.status === 'In Progress'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                                : task.status === 'Todo'
+                                ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                            }`}>
+                              {task.status}
+                            </span>
+                          </div>
+
+                          {/* Resource Profiles Row */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {aggregatedResources.map((resource, idx) => {
+                              const IconComponent = getIconById(resource.icon || 'generic')
+                              const key = `${task.id}-${resource.id}`
+                              const currentFocusFactor = focusFactorChanges[key] !== undefined
+                                ? focusFactorChanges[key]
+                                : resource.focusFactor
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-1.5 px-2 py-1 bg-navy-100 dark:bg-navy-700 rounded text-xs text-navy-700 dark:text-navy-300 font-medium"
+                                >
+                                  <IconComponent className="w-3.5 h-3.5" />
+                                  <span>{resource.numberOfProfiles}x {resource.title}</span>
+                                  <span className="text-navy-500 dark:text-navy-400">@</span>
+                                  <input
+                                    type="number"
+                                    value={currentFocusFactor}
+                                    onChange={(e) => handleFocusFactorChange(task.id, resource.id, e.target.value)}
+                                    min="0"
+                                    max="100"
+                                    className="w-10 h-5 px-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-xs"
+                                    title="Focus factor percentage"
+                                  />
+                                  <span>%</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Estimation Section - 15% */}
+                        <div className="flex flex-col items-end" style={{ flexBasis: '15%', minWidth: '140px' }}>
+                          <label className="text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                            Remaining Days
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleQuickAdjust(task.id, -0.5)}
+                              className="w-7 h-7 flex items-center justify-center bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors font-bold"
+                              title="Decrease by 0.5 days"
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              value={estimate}
+                              onChange={(e) => handleEstimateChange(task.id, e.target.value)}
+                              step="0.5"
+                              min="0"
+                              className="w-16 h-7 px-2 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center text-sm font-bold"
+                            />
+                            <button
+                              onClick={() => handleQuickAdjust(task.id, 0.5)}
+                              className="w-7 h-7 flex items-center justify-center bg-navy-100 dark:bg-navy-700 text-navy-700 dark:text-navy-300 rounded hover:bg-navy-200 dark:hover:bg-navy-600 transition-colors font-bold"
+                              title="Increase by 0.5 days"
+                            >
+                              +
+                            </button>
+                          </div>
+                          {calculatedDuration > 0 && (
+                            <div className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                              Duration: ~{calculatedDuration.toFixed(1)}d
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Progress Control Section - 10% */}
+                        <div className="flex flex-col items-center" style={{ flexBasis: '10%', minWidth: '80px' }}>
+                          <label className="text-xs font-medium text-navy-600 dark:text-navy-400 mb-1">
+                            Progress
+                          </label>
+                          <input
+                            type="number"
+                            value={progressValues[task.id] || 0}
+                            onChange={(e) => handleProgressChange(task.id, e.target.value)}
+                            min="0"
+                            max="100"
+                            className="w-16 h-7 px-2 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500 text-center text-sm font-bold"
+                          />
+                          <div className="mt-1 text-xs text-navy-500 dark:text-navy-400">
+                            Calc: {calculatedProgress.toFixed(0)}%
+                          </div>
+                        </div>
+
+                        {/* Comment Icon - 5% */}
+                        <div className="flex items-center justify-center" style={{ flexBasis: '5%', minWidth: '40px' }}>
+                          <button
+                            onClick={() => handleOpenNotesModal(task.id)}
+                            className="w-9 h-9 flex items-center justify-center text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200 hover:bg-navy-100 dark:hover:bg-navy-700 rounded-lg transition-colors"
+                            title={notes[task.id] ? "Edit notes" : "Add notes"}
+                          >
+                            <svg
+                              className={`w-5 h-5 ${notes[task.id] ? 'text-blue-600 dark:text-blue-400' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+
+            {/* Save Button */}
+            {(() => {
+              const activeTasks = tasksWithResources.filter(t => {
+                const project = projects.find(p => p.id === t.projectId)
+                return project?.status === 'Active' && t.status !== 'Done'
+              })
+              const progressFiltered = (selectedProjectFilter === 'all'
+                ? activeTasks
+                : activeTasks.filter(t => t.projectId === selectedProjectFilter)
+              ).filter(t => {
+                if (!progressSearchTerm) return true
+                const search = progressSearchTerm.toLowerCase()
+                return t.title.toLowerCase().includes(search) ||
+                       (t.description && t.description.toLowerCase().includes(search))
+              })
+
+              if (progressFiltered.length > 0) {
+                return (
+                  <div className="mt-8 flex justify-end">
+                    <button
+                      onClick={handleSaveProgress}
+                      disabled={saveStatus === 'saving'}
+                      className={`px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 shadow-lg ${
+                        saveStatus === 'saved'
+                          ? 'bg-green-600 hover:bg-green-700'
+                          : saveStatus === 'saving'
+                          ? 'bg-navy-400 cursor-not-allowed'
+                          : 'bg-salmon-600 hover:bg-salmon-700 hover:shadow-xl'
+                      }`}
+                    >
+                      {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? '✓ Saved!' : 'Save Progress Update'}
+                    </button>
+                  </div>
+                )
+              }
+              return null
+            })()}
+          </div>
+        ) : viewMode === 'cards' ? (
           // Kanban Board View
           <div className="mt-6">
             {filteredTasks.length === 0 ? (
@@ -1285,6 +1931,50 @@ const TasksPage = () => {
                   className="flex-1 px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notes Modal */}
+        {showNotesModal && currentTaskForNotes && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-navy-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-navy-800 dark:text-navy-100">
+                  Task Notes
+                </h3>
+                <button
+                  onClick={handleCloseNotesModal}
+                  className="text-navy-500 hover:text-navy-700 dark:text-navy-400 dark:hover:text-navy-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="mb-4">
+                <p className="text-sm text-navy-600 dark:text-navy-400 mb-2">
+                  {tasks.find(t => t.id === currentTaskForNotes)?.title}
+                </p>
+                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  value={notes[currentTaskForNotes] || ''}
+                  onChange={(e) => handleNotesChange(currentTaskForNotes, e.target.value)}
+                  placeholder="Add notes about blockers, progress, issues, or any relevant information..."
+                  rows={6}
+                  className="w-full px-3 py-2 border border-navy-300 dark:border-navy-600 rounded-lg bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 placeholder-navy-400 dark:placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-salmon-500 resize-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleCloseNotesModal}
+                  className="px-4 py-2 bg-navy-200 hover:bg-navy-300 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-800 dark:text-navy-100 rounded-lg font-medium transition-colors"
+                >
+                  Close
                 </button>
               </div>
             </div>
