@@ -34,6 +34,7 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
   } = useEntitiesStore()
 
   const [currentStep, setCurrentStep] = useState(1)
+  const [resourceSearchTerm, setResourceSearchTerm] = useState('')
   const [formData, setFormData] = useState<ProjectFormData>({
     title: '',
     description: '',
@@ -356,6 +357,41 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                   Select resources for your project and configure the number of resources and focus factor for each type.
                 </p>
 
+                {/* Search Input */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={resourceSearchTerm}
+                      onChange={(e) => setResourceSearchTerm(e.target.value)}
+                      placeholder="Search resources..."
+                      className="w-full px-4 py-2 pl-10 border border-navy-200 dark:border-navy-700 rounded-lg
+                               bg-white dark:bg-navy-900 text-navy-900 dark:text-white
+                               focus:ring-2 focus:ring-salmon-500 focus:border-transparent
+                               placeholder-navy-400 dark:placeholder-navy-500"
+                    />
+                    <svg
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-navy-400 dark:text-navy-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    {resourceSearchTerm && (
+                      <button
+                        onClick={() => setResourceSearchTerm('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-navy-400 dark:text-navy-500 hover:text-navy-600 dark:hover:text-navy-300"
+                        title="Clear search"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {resources.filter(r => r.status === 'Active').length === 0 ? (
                   <div className="text-center py-6 bg-navy-50 dark:bg-navy-900/30 rounded-lg">
                     <p className="text-sm text-navy-600 dark:text-navy-400">
@@ -364,17 +400,37 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {resources
-                      .filter(r => r.status === 'Active')
-                      .sort((a, b) => {
-                        // Sort assigned resources first
-                        const aAssigned = formData.resources.some(r => r.resourceId === a.id)
-                        const bAssigned = formData.resources.some(r => r.resourceId === b.id)
-                        if (aAssigned && !bAssigned) return -1
-                        if (!aAssigned && bAssigned) return 1
-                        return a.title.localeCompare(b.title)
-                      })
-                      .map((resource) => {
+                    {(() => {
+                      const filteredResources = resources
+                        .filter(r => r.status === 'Active')
+                        .filter(r => {
+                          if (!resourceSearchTerm) return true
+                          const searchLower = resourceSearchTerm.toLowerCase()
+                          return (
+                            r.title.toLowerCase().includes(searchLower) ||
+                            (r.description && r.description.toLowerCase().includes(searchLower))
+                          )
+                        })
+                        .sort((a, b) => {
+                          // Sort assigned resources first
+                          const aAssigned = formData.resources.some(r => r.resourceId === a.id)
+                          const bAssigned = formData.resources.some(r => r.resourceId === b.id)
+                          if (aAssigned && !bAssigned) return -1
+                          if (!aAssigned && bAssigned) return 1
+                          return a.title.localeCompare(b.title)
+                        })
+
+                      if (filteredResources.length === 0) {
+                        return (
+                          <div className="text-center py-6 bg-navy-50 dark:bg-navy-900/30 rounded-lg">
+                            <p className="text-sm text-navy-600 dark:text-navy-400">
+                              No resources found matching "{resourceSearchTerm}"
+                            </p>
+                          </div>
+                        )
+                      }
+
+                      return filteredResources.map((resource) => {
                         const assignedResource = formData.resources.find(r => r.resourceId === resource.id)
                         const isSelected = !!assignedResource
 
@@ -488,7 +544,8 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                             )}
                           </div>
                         )
-                      })}
+                      })
+                    })()}
                   </div>
                 )}
               </div>
