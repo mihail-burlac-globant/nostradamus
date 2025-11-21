@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import { format } from 'date-fns'
-import { getIconById } from '../utils/resourceIcons'
+import { getResourceIconEmoji } from '../utils/resourceIconEmojis'
 
 const ProgressPage = () => {
   const {
@@ -480,7 +480,7 @@ const ProgressPage = () => {
                       {/* Resource Profiles Row */}
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {aggregatedResources.map((resource, idx) => {
-                          const IconComponent = getIconById(resource.icon || 'generic')
+                          const emoji = getResourceIconEmoji(resource.icon || 'generic')
                           const key = `${task.id}-${resource.id}`
                           const currentFocusFactor = focusFactorChanges[key] !== undefined
                             ? focusFactorChanges[key]
@@ -490,7 +490,7 @@ const ProgressPage = () => {
                               key={idx}
                               className="flex items-center gap-1.5 px-2 py-1 bg-navy-100 dark:bg-navy-700 rounded text-xs text-navy-700 dark:text-navy-300 font-medium"
                             >
-                              <IconComponent className="w-3.5 h-3.5" />
+                              <span className="text-base" role="img" aria-label={resource.title}>{emoji}</span>
                               <span>{resource.numberOfProfiles}x {resource.title}</span>
                               <span className="text-navy-500 dark:text-navy-400">@</span>
                               <input
