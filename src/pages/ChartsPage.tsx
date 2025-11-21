@@ -18,8 +18,13 @@ const ChartsPage = () => {
     loadProgressSnapshots,
   } = useEntitiesStore()
 
-  const [activeChart, setActiveChart] = useState<ChartType>('gantt')
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
+  const [activeChart, setActiveChart] = useState<ChartType>(() => {
+    const saved = localStorage.getItem('nostradamus_charts_active_chart')
+    return (saved as ChartType) || 'gantt'
+  })
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(() => {
+    return localStorage.getItem('nostradamus_charts_project') || ''
+  })
 
   useEffect(() => {
     if (!isInitialized) {
@@ -49,6 +54,17 @@ const ChartsPage = () => {
       loadMilestones(selectedProjectId)
     }
   }, [selectedProjectId, loadMilestones])
+
+  // Persist selections to localStorage
+  useEffect(() => {
+    localStorage.setItem('nostradamus_charts_active_chart', activeChart)
+  }, [activeChart])
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      localStorage.setItem('nostradamus_charts_project', selectedProjectId)
+    }
+  }, [selectedProjectId])
 
   const activeProjects = projects.filter(p => p.status === 'Active')
   const selectedProject = activeProjects.find(p => p.id === selectedProjectId)
