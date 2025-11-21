@@ -454,8 +454,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               scopeIncreaseWidth = totalWidth - baseWidth
             }
 
-            // Apply opacity: past = 1.0 (full color), future = 0.3 (faded)
-            const taskOpacity = isPast ? 1.0 : 0.3
+            // Apply opacity: past = 0.3 (faded), future = 1.0 (full color)
+            const taskOpacity = isPast ? 0.3 : 1.0
 
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
