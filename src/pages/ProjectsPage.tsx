@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Project, Resource, Configuration } from '../types/entities.types'
 import { downloadProjectExport, parseImportFile, importProject, type ProjectExport, type ImportProgress } from '../utils/projectImportExport'
+import ProjectWizardDialog, { type ProjectFormData } from '../components/ProjectWizardDialog'
 
 const ProjectsPage = () => {
   const {
@@ -16,6 +17,10 @@ const ProjectsPage = () => {
     unarchiveProject,
     getProjectResources,
     getProjectConfigurations,
+    assignConfigurationToProject,
+    assignResourceToProject,
+    removeConfigurationFromProject,
+    removeResourceFromProject,
   } = useEntitiesStore()
 
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -37,12 +42,6 @@ const ProjectsPage = () => {
   const [importProjectName, setImportProjectName] = useState<string>('')
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
   const [isImporting, setIsImporting] = useState(false)
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    status: 'Active' as 'Active' | 'Archived',
-    startDate: '',
-  })
 
   useEffect(() => {
     if (!isInitialized) {
@@ -75,42 +74,103 @@ const ProjectsPage = () => {
     return `${configs.length} configurations`
   }
 
-  const handleCreateProject = () => {
+  const handleWizardSubmit = (formData: ProjectFormData) => {
     if (!formData.title.trim()) return
 
-    // Check for duplicate title
-    const duplicateExists = projects.some(
-      (p) => p.title.toLowerCase() === formData.title.trim().toLowerCase()
-    )
+    if (editingProject) {
+      // Editing existing project
+      // Check for duplicate title (excluding the current project being edited)
+      const duplicateExists = projects.some(
+        (p) => p.id !== editingProject.id && p.title.toLowerCase() === formData.title.trim().toLowerCase()
+      )
 
-    if (duplicateExists) {
-      setErrorMessage('A project with this name already exists. Please choose a different name.')
-      return
+      if (duplicateExists) {
+        setErrorMessage('A project with this name already exists. Please choose a different name.')
+        return
+      }
+
+      // Update basic project info
+      editProject(editingProject.id, {
+        title: formData.title,
+        description: formData.description,
+        status: formData.status,
+        startDate: formData.startDate,
+      })
+
+      // Update configuration
+      const currentConfigs = getProjectConfigurations(editingProject.id)
+      currentConfigs.forEach(config => {
+        removeConfigurationFromProject(editingProject.id, config.id)
+      })
+      if (formData.configurationId) {
+        assignConfigurationToProject(editingProject.id, formData.configurationId)
+      }
+
+      // Update resources
+      const currentResources = getProjectResources(editingProject.id)
+      currentResources.forEach(resource => {
+        removeResourceFromProject(editingProject.id, resource.id)
+      })
+      formData.resources.forEach(resource => {
+        assignResourceToProject(
+          editingProject.id,
+          resource.resourceId,
+          resource.numberOfResources,
+          resource.focusFactor
+        )
+      })
+
+      setEditingProject(null)
+      setErrorMessage('')
+    } else {
+      // Creating new project
+      // Check for duplicate title
+      const duplicateExists = projects.some(
+        (p) => p.title.toLowerCase() === formData.title.trim().toLowerCase()
+      )
+
+      if (duplicateExists) {
+        setErrorMessage('A project with this name already exists. Please choose a different name.')
+        return
+      }
+
+      // Create the project (returns the new project)
+      const newProject = addProject({
+        title: formData.title,
+        description: formData.description,
+        status: formData.status,
+        startDate: formData.startDate,
+      })
+
+      // The store auto-assigns default configuration, so we need to replace it if different
+      const currentConfigs = getProjectConfigurations(newProject.id)
+
+      // Remove auto-assigned config if we have a specific one from the wizard
+      if (formData.configurationId) {
+        currentConfigs.forEach(config => {
+          if (config.id !== formData.configurationId) {
+            removeConfigurationFromProject(newProject.id, config.id)
+          }
+        })
+        // Assign the selected configuration (if not already assigned)
+        if (!currentConfigs.some(c => c.id === formData.configurationId)) {
+          assignConfigurationToProject(newProject.id, formData.configurationId)
+        }
+      }
+
+      // Assign resources
+      formData.resources.forEach(resource => {
+        assignResourceToProject(
+          newProject.id,
+          resource.resourceId,
+          resource.numberOfResources,
+          resource.focusFactor
+        )
+      })
+
+      setShowCreateModal(false)
+      setErrorMessage('')
     }
-
-    addProject(formData)
-    setFormData({ title: '', description: '', status: 'Active', startDate: '' })
-    setErrorMessage('')
-    setShowCreateModal(false)
-  }
-
-  const handleEditProject = () => {
-    if (!editingProject || !formData.title.trim()) return
-
-    // Check for duplicate title (excluding the current project being edited)
-    const duplicateExists = projects.some(
-      (p) => p.id !== editingProject.id && p.title.toLowerCase() === formData.title.trim().toLowerCase()
-    )
-
-    if (duplicateExists) {
-      setErrorMessage('A project with this name already exists. Please choose a different name.')
-      return
-    }
-
-    editProject(editingProject.id, formData)
-    setEditingProject(null)
-    setFormData({ title: '', description: '', status: 'Active', startDate: '' })
-    setErrorMessage('')
   }
 
   const handleDeleteProject = (id: string) => {
@@ -200,18 +260,12 @@ const ProjectsPage = () => {
 
   const openEditModal = (project: Project) => {
     setEditingProject(project)
-    setFormData({
-      title: project.title,
-      description: project.description,
-      status: project.status,
-      startDate: project.startDate || '',
-    })
+    setErrorMessage('')
   }
 
   const closeModal = () => {
     setShowCreateModal(false)
     setEditingProject(null)
-    setFormData({ title: '', description: '', status: 'Active', startDate: '' })
     setErrorMessage('')
   }
 
@@ -624,111 +678,14 @@ const ProjectsPage = () => {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Wizard Modal */}
       {(showCreateModal || editingProject) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-navy-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-navy-100 dark:border-navy-700">
-              <h2 className="text-xl font-semibold text-navy-900 dark:text-white">
-                {editingProject ? 'Edit Project' : 'Create New Project'}
-              </h2>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Error Message */}
-              {errorMessage && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-sm text-red-800 dark:text-red-200">{errorMessage}</p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
-                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  placeholder="Enter project title"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
-                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                  placeholder="Enter project description"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
-                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                />
-                <p className="mt-1 text-xs text-navy-500 dark:text-navy-400">
-                  Optional: Set the project start date for timeline calculations in charts
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Archived' })}
-                  className="w-full px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
-                           bg-white dark:bg-navy-900 text-navy-900 dark:text-white
-                           focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Archived">Archived</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-navy-100 dark:border-navy-700 flex justify-end gap-3">
-              <button
-                onClick={closeModal}
-                className="px-6 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
-                         hover:bg-navy-100 dark:hover:bg-navy-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={editingProject ? handleEditProject : handleCreateProject}
-                className="px-6 py-2 text-sm font-medium text-white bg-salmon-600 hover:bg-salmon-700
-                         rounded-lg transition-colors"
-              >
-                {editingProject ? 'Save Changes' : 'Create Project'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProjectWizardDialog
+          editingProject={editingProject}
+          onClose={closeModal}
+          onSubmit={handleWizardSubmit}
+          errorMessage={errorMessage}
+        />
       )}
 
       {/* View Project Details Modal */}
