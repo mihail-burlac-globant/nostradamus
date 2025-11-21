@@ -67,13 +67,14 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
         })),
       })
     } else {
-      // For new projects, set default configuration
+      // For new projects, set default configuration and today's date
       const defaultConfig = configurations.find(c => c.key === 'default_config')
+      const today = new Date().toISOString().split('T')[0] // Format: YYYY-MM-DD
       setFormData({
         title: '',
         description: '',
         status: 'Active',
-        startDate: '',
+        startDate: today,
         configurationId: defaultConfig?.id || null,
         resources: [],
       })
