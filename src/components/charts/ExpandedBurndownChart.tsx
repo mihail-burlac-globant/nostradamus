@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
 import { format, eachDayOfInterval, isAfter, startOfDay, isWeekend } from 'date-fns'
@@ -10,95 +10,74 @@ import {
   calculateVelocityMetrics,
   getHistoricalData,
 } from '../../utils/velocityCalculations'
-import { addWatermarkToChart } from '../../utils/chartWatermark'
-import ExpandedBurndownChart from './ExpandedBurndownChart'
 
-interface BurndownChartProps {
+interface ExpandedBurndownChartProps {
   projectId: string
   projectTitle: string
   projectStartDate?: string
   tasks: Task[]
   milestones?: Milestone[]
+  onClose: () => void
 }
 
-const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, milestones = [] }: BurndownChartProps) => {
+const ExpandedBurndownChart = ({
+  projectId,
+  projectTitle,
+  projectStartDate,
+  tasks,
+  milestones = [],
+  onClose
+}: ExpandedBurndownChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const { getTaskResources, getProjectResources, getTaskDependencies, progressSnapshots } = useEntitiesStore()
-  const [showExpandedView, setShowExpandedView] = useState(false)
 
   useEffect(() => {
+    // Similar logic to BurndownChart but with daily granularity optimizations
     if (!chartRef.current || tasks.length === 0) return
 
-    console.log('📈 BurndownChart received milestones:', milestones)
-    // Debug: Log each milestone's icon value
-    milestones.forEach(m => {
-      console.log(`  Milestone "${m.title}": icon="${m.icon}", color="${m.color}"`)
-    })
-
-    // Get project resources BEFORE calculateTaskDates to avoid initialization error
     const projectResources = getProjectResources(projectId)
 
-    // Calculate effective start and end dates for each task
     const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
-      // Check if already calculated
       if (taskDateMap.has(task.id)) {
         return taskDateMap.get(task.id)!
       }
 
-      // Get dependencies
       const dependencies = getTaskDependencies(task.id)
-
-      // Calculate earliest start date based on dependencies
       let earliestStart: Date
+
       if (dependencies.length > 0) {
-        // Task can't start until all dependencies are complete
-        // Recursively calculate dependency end dates
         const dependencyEndDates = dependencies.map(dep => {
           const depDates = calculateTaskDates(dep, taskDateMap)
           return depDates.end
         })
         earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
-        // The end date already represents when the dependency is complete
-        // Dependent task can start immediately (no extra buffer needed)
       } else {
-        // No dependencies - use task start date or project start date
         if (task.startDate) {
           earliestStart = new Date(task.startDate)
         } else if (projectStartDate) {
           earliestStart = new Date(projectStartDate)
         } else {
-          earliestStart = new Date() // Fallback to today
+          earliestStart = new Date()
         }
       }
 
-      // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
       const resources = getTaskResources(task.id)
-
-      // For each resource type, calculate how long it takes considering team size
       const resourceDurations: number[] = []
 
       resources.forEach(taskResource => {
-        // Person-days of work needed
         const workDays = taskResource.estimatedDays
-
-        // Number of profiles assigned to work on this task (from task resource, not project max)
         const numberOfProfiles = taskResource.numberOfProfiles || 1
-        // Priority: 1) Task assignment focus factor, 2) Project resource focus factor, 3) Default 100
         const projectResource = projectResources.find(pr => pr.id === taskResource.id)
-        const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100 // Convert to decimal (80% = 0.8)
-
-        // Duration = workDays / (numberOfProfiles * focusFactor)
+        const focusFactor = (taskResource.focusFactor || projectResource?.focusFactor || 100) / 100
         const duration = workDays / (numberOfProfiles * focusFactor)
         resourceDurations.push(duration)
       })
 
-      // Task duration is the longest duration among all resource types (they work in parallel)
       const durationDays = resourceDurations.length > 0
         ? Math.ceil(Math.max(...resourceDurations))
         : 1
 
-      // Calculate end date
       const endDate = new Date(earliestStart)
       endDate.setDate(endDate.getDate() + durationDays)
 
@@ -107,7 +86,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       return result
     }
 
-    // Calculate dates for all tasks
     const taskDateMap = new Map<string, { start: Date; end: Date }>()
     const tasksWithDates = tasks.map(task => {
       const dates = calculateTaskDates(task, taskDateMap)
@@ -118,7 +96,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       }
     })
 
-    // Topological sort: order tasks by dependencies (first to be done first)
     const topologicalSort = (tasks: typeof tasksWithDates): typeof tasksWithDates => {
       const sorted: typeof tasksWithDates = []
       const visited = new Set<string>()
@@ -126,11 +103,10 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
       const visit = (task: typeof tasksWithDates[0]) => {
         if (visited.has(task.id)) return
-        if (visiting.has(task.id)) return // Cycle detection
+        if (visiting.has(task.id)) return
 
         visiting.add(task.id)
 
-        // Visit dependencies first
         const deps = getTaskDependencies(task.id)
         deps.forEach(depTask => {
           const depWithDates = tasks.find(t => t.id === depTask.id)
@@ -156,87 +132,66 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       return
     }
 
-    // Initialize chart
     if (!chartInstance.current) {
       chartInstance.current = echarts.init(chartRef.current)
     }
 
-    // Calculate project bounds - start from earliest task start date
     const allStartDates = validTasks.map(t => new Date(t.startDate!))
     const projectStart = new Date(Math.min(...allStartDates.map(d => d.getTime())))
-
     const today = startOfDay(new Date())
     const chartStart = projectStart
 
-    // We'll determine chartEnd dynamically after simulation to ensure we show until work is complete
-    // For now, use a far future date
     const allEndDates = validTasks.map(t => new Date(t.endDate!))
     const latestTaskEnd = new Date(Math.max(...allEndDates.map(d => d.getTime())))
 
-    // Add buffer to ensure we capture all work completion
     const initialChartEnd = new Date(latestTaskEnd)
-    initialChartEnd.setDate(initialChartEnd.getDate() + 30) // Add 30 days buffer
+    initialChartEnd.setDate(initialChartEnd.getDate() + 30)
 
-    // Generate days for the burndown chart (from project start to far future)
     const allDays = eachDayOfInterval({ start: chartStart, end: initialChartEnd })
 
-    // Calculate initial effort and current remaining effort for each task
     const taskInitialEffort = new Map<string, number>()
     const taskCurrentRemaining = new Map<string, number>()
-    const taskResourceTypes = new Map<string, string[]>() // task -> resource types
+    const taskResourceTypes = new Map<string, string[]>()
 
     validTasks.forEach(task => {
       const resources = getTaskResources(task.id)
-      // Total effort is just the sum of estimated days (person-days of work)
-      // Focus factor affects duration/velocity, not the amount of work
-      const effort = resources.reduce((sum, resource) => {
-        return sum + resource.estimatedDays
-      }, 0)
+      const effort = resources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
       taskInitialEffort.set(task.id, effort)
 
-      // Calculate remaining effort based on progress
       const remaining = effort * (1 - task.progress / 100)
       taskCurrentRemaining.set(task.id, remaining)
 
-      // Store resource types for this task
       const resourceTypes = resources.map(r => r.id)
       taskResourceTypes.set(task.id, resourceTypes)
     })
 
-    // Build dependency graph
-    const taskDependencies = new Map<string, string[]>() // task -> depends on these tasks
+    const taskDependencies = new Map<string, string[]>()
     const completedTasks = new Set<string>()
 
     validTasks.forEach(task => {
-      const deps = getTaskDependencies(task.id) // Returns Task objects this task depends on
+      const deps = getTaskDependencies(task.id)
       taskDependencies.set(task.id, deps.map(d => d.id))
 
-      // Mark done tasks as completed
       if (task.status === 'Done' || task.progress >= 100) {
         completedTasks.add(task.id)
       }
     })
 
-    // Calculate resource capacity per type from project resources
-    const resourceCapacity = new Map<string, number>() // resourceId -> daily capacity
+    const resourceCapacity = new Map<string, number>()
     projectResources.forEach(pr => {
       const capacity = pr.numberOfResources * (pr.focusFactor / 100)
       resourceCapacity.set(pr.id, capacity)
     })
 
-    // Get progress snapshots for this project (needed for calculations below)
     const projectSnapshots = progressSnapshots.filter(s => s.projectId === projectId)
 
-    // Simulate work day by day to calculate remaining effort
     const taskRemainingByDay = validTasks.map(task => ({
       task,
       color: task.color,
       data: [] as number[]
     }))
 
-    // For each day, simulate work
     const taskRemainingSimulation = new Map<string, number>()
-    // Initialize with current remaining as fallback (will be overwritten by today's values if today exists in range)
     validTasks.forEach(task => {
       taskRemainingSimulation.set(task.id, taskCurrentRemaining.get(task.id) || 0)
     })
@@ -249,8 +204,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       const dateKey = format(date, 'yyyy-MM-dd')
 
       if (!isFuture) {
-        // For past dates and today: calculate theoretical remaining based on progress
-        // Scope increases will be shown separately in the scope increase bars
         validTasks.forEach(task => {
           const idx = validTasks.indexOf(task)
           const snapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
@@ -259,57 +212,40 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           let manualRemainingForDay: number
 
           if (snapshot) {
-            // Calculate theoretical remaining based on progress
             const resources = getTaskResources(task.id)
-            const totalEffort = resources.reduce((sum, resource) => {
-              return sum + resource.estimatedDays
-            }, 0)
+            const totalEffort = resources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
             remainingForDay = totalEffort * (1 - snapshot.progress / 100)
             manualRemainingForDay = snapshot.remainingEstimate
           } else {
-            // No snapshot - calculate theoretical remaining from current progress
             const resources = getTaskResources(task.id)
-            const totalEffort = resources.reduce((sum, resource) => {
-              return sum + resource.estimatedDays
-            }, 0)
+            const totalEffort = resources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
             remainingForDay = totalEffort * (1 - task.progress / 100)
             manualRemainingForDay = remainingForDay
           }
 
           taskRemainingByDay[idx].data.push(remainingForDay)
 
-          // Initialize simulation with today's MANUAL values for future projections
           if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
             taskRemainingSimulation.set(task.id, manualRemainingForDay)
           }
         })
       } else {
-        // For future dates: simulate work with dependencies
-
-        // Check if it's a weekend - no work happens on weekends
         const isWeekendDay = isWeekend(date)
 
         if (isWeekendDay) {
-          // Weekend: no work done, just record current remaining
           validTasks.forEach(task => {
             const idx = validTasks.indexOf(task)
             taskRemainingByDay[idx].data.push(taskRemainingSimulation.get(task.id) || 0)
           })
         } else {
-          // Weekday: simulate work with dependencies
-
-          // Find tasks that can be worked on (dependencies satisfied)
           const workableTasks = validTasks.filter(task => {
             if (simulationCompletedTasks.has(task.id)) return false
-
             const deps = taskDependencies.get(task.id) || []
             return deps.every(depId => simulationCompletedTasks.has(depId))
           })
 
-          // Group workable tasks by resource type and calculate work done
           const workDoneByTask = new Map<string, number>()
 
-          // For each resource type, work on ONE task at a time (Rule 1: Resource exclusivity)
           resourceCapacity.forEach((capacity, resourceId) => {
             const tasksNeedingResource = workableTasks.filter(task => {
               const types = taskResourceTypes.get(task.id) || []
@@ -318,33 +254,27 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
             if (tasksNeedingResource.length === 0) return
 
-            // Work on the FIRST task only (resource can only do one task at a time)
-            // Tasks are ordered by dependencies, so we work on the first available one
             const firstTask = tasksNeedingResource[0]
             const currentWork = workDoneByTask.get(firstTask.id) || 0
             workDoneByTask.set(firstTask.id, currentWork + capacity)
           })
 
-          // Apply work done and update remaining effort
           workableTasks.forEach(task => {
             const workDone = workDoneByTask.get(task.id) || 0
             const remaining = taskRemainingSimulation.get(task.id) || 0
             const newRemaining = Math.max(0, remaining - workDone)
             taskRemainingSimulation.set(task.id, newRemaining)
 
-            // Mark as completed if done
             if (newRemaining <= 0.01) {
               simulationCompletedTasks.add(task.id)
             }
           })
 
-          // Record remaining effort for this day
           validTasks.forEach(task => {
             const idx = validTasks.indexOf(task)
             taskRemainingByDay[idx].data.push(taskRemainingSimulation.get(task.id) || 0)
           })
 
-          // Check if all work is complete
           const totalRemaining = validTasks.reduce((sum, task) => {
             return sum + (taskRemainingSimulation.get(task.id) || 0)
           }, 0)
@@ -356,50 +286,33 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       }
     })
 
-    // Truncate data to completion day if found, otherwise keep all data
-    // NOTE: Don't truncate yet - we need to calculate Current Projection first
-    // to determine the actual completion day (might be later than theoretical)
     const theoreticalCompletionDayIndex = completionDayIndex
     let finalDays = allDays
-    // Will truncate after calculating Current Projection
 
-    // Track which days are in the past for opacity
     const todayIndex = finalDays.findIndex(day => format(day, 'MMM dd') === format(today, 'MMM dd'))
-
-    // Calculate total current remaining effort (theoretical)
     const totalCurrentRemaining = Array.from(taskCurrentRemaining.values()).reduce((sum, val) => sum + val, 0)
-
-    // Get today's date key for snapshot lookups
     const todayDateKey = format(today, 'yyyy-MM-dd')
 
-    // Get historical actual data from snapshots
     const historicalData = getHistoricalData(
       projectSnapshots,
       chartStart,
       finalDays[finalDays.length - 1]
     )
 
-    // Build actual data series (historical remaining estimates from snapshots)
     const actualDataSeries: (number | null)[] = finalDays.map((day, index) => {
       const dateKey = format(day, 'yyyy-MM-dd')
 
-      // Use snapshot data if available
       if (historicalData.has(dateKey)) {
         return historicalData.get(dateKey)!
       }
 
-      // Only show data for past days where we have snapshots or can interpolate
       if (index <= todayIndex) {
-        // For past days without snapshots, return null (won't draw line)
         return null
       }
 
-      // Future days - no actual data
       return null
     })
 
-    // Calculate scope increase per task per day
-    // For each task and day, compare manual remaining estimate vs theoretical remaining
     const taskScopeIncreaseByDay = validTasks.map(task => ({
       task,
       color: task.color,
@@ -413,19 +326,14 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       validTasks.forEach((task, taskIndex) => {
         let scopeIncrease = 0
 
-        // Only calculate scope increase for past/present days with snapshots
         if (!isFuture) {
           const snapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
 
           if (snapshot) {
-            // Calculate theoretical remaining based on progress and total effort
             const resources = getTaskResources(task.id)
-            const totalEffort = resources.reduce((sum, resource) => {
-              return sum + resource.estimatedDays
-            }, 0)
+            const totalEffort = resources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
             const theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
 
-            // Scope increase = manual remaining - theoretical remaining
             const increase = snapshot.remainingEstimate - theoreticalRemaining
             if (increase > 0) {
               scopeIncrease = increase
@@ -437,7 +345,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       })
     })
 
-    // Calculate velocities
     const plannedVelocity = calculatePlannedVelocity(
       projectResources.map(r => ({
         numberOfResources: r.numberOfResources,
@@ -447,16 +354,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     const { velocity: recentVelocity } = calculateRecentVelocity(projectSnapshots, 15)
 
-    // Calculate velocity metrics for display
     const velocityMetrics = projectSnapshots.length >= 2
       ? calculateVelocityMetrics(projectSnapshots, totalCurrentRemaining, plannedVelocity)
       : null
 
-    // Generate theoretical projection from the simulated bars (accounts for dependencies)
     let theoreticalProjectionSeries: (number | null)[] = finalDays.map((_day, index) => {
-      if (index < todayIndex) return null // No projection for past
+      if (index < todayIndex) return null
 
-      // Sum all task remaining values from the simulation
       const totalForDay = taskRemainingByDay.reduce((sum, taskData) => {
         return sum + (taskData.data[index] || 0)
       }, 0)
@@ -464,8 +368,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       return totalForDay
     })
 
-    // Generate projection based on today's manual estimates (if updated today on Progress page)
-    // This shows the reality projection when user updates remaining estimates today
     const todayHasSnapshots = validTasks.some(task => {
       const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
       return todaySnapshot !== undefined
@@ -474,17 +376,13 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     let projectedFromActualSeries: (number | null)[] = []
 
     if (todayHasSnapshots) {
-      // User has updated estimates today, so show projection based on those estimates
-      // Simulate work from today forward using today's remaining estimates
       const actualRemainingSimulation = new Map<string, number>()
 
-      // Initialize with today's actual remaining estimates
       validTasks.forEach(task => {
         const todaySnapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
         if (todaySnapshot) {
           actualRemainingSimulation.set(task.id, todaySnapshot.remainingEstimate)
         } else {
-          // No snapshot for today - use theoretical remaining
           const resources = getTaskResources(task.id)
           const totalEffort = resources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
           actualRemainingSimulation.set(task.id, totalEffort * (1 - task.progress / 100))
@@ -494,21 +392,18 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       const actualSimulationCompletedTasks = new Set(completedTasks)
 
       projectedFromActualSeries = finalDays.map((date, index) => {
-        if (index < todayIndex) return null // No projection for past
+        if (index < todayIndex) return null
 
         const isWeekendDay = isWeekend(date)
 
         if (index === todayIndex) {
-          // Today - show total of actual remaining
           return Array.from(actualRemainingSimulation.values()).reduce((sum, val) => sum + val, 0)
         }
 
         if (isWeekendDay) {
-          // Weekend - no work done
           return Array.from(actualRemainingSimulation.values()).reduce((sum, val) => sum + val, 0)
         }
 
-        // Weekday - simulate work
         const workableTasks = validTasks.filter(task => {
           if (actualSimulationCompletedTasks.has(task.id)) return false
           const deps = taskDependencies.get(task.id) || []
@@ -544,11 +439,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         return Array.from(actualRemainingSimulation.values()).reduce((sum, val) => sum + val, 0)
       })
     } else {
-      // No snapshots for today - don't show projection
       projectedFromActualSeries = finalDays.map(() => null)
     }
 
-    // Find completion day for Current Projection
     let actualCompletionDayIndex = -1
     for (let i = todayIndex; i < projectedFromActualSeries.length; i++) {
       const remaining = projectedFromActualSeries[i]
@@ -558,33 +451,27 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       }
     }
 
-    // Use the LATER completion day between theoretical and actual projections
     const latestCompletionDayIndex = Math.max(
       theoreticalCompletionDayIndex,
       actualCompletionDayIndex
     )
 
-    // Now truncate data to the later completion day
     if (latestCompletionDayIndex > -1) {
-      // Add buffer days after completion for visibility
       const endIndex = Math.min(latestCompletionDayIndex + 5, allDays.length)
       finalDays = allDays.slice(0, endIndex)
       taskRemainingByDay.forEach(taskData => {
         taskData.data = taskData.data.slice(0, endIndex)
       })
 
-      // Also truncate both projection series to match
       theoreticalProjectionSeries = theoreticalProjectionSeries.slice(0, endIndex)
       projectedFromActualSeries = projectedFromActualSeries.slice(0, endIndex)
     }
 
-    // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark')
     const textColor = isDarkMode ? '#E8E8EA' : '#2E2E36'
     const gridColor = isDarkMode ? '#3D3D47' : '#E8E8EA'
     const backgroundColor = isDarkMode ? '#262629' : '#ffffff'
 
-    // Build velocity subtitle
     const velocitySubtitle = recentVelocity > 0
       ? `Recent Velocity (15d): ${recentVelocity.toFixed(2)} p-d/day | Planned: ${plannedVelocity.toFixed(2)} p-d/day | ` +
         `Trend: ${velocityMetrics ? (velocityMetrics.velocityTrend === 'improving' ? '📈' : velocityMetrics.velocityTrend === 'declining' ? '📉' : '➡️') + ' ' + velocityMetrics.velocityTrend : '―'}`
@@ -594,21 +481,22 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       backgroundColor: backgroundColor,
       title: [
         {
-          text: `${projectTitle} - Burndown Chart`,
+          text: `${projectTitle} - Burndown Chart (Expanded Daily View)`,
           left: 'center',
+          top: 10,
           textStyle: {
             color: textColor,
-            fontSize: 18,
+            fontSize: 24,
             fontWeight: 600,
           },
         },
         {
           text: velocitySubtitle,
           left: 'center',
-          bottom: 10,
+          bottom: 15,
           textStyle: {
             color: textColor,
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: 400,
           },
         },
@@ -623,16 +511,14 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           const dataIndex = params[0]?.dataIndex
           const date = params[0]?.axisValue || ''
 
-          // Get day of week from the actual date
           let dayOfWeek = ''
           if (dataIndex !== undefined && finalDays[dataIndex]) {
-            dayOfWeek = format(finalDays[dataIndex], 'EEE') // Mon, Tue, etc.
+            dayOfWeek = format(finalDays[dataIndex], 'EEE')
           }
 
           let totalRemaining = 0
           let result = `<div style="padding: 8px; min-width: 200px;"><div style="font-weight: 600; margin-bottom: 8px;">${dayOfWeek ? `${dayOfWeek}, ` : ''}${date}</div>`
 
-          // Group tasks: base remaining + scope increase
           const taskData = new Map<string, { baseValue: number; scopeValue: number; color: string }>()
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -644,14 +530,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             if (value > 0) {
               totalRemaining += value
 
-              // Check if this is a scope increase series (has " (Scope +)" suffix)
               if (name.includes('(Scope +)')) {
                 const taskName = name.replace(' (Scope +)', '')
                 const existing = taskData.get(taskName) || { baseValue: 0, scopeValue: 0, color }
                 existing.scopeValue = value
                 taskData.set(taskName, existing)
               } else {
-                // Base remaining series
                 const existing = taskData.get(name) || { baseValue: 0, scopeValue: 0, color }
                 existing.baseValue = value
                 existing.color = color
@@ -660,18 +544,15 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             }
           })
 
-          // Render grouped task data
           taskData.forEach((data, taskName) => {
             const total = data.baseValue + data.scopeValue
             const scopeIndicator = data.scopeValue > 0 ? ` (+${data.scopeValue.toFixed(1)})` : ''
 
-            // Find task and get resource info
             const task = validTasks.find(t => t.title === taskName)
             let resourceInfo = ''
             if (task) {
               const resources = getTaskResources(task.id)
               if (resources.length > 0) {
-                // Group resources by type and count
                 const resourceGroups = new Map<string, { emoji: string; count: number }>()
                 resources.forEach(resource => {
                   const existing = resourceGroups.get(resource.id) || {
@@ -682,7 +563,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                   resourceGroups.set(resource.id, existing)
                 })
 
-                // Build resource display string
                 const resourceParts: string[] = []
                 resourceGroups.forEach(({ emoji, count }) => {
                   resourceParts.push(`${emoji} ${count}x`)
@@ -720,10 +600,10 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           'Past Projection',
           'Current Projection',
         ],
-        top: 35,
+        top: 50,
         textStyle: {
           color: textColor,
-          fontSize: 11,
+          fontSize: 12,
         },
         type: 'scroll',
         pageIconColor: textColor,
@@ -732,22 +612,49 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         },
       },
       grid: {
-        left: '10%',
-        right: '10%',
-        top: 70,
-        bottom: 85,
+        left: '8%',
+        right: '8%',
+        top: 100,
+        bottom: 100,
       },
+      // Enable data zoom for better navigation
+      dataZoom: [
+        {
+          type: 'slider',
+          show: true,
+          xAxisIndex: 0,
+          start: 0,
+          end: 100,
+          bottom: 50,
+        },
+        {
+          type: 'inside',
+          xAxisIndex: 0,
+          start: 0,
+          end: 100,
+        },
+      ],
       xAxis: {
         type: 'category',
+        // Show ALL days with labels
         data: finalDays.map(d => format(d, 'MMM dd')),
         axisLabel: {
           color: textColor,
           rotate: 45,
-          interval: Math.floor(finalDays.length / 10), // Show ~10 labels
+          // Show every day for true daily granularity
+          interval: 0,
+          fontSize: 10,
         },
         axisLine: {
           lineStyle: {
             color: gridColor,
+          },
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: gridColor,
+            type: 'dotted',
           },
         },
       },
@@ -756,10 +663,10 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         name: 'Remaining Effort (person-days)',
         nameLocation: 'middle',
         nameRotate: 90,
-        nameGap: 50,
+        nameGap: 60,
         nameTextStyle: {
           color: textColor,
-          fontSize: 12,
+          fontSize: 14,
         },
         axisLabel: {
           color: textColor,
@@ -777,7 +684,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         },
       },
       series: [
-        // Create a bar series for each task (stacked)
         ...taskRemainingByDay.map(taskData => ({
           name: taskData.task.title,
           type: 'bar' as const,
@@ -785,7 +691,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           data: taskData.data.map((value, index) => ({
             value,
             itemStyle: {
-              // Apply opacity to past days
               opacity: index <= todayIndex ? 0.4 : 1,
             },
           })),
@@ -796,7 +701,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             focus: 'series' as const,
           },
         })),
-        // Create scope increase bar series for each task (stacked on top, with border)
         ...taskScopeIncreaseByDay.map(taskData => ({
           name: `${taskData.task.title} (Scope +)`,
           type: 'bar' as const,
@@ -805,7 +709,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             value,
             itemStyle: {
               color: taskData.color,
-              borderColor: '#ef4444', // Red border
+              borderColor: '#ef4444',
               borderWidth: 2,
               borderType: 'solid' as const,
               opacity: index <= todayIndex ? 0.4 : 1,
@@ -815,13 +719,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             focus: 'series' as const,
           },
         })),
-        // Actual progress line (historical data from snapshots) - not in legend
         {
           name: 'Actual Progress',
           type: 'line' as const,
           data: actualDataSeries,
           lineStyle: {
-            color: '#3b82f6', // Blue
+            color: '#3b82f6',
             width: 3,
             type: 'solid',
           },
@@ -831,16 +734,15 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           symbol: 'circle',
           symbolSize: 6,
           smooth: false,
-          z: 10, // Higher z-index to appear on top
-          connectNulls: false, // Don't connect gaps in data
+          z: 10,
+          connectNulls: false,
         },
-        // Past projection line (based on original plan/theoretical calculation)
         {
           name: 'Past Projection',
           type: 'line' as const,
           data: theoreticalProjectionSeries,
           lineStyle: {
-            color: '#10b981', // Green
+            color: '#10b981',
             width: 2,
             type: 'dashed',
           },
@@ -852,13 +754,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           z: 8,
           connectNulls: false,
         },
-        // Current projection line (based on today's manual estimates from Progress page)
         {
           name: 'Current Projection',
           type: 'line' as const,
           data: projectedFromActualSeries,
           lineStyle: {
-            color: '#f59e0b', // Orange for current projection
+            color: '#f59e0b',
             width: 3,
             type: 'dashed',
           },
@@ -871,16 +772,14 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           z: 9,
           connectNulls: false,
         },
-        // Add "Today" and milestone markers using a dummy line series
         {
           name: 'Markers',
           type: 'line' as const,
-          data: [], // No data, just markers
+          data: [],
           markLine: {
             silent: false,
             symbol: ['none', 'none'],
             data: (() => {
-              // Map icon names to Unicode symbols
               const iconSymbols: Record<string, string> = {
                 flag: '🚩',
                 star: '⭐',
@@ -891,7 +790,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                 rocket: '🚀',
               }
 
-              // Filter milestones and calculate their indices
               const milestonesWithIndices = milestones
                 .filter(milestone => {
                   const milestoneDate = new Date(milestone.date)
@@ -904,7 +802,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                   const index = finalDays.findIndex(day => format(day, 'MMM dd') === dateStr)
 
                   if (index < 0) {
-                    console.warn(`Milestone "${milestone.title}" date not found in chart range`)
                     return null
                   }
 
@@ -912,7 +809,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                 })
                 .filter((item): item is { milestone: Milestone; index: number } => item !== null)
 
-              // Create all markers including Today and Project Complete
               const allMarkers: Array<{
                 index: number
                 type: 'today' | 'milestone' | 'complete'
@@ -926,7 +822,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                 }))
               ]
 
-              // Add Project Complete marker if applicable
               if (completionDayIndex > -1) {
                 allMarkers.push({
                   index: completionDayIndex,
@@ -934,31 +829,25 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                 })
               }
 
-              // Sort all markers by index
               allMarkers.sort((a, b) => a.index - b.index)
 
-              // Calculate stair-step offsets for overlapping labels
               const proximityThreshold = 5
               const baseDistance = 5
-              const distanceIncrement = 20 // pixels to offset each overlapping label
+              const distanceIncrement = 25
 
               let currentOffset = 0
               let previousIndex = -999
 
               return allMarkers.map((marker, i) => {
-                // Check if this marker is close to the previous one
                 if (i > 0 && (marker.index - previousIndex) < proximityThreshold) {
-                  // Increment offset for overlapping marker
                   currentOffset += distanceIncrement
                 } else {
-                  // Reset offset for well-separated markers
                   currentOffset = 0
                 }
 
                 previousIndex = marker.index
 
                 if (marker.type === 'today') {
-                  // Today marker
                   return {
                     name: 'Today',
                     xAxis: marker.index,
@@ -967,7 +856,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                       position: 'end' as const,
                       formatter: 'Today',
                       color: '#ef4444',
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: 'bold' as const,
                       distance: baseDistance + currentOffset,
                       rotate: 0,
@@ -979,7 +868,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                     },
                   }
                 } else if (marker.type === 'complete') {
-                  // Project Complete marker
                   return {
                     name: 'Project Complete',
                     xAxis: marker.index,
@@ -988,7 +876,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                       position: 'end' as const,
                       formatter: '🎉 Project Complete',
                       color: '#10b981',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 600 as const,
                       distance: baseDistance + currentOffset,
                       rotate: 0,
@@ -1000,15 +888,9 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                     },
                   }
                 } else {
-                  // Milestone marker
                   const milestone = marker.milestone!
                   const normalizedIcon = (milestone.icon || '').trim().toLowerCase()
                   const iconSymbol = iconSymbols[normalizedIcon] || '📍'
-
-                  // Debug: Log if icon is not found
-                  if (!iconSymbols[normalizedIcon]) {
-                    console.warn(`⚠️ Unknown milestone icon "${milestone.icon}" for milestone "${milestone.title}". Using fallback.`)
-                  }
 
                   return {
                     name: milestone.title,
@@ -1018,7 +900,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
                       position: 'end' as const,
                       formatter: `${iconSymbol} ${milestone.title}`,
                       color: milestone.color,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 600 as const,
                       distance: baseDistance + currentOffset,
                       rotate: 0,
@@ -1039,7 +921,6 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     chartInstance.current.setOption(option)
 
-    // Handle window resize
     const handleResize = () => {
       chartInstance.current?.resize()
     }
@@ -1054,72 +935,32 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     }
   }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getProjectResources, getTaskDependencies, progressSnapshots])
 
-  const handleExportPNG = async () => {
-    if (chartInstance.current) {
-      const url = chartInstance.current.getDataURL({
-        type: 'png',
-        pixelRatio: 2,
-        backgroundColor: '#fff'
-      })
-
-      // Add watermark to the chart
-      const watermarkedUrl = await addWatermarkToChart(url)
-
-      const link = document.createElement('a')
-      link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '-')}-burndown-chart.png`
-      link.href = watermarkedUrl
-      link.click()
-    }
-  }
-
   return (
-    <>
-      <div className="w-full relative">
-        <div className="absolute top-2 right-2 z-10 flex gap-2">
+    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-navy-800 rounded-lg shadow-2xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 border-b border-navy-200 dark:border-navy-700">
+          <h2 className="text-xl font-bold text-navy-900 dark:text-white">
+            Expanded Daily View - {projectTitle}
+          </h2>
           <button
-            onClick={() => setShowExpandedView(true)}
-            className="p-2 bg-white dark:bg-navy-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-navy-200 dark:border-navy-600 group"
-            title="Expand to full screen daily view"
+            onClick={onClose}
+            className="p-2 text-navy-400 hover:text-navy-600 dark:hover:text-navy-300 transition-colors rounded-lg hover:bg-navy-100 dark:hover:bg-navy-700"
+            title="Close"
           >
-            <svg
-              className="w-5 h-5 text-navy-600 dark:text-navy-300 group-hover:text-salmon-600 dark:group-hover:text-salmon-500 transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-            </svg>
-          </button>
-          <button
-            onClick={handleExportPNG}
-            className="p-2 bg-white dark:bg-navy-700 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-navy-200 dark:border-navy-600 group"
-            title="Export as PNG"
-          >
-            <svg
-              className="w-5 h-5 text-navy-600 dark:text-navy-300 group-hover:text-salmon-600 dark:group-hover:text-salmon-500 transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div ref={chartRef} style={{ width: '100%', height: '500px' }} />
-      </div>
 
-      {showExpandedView && (
-        <ExpandedBurndownChart
-          projectId={projectId}
-          projectTitle={projectTitle}
-          projectStartDate={projectStartDate}
-          tasks={tasks}
-          milestones={milestones}
-          onClose={() => setShowExpandedView(false)}
-        />
-      )}
-    </>
+        {/* Chart Content */}
+        <div className="flex-1 p-4 overflow-hidden">
+          <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
+        </div>
+      </div>
+    </div>
   )
 }
 
-export default BurndownChart
+export default ExpandedBurndownChart
