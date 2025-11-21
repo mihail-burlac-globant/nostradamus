@@ -3,6 +3,7 @@ import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
 import { format, eachDayOfInterval, isAfter, startOfDay, isWeekend } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
+import { getResourceIconEmoji } from '../../utils/resourceIconEmojis'
 import {
   calculateRecentVelocity,
   calculatePlannedVelocity,
@@ -106,7 +107,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
 
     // Calculate dates for all tasks
     const taskDateMap = new Map<string, { start: Date; end: Date }>()
-    const validTasks = tasks.map(task => {
+    const tasksWithDates = tasks.map(task => {
       const dates = calculateTaskDates(task, taskDateMap)
       return {
         ...task,
@@ -114,6 +115,36 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         endDate: dates.end.toISOString().split('T')[0]
       }
     })
+
+    // Topological sort: order tasks by dependencies (first to be done first)
+    const topologicalSort = (tasks: typeof tasksWithDates): typeof tasksWithDates => {
+      const sorted: typeof tasksWithDates = []
+      const visited = new Set<string>()
+      const visiting = new Set<string>()
+
+      const visit = (task: typeof tasksWithDates[0]) => {
+        if (visited.has(task.id)) return
+        if (visiting.has(task.id)) return // Cycle detection
+
+        visiting.add(task.id)
+
+        // Visit dependencies first
+        const deps = getTaskDependencies(task.id)
+        deps.forEach(depTask => {
+          const depWithDates = tasks.find(t => t.id === depTask.id)
+          if (depWithDates) visit(depWithDates)
+        })
+
+        visiting.delete(task.id)
+        visited.add(task.id)
+        sorted.push(task)
+      }
+
+      tasks.forEach(task => visit(task))
+      return sorted
+    }
+
+    const validTasks = topologicalSort(tasksWithDates)
 
     if (validTasks.length === 0) {
       if (chartInstance.current) {
@@ -632,11 +663,37 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
             const total = data.baseValue + data.scopeValue
             const scopeIndicator = data.scopeValue > 0 ? ` (+${data.scopeValue.toFixed(1)})` : ''
 
+            // Find task and get resource info
+            const task = validTasks.find(t => t.title === taskName)
+            let resourceInfo = ''
+            if (task) {
+              const resources = getTaskResources(task.id)
+              if (resources.length > 0) {
+                // Group resources by type and count
+                const resourceGroups = new Map<string, { emoji: string; count: number }>()
+                resources.forEach(resource => {
+                  const existing = resourceGroups.get(resource.id) || {
+                    emoji: getResourceIconEmoji(resource.icon),
+                    count: 0
+                  }
+                  existing.count += resource.numberOfProfiles || 1
+                  resourceGroups.set(resource.id, existing)
+                })
+
+                // Build resource display string
+                const resourceParts: string[] = []
+                resourceGroups.forEach(({ emoji, count }) => {
+                  resourceParts.push(`${emoji} ${count}x`)
+                })
+                resourceInfo = ` <span style="color: #9ca3af; font-size: 11px;">(${resourceParts.join(', ')})</span>`
+              }
+            }
+
             result += `
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 4px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <span style="display: inline-block; width: 12px; height: 12px; background-color: ${data.color};"></span>
-                  <span style="font-size: 12px; color: #374151;">${taskName}</span>
+                  <span style="font-size: 12px; color: #374151;">${taskName}${resourceInfo}</span>
                 </div>
                 <span style="font-size: 12px; font-weight: 600; color: #1f2937;">
                   ${total.toFixed(1)}d${data.scopeValue > 0 ? `<span style="color: #ef4444;">${scopeIndicator}</span>` : ''}
