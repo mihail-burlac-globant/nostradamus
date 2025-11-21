@@ -310,15 +310,45 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           // Calculate total effort
           const totalEffort = taskResources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
 
+          // Map icon IDs to emoji representations
+          const iconEmojis: Record<string, string> = {
+            'react': '⚛️',
+            'vue': '🅥',
+            'angular': '🅰️',
+            'nodejs': '🟢',
+            'python': '🐍',
+            'java': '☕',
+            'php': '🐘',
+            'dotnet': '⚙️',
+            'ios': '🍎',
+            'android': '🤖',
+            'database': '🗄️',
+            'cloud': '☁️',
+            'server': '🖥️',
+            'docker': '🐳',
+            'git': '📦',
+            'kubernetes': '☸️',
+            'typescript': '📘',
+            'javascript': '📜',
+            'design': '🎨',
+            'testing': '✅',
+            'project-manager': '📊',
+            'product-owner': '💡',
+            'architect': '🏗️',
+            'ai': '🤖',
+            'generic': '📋'
+          }
+
           const resourcesHtml = taskResources.length > 0
             ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
                 <div style="font-weight: 600; margin-bottom: 4px; color: #374151;">Resources:</div>
                 ${taskResources.map(resource => {
                   const numberOfProfiles = resource.numberOfProfiles || 1
                   const multiplier = numberOfProfiles > 1 ? `${numberOfProfiles}x ` : ''
+                  const iconEmoji = iconEmojis[resource.icon] || iconEmojis['generic']
                   return `
                     <div style="display: flex; justify-content: space-between; margin-top: 2px;">
-                      <span style="color: #6b7280;">• ${multiplier}${resource.title}</span>
+                      <span style="color: #6b7280;">${iconEmoji} ${multiplier}${resource.title}</span>
                       <span style="color: #9ca3af; font-size: 11px;">${resource.estimatedDays}d @ ${resource.focusFactor}%</span>
                     </div>
                   `
