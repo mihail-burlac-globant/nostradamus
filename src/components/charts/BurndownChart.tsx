@@ -12,6 +12,7 @@ import {
 } from '../../utils/velocityCalculations'
 import { addWatermarkToChart } from '../../utils/chartWatermark'
 import ExpandedBurndownChart from './ExpandedBurndownChart'
+import BurndownMetricsPanel from '../BurndownMetricsPanel'
 
 interface BurndownChartProps {
   projectId: string
@@ -26,6 +27,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
   const chartInstance = useRef<echarts.ECharts | null>(null)
   const { getTaskResources, getProjectResources, getTaskDependencies, progressSnapshots } = useEntitiesStore()
   const [showExpandedView, setShowExpandedView] = useState(false)
+  const [showMetrics, setShowMetrics] = useState(true)
 
   useEffect(() => {
     if (!chartRef.current || tasks.length === 0) return
@@ -1116,6 +1118,35 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           </button>
         </div>
         <div ref={chartRef} style={{ width: '100%', height: '500px' }} />
+      </div>
+
+      {/* Scope Change Metrics Panel */}
+      <div className="mt-6">
+        <button
+          onClick={() => setShowMetrics(!showMetrics)}
+          className="flex items-center justify-between w-full px-6 py-3 bg-white dark:bg-navy-800 border border-navy-200 dark:border-navy-700 rounded-lg hover:bg-navy-50 dark:hover:bg-navy-750 transition-colors"
+        >
+          <span className="text-lg font-semibold text-navy-900 dark:text-navy-100">
+            Scope Change Metrics
+          </span>
+          <svg
+            className={`w-5 h-5 text-navy-600 dark:text-navy-400 transition-transform ${showMetrics ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {showMetrics && (
+          <div className="mt-4">
+            <BurndownMetricsPanel
+              tasks={tasks}
+              progressSnapshots={progressSnapshots}
+              projectId={projectId}
+            />
+          </div>
+        )}
       </div>
 
       {showExpandedView && (
