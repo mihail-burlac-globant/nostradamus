@@ -853,9 +853,9 @@ const TasksPage = () => {
             </div>
 
             {/* Tasks - Progress View, Cards View, or List View */}
-        {viewMode === 'progress' ? (
-          // Progress View - Inline Editing
-          <div className="space-y-4">
+            {viewMode === 'progress' ? (
+              // Progress View - Inline Editing
+              <div className="space-y-4">
             {/* Progress View Controls */}
             <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
               <div className="flex flex-wrap gap-4 items-end mb-4">
@@ -1172,10 +1172,10 @@ const TasksPage = () => {
               }
               return null
             })()}
-          </div>
-        ) : viewMode === 'cards' ? (
-          // Kanban Board View
-          <div className="mt-6">
+              </div>
+            ) : viewMode === 'cards' ? (
+              // Kanban Board View
+              <div className="mt-6">
             {filteredTasks.length === 0 ? (
               <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
                 <p className="text-navy-500 dark:text-navy-400">No tasks found. Create your first task!</p>
@@ -1209,10 +1209,10 @@ const TasksPage = () => {
                 calculateTotalEstimate={calculateTotalEstimate}
               />
             )}
-          </div>
-        ) : (
-          // List View (Detailed or Compact)
-          <div className="space-y-8">
+              </div>
+            ) : (
+              // List View (Detailed or Compact)
+              <div className="space-y-8">
             {Object.entries(groupedTasks).length === 0 ? (
               <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
                 <p className="text-navy-500 dark:text-navy-400">No tasks found. Create your first task!</p>
@@ -1381,8 +1381,8 @@ const TasksPage = () => {
               </div>
             ))
           )}
-          </div>
-        )
+              </div>
+            )
           </>
         )}
 
