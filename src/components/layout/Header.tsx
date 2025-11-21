@@ -124,6 +124,12 @@ const Header = () => {
               <NavLink to="/tasks" className={navLinkClass}>
                 Tasks
               </NavLink>
+              <NavLink to="/progress" className={navLinkClass}>
+                Progress
+              </NavLink>
+              <NavLink to="/estimates" className={navLinkClass}>
+                Estimates
+              </NavLink>
               <NavLink to="/resources" className={navLinkClass}>
                 Resources
               </NavLink>
