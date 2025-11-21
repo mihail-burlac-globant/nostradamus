@@ -56,8 +56,8 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           return depDates.end
         })
         earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
-        // Add 1 day buffer after dependency completes
-        earliestStart.setDate(earliestStart.getDate() + 1)
+        // The end date already represents when the dependency is complete
+        // Dependent task can start immediately (no extra buffer needed)
       } else {
         // No dependencies - use task start date or project start date
         if (task.startDate) {
@@ -216,16 +216,23 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       const dateKey = format(date, 'yyyy-MM-dd')
 
       if (!isFuture) {
-        // For past dates and today: use manual remaining estimate from snapshot (if available)
+        // For past dates and today: calculate theoretical remaining based on progress
+        // Scope increases will be shown separately in the scope increase bars
         validTasks.forEach(task => {
           const idx = validTasks.indexOf(task)
           const snapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
 
           let remainingForDay: number
+          let manualRemainingForDay: number
+
           if (snapshot) {
-            // Use the MANUAL remaining estimate from the snapshot
-            // This is what the user set on the Progress page
-            remainingForDay = snapshot.remainingEstimate
+            // Calculate theoretical remaining based on progress
+            const resources = getTaskResources(task.id)
+            const totalEffort = resources.reduce((sum, resource) => {
+              return sum + resource.estimatedDays
+            }, 0)
+            remainingForDay = totalEffort * (1 - snapshot.progress / 100)
+            manualRemainingForDay = snapshot.remainingEstimate
           } else {
             // No snapshot - calculate theoretical remaining from current progress
             const resources = getTaskResources(task.id)
@@ -233,13 +240,14 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
               return sum + resource.estimatedDays
             }, 0)
             remainingForDay = totalEffort * (1 - task.progress / 100)
+            manualRemainingForDay = remainingForDay
           }
 
           taskRemainingByDay[idx].data.push(remainingForDay)
 
-          // Initialize simulation with today's values for future projections
+          // Initialize simulation with today's MANUAL values for future projections
           if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-            taskRemainingSimulation.set(task.id, remainingForDay)
+            taskRemainingSimulation.set(task.id, manualRemainingForDay)
           }
         })
       } else {

@@ -88,8 +88,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           return depDates.end
         })
         earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
-        // Skip to next working day after dependency completes
-        earliestStart = addWorkingDays(earliestStart, 1)
+        // The end date already represents the next available working day after completion
+        // No need to add an extra day - dependent task can start immediately
       } else {
         // No dependencies - use task start date or project start date
         if (task.startDate) {
