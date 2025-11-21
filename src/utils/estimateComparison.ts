@@ -16,6 +16,7 @@ export interface TaskEstimateComparison {
   status: 'on-track' | 'scope-creep' | 'major-issues'
   lastUpdated?: string // Date of last progress snapshot
   hasSnapshot: boolean
+  duration: number // Calendar days = max(estimatedDays / (numberOfProfiles * focusFactor)) across all resources
   resources: Array<{
     id: string
     title: string
@@ -39,6 +40,15 @@ export const calculateTaskEstimateComparison = (
   const originalEstimate = taskResources.reduce((sum, resource) => {
     return sum + resource.estimatedDays
   }, 0)
+
+  // Calculate duration (max duration across all resources, since they work in parallel)
+  // Formula: duration = estimatedDays / (numberOfProfiles * focusFactor)
+  const duration = taskResources.length > 0
+    ? Math.max(...taskResources.map(resource => {
+        const focusDecimal = resource.focusFactor / 100
+        return Math.ceil(resource.estimatedDays / (resource.numberOfProfiles * focusDecimal))
+      }))
+    : 0
 
   // Get latest progress snapshot for this task
   const taskSnapshots = progressSnapshots
@@ -108,6 +118,7 @@ export const calculateTaskEstimateComparison = (
     status,
     lastUpdated,
     hasSnapshot,
+    duration,
     resources: taskResources.map(r => ({
       id: r.id,
       title: r.title,
