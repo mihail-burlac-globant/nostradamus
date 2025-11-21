@@ -471,10 +471,20 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               scopeIncreaseWidth = totalWidth - baseWidth
             }
 
+            // Determine if task is in the past (ended before today)
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const taskEndDate = new Date(task.endDate!)
+            taskEndDate.setHours(0, 0, 0, 0)
+            const isPast = taskEndDate < today
+
+            // Inverse opacity: past = 0.3, future = 1.0
+            const taskOpacity = isPast ? 0.3 : 1.0
+
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const children: any[] = [
-              // Background bar (remaining work) with reduced opacity - base portion
+              // Background bar (remaining work) - base portion
               {
                 type: 'rect',
                 shape: {
@@ -485,10 +495,10 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
                 style: {
                   fill: color,
-                  opacity: 0.3,
+                  opacity: taskOpacity * 0.4, // Lighter shade for remaining work
                 },
               },
-              // Foreground bar (completed work) with full opacity
+              // Foreground bar (completed work)
               {
                 type: 'rect',
                 shape: {
@@ -499,7 +509,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
                 style: {
                   fill: color,
-                  opacity: 1,
+                  opacity: taskOpacity,
                 },
               },
             ]
@@ -518,7 +528,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                   },
                   style: {
                     fill: color,
-                    opacity: 0.15,
+                    opacity: taskOpacity * 0.2, // Apply same past/future logic
                   },
                 },
                 // Red border around scope increase
@@ -534,6 +544,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                     fill: 'transparent',
                     stroke: '#ef4444',
                     lineWidth: 2,
+                    opacity: taskOpacity, // Apply same past/future logic to border
                   },
                 }
               )
@@ -552,8 +563,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                   fill: '#fff',
                   fontSize: 11,
                   fontWeight: 'bold',
-                  textShadowColor: 'rgba(0,0,0,0.5)',
+                  textShadowColor: `rgba(0,0,0,${taskOpacity * 0.5})`,
                   textShadowBlur: 2,
+                  opacity: taskOpacity, // Apply same past/future logic to text
                 },
               })
             }
