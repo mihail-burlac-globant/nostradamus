@@ -686,8 +686,12 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       yAxis: {
         type: 'value',
         name: 'Remaining Effort (person-days)',
+        nameLocation: 'middle',
+        nameRotate: 90,
+        nameGap: 50,
         nameTextStyle: {
           color: textColor,
+          fontSize: 12,
         },
         axisLabel: {
           color: textColor,
