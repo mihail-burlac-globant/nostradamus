@@ -733,51 +733,6 @@ const TasksPage = () => {
             {/* Second Row: View Options on Left, Action Buttons on Right */}
             <div className="mb-6 flex gap-6 items-center flex-wrap justify-between">
               <div className="flex gap-4 items-center">
-                <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
-                <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
-                  <button
-                    onClick={() => setViewMode('detailed')}
-                    className={`
-                      px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                      ${
-                        viewMode === 'detailed'
-                          ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                          : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                      }
-                    `}
-                  >
-                    Detailed
-                  </button>
-                  <button
-                    onClick={() => setViewMode('compact')}
-                    className={`
-                      px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                      ${
-                        viewMode === 'compact'
-                          ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                          : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                      }
-                    `}
-                  >
-                    Compact
-                  </button>
-                  <button
-                    onClick={() => setViewMode('cards')}
-                    className={`
-                      px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                      ${
-                        viewMode === 'cards'
-                          ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                          : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                      }
-                    `}
-                  >
-                    Cards
-                  </button>
-                </div>
-              </div>
-
-                <div className="flex gap-4 items-center">
                   <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
                   <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
                     <button
