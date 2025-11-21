@@ -891,6 +891,211 @@ export const canTaskBeStarted = (taskId: string): boolean => {
 }
 
 // ============================================================================
+// Task Date Calculation and Update
+// ============================================================================
+
+/**
+ * Helper function to check if a date is a weekend
+ */
+const isWeekend = (date: Date): boolean => {
+  const day = date.getDay()
+  return day === 0 || day === 6
+}
+
+/**
+ * Helper function to add working days to a date (excluding weekends)
+ */
+const addWorkingDays = (startDate: Date, days: number): Date => {
+  let current = new Date(startDate)
+  let remainingDays = days
+
+  while (remainingDays > 0) {
+    current.setDate(current.getDate() + 1)
+    if (!isWeekend(current)) {
+      remainingDays--
+    }
+  }
+
+  return current
+}
+
+/**
+ * Helper function to skip to next weekday if date falls on weekend
+ */
+const skipToNextWeekday = (date: Date): Date => {
+  const result = new Date(date)
+  while (isWeekend(result)) {
+    result.setDate(result.getDate() + 1)
+  }
+  return result
+}
+
+/**
+ * Calculate duration for a task based on its resources
+ */
+const calculateTaskDuration = (taskId: string, progressSnapshots: ProgressSnapshot[]): number => {
+  const resources = getTaskResources(taskId)
+
+  // Check for progress snapshot with remaining estimate
+  const today = new Date()
+  const taskSnapshots = progressSnapshots
+    .filter(s => s.taskId === taskId && new Date(s.date) <= today)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const latestSnapshot = taskSnapshots.length > 0 ? taskSnapshots[0] : undefined
+
+  if (latestSnapshot && latestSnapshot.remainingEstimate > 0) {
+    // Use remaining estimate from progress snapshot
+    const totalEffort = resources.reduce((sum, resource) => {
+      const numberOfProfiles = resource.numberOfProfiles || 1
+      const focusFactor = (resource.focusFactor || 100) / 100
+      return sum + (numberOfProfiles * focusFactor)
+    }, 0)
+
+    const duration = totalEffort > 0 ? latestSnapshot.remainingEstimate / totalEffort : latestSnapshot.remainingEstimate
+    return Math.ceil(duration)
+  } else {
+    // Use original estimates from task resources
+    const resourceDurations: number[] = []
+    resources.forEach(taskResource => {
+      const workDays = taskResource.estimatedDays
+      const numberOfProfiles = taskResource.numberOfProfiles || 1
+      const focusFactor = (taskResource.focusFactor || 100) / 100
+      const duration = workDays / (numberOfProfiles * focusFactor)
+      resourceDurations.push(duration)
+    })
+
+    // Task duration is the longest duration among all resource types (they work in parallel)
+    return resourceDurations.length > 0 ? Math.ceil(Math.max(...resourceDurations)) : 1
+  }
+}
+
+/**
+ * Recalculate and update task dates for an entire project based on dependencies and resources.
+ * This ensures that when a task's duration changes, all dependent tasks are shifted accordingly.
+ *
+ * @param projectId - The ID of the project whose tasks should be recalculated
+ */
+export const recalculateProjectTaskDates = (projectId: string): void => {
+  const project = getProjectById(projectId)
+  if (!project) return
+
+  // Get all tasks for this project
+  const tasks = getTasks(projectId)
+  if (tasks.length === 0) return
+
+  // Get all progress snapshots for date calculation
+  const progressSnapshots = getAllProgressSnapshots()
+
+  // Project start date
+  const projectStartDate = project.startDate ? new Date(project.startDate) : new Date()
+
+  // Map to store calculated dates
+  const taskDateMap = new Map<string, { start: Date; end: Date }>()
+
+  /**
+   * Recursively calculate task dates based on dependencies
+   */
+  const calculateTaskDates = (task: Task): { start: Date; end: Date } => {
+    // Check if already calculated (caching for performance)
+    if (taskDateMap.has(task.id)) {
+      return taskDateMap.get(task.id)!
+    }
+
+    // Get dependencies
+    const dependencies = getTaskDependencies(task.id)
+
+    // Calculate earliest start date based on dependencies
+    let earliestStart: Date
+    if (dependencies.length > 0) {
+      // Task can't start until all dependencies are complete
+      // Recursively calculate dependency end dates
+      const dependencyEndDates = dependencies.map(dep => {
+        const depDates = calculateTaskDates(dep)
+        return depDates.end
+      })
+      earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
+    } else {
+      // No dependencies - use task start date or project start date
+      if (task.startDate) {
+        earliestStart = new Date(task.startDate)
+      } else {
+        earliestStart = new Date(projectStartDate)
+      }
+      // Make sure start date is not on a weekend
+      earliestStart = skipToNextWeekday(earliestStart)
+    }
+
+    // Check if task is in progress
+    const today = new Date()
+    const taskSnapshots = progressSnapshots
+      .filter(s => s.taskId === task.id && new Date(s.date) <= today)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const todaySnapshot = taskSnapshots.length > 0 ? taskSnapshots[0] : undefined
+
+    // If task is in progress, use today as start if it's later than dependency-based start
+    if (todaySnapshot && todaySnapshot.progress > 0 && todaySnapshot.remainingEstimate > 0) {
+      const todayAsStart = skipToNextWeekday(today)
+      earliestStart = new Date(Math.max(earliestStart.getTime(), todayAsStart.getTime()))
+    }
+
+    // Calculate duration
+    const durationDays = calculateTaskDuration(task.id, progressSnapshots)
+
+    // Calculate end date using working days (excluding weekends)
+    const endDate = addWorkingDays(earliestStart, durationDays)
+
+    const result = { start: earliestStart, end: endDate }
+    taskDateMap.set(task.id, result)
+    return result
+  }
+
+  // Calculate dates for all tasks
+  tasks.forEach(task => {
+    const dates = calculateTaskDates(task)
+
+    // Update task in database with calculated dates
+    const startDateStr = dates.start.toISOString().split('T')[0]
+    const endDateStr = dates.end.toISOString().split('T')[0]
+
+    // Only update if dates have changed
+    if (task.startDate !== startDateStr || task.endDate !== endDateStr) {
+      updateTask(task.id, {
+        startDate: startDateStr,
+        endDate: endDateStr
+      })
+    }
+  })
+}
+
+/**
+ * Get all progress snapshots (helper function)
+ */
+const getAllProgressSnapshots = (): ProgressSnapshot[] => {
+  const database = getDatabase()
+  const result = database.exec('SELECT * FROM progress_snapshots')
+
+  if (result.length === 0) return []
+
+  const snapshots: ProgressSnapshot[] = []
+  result[0].values.forEach((row) => {
+    snapshots.push({
+      id: row[0] as string,
+      taskId: row[1] as string,
+      projectId: row[2] as string,
+      date: row[3] as string,
+      remainingEstimate: row[4] as number,
+      status: row[5] as 'Todo' | 'In Progress' | 'Done',
+      progress: row[6] as number,
+      notes: (row[7] as string | null) || undefined,
+      createdAt: row[8] as string,
+      updatedAt: row[9] as string,
+    })
+  })
+
+  return snapshots
+}
+
+// ============================================================================
 // Milestone CRUD Operations
 // ============================================================================
 

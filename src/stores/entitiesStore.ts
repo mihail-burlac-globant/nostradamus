@@ -43,6 +43,7 @@ import {
   updateProgressSnapshot,
   deleteProgressSnapshot,
   deleteProgressSnapshotsForTask,
+  recalculateProjectTaskDates,
 } from '../services/database'
 
 interface EntitiesState {
@@ -242,7 +243,11 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   },
 
   editTask: (id, updates) => {
+    const task = get().tasks.find(t => t.id === id)
     updateTask(id, updates)
+    if (task?.projectId) {
+      recalculateProjectTaskDates(task.projectId)
+    }
     get().loadTasks()
   },
 
@@ -277,11 +282,19 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   },
 
   assignResourceToTask: (taskId, resourceId, estimatedDays, focusFactor, numberOfProfiles) => {
+    const task = get().tasks.find(t => t.id === taskId)
     assignResourceToTask(taskId, resourceId, estimatedDays, focusFactor, numberOfProfiles)
+    if (task?.projectId) {
+      recalculateProjectTaskDates(task.projectId)
+    }
   },
 
   removeResourceFromTask: (taskId, resourceId) => {
+    const task = get().tasks.find(t => t.id === taskId)
     removeResourceFromTask(taskId, resourceId)
+    if (task?.projectId) {
+      recalculateProjectTaskDates(task.projectId)
+    }
   },
 
   getTaskResources: (taskId) => {
@@ -290,11 +303,19 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
 
   // Task dependency actions
   addTaskDependency: (taskId, dependsOnTaskId) => {
+    const task = get().tasks.find(t => t.id === taskId)
     addTaskDependency(taskId, dependsOnTaskId)
+    if (task?.projectId) {
+      recalculateProjectTaskDates(task.projectId)
+    }
   },
 
   removeTaskDependency: (taskId, dependsOnTaskId) => {
+    const task = get().tasks.find(t => t.id === taskId)
     removeTaskDependency(taskId, dependsOnTaskId)
+    if (task?.projectId) {
+      recalculateProjectTaskDates(task.projectId)
+    }
   },
 
   getTaskDependencies: (taskId) => {
@@ -343,13 +364,24 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
     const newSnapshot = createProgressSnapshot(snapshot)
     const progressSnapshots = getProgressSnapshots()
     set({ progressSnapshots })
+    // Recalculate task dates since progress snapshots affect duration
+    if (snapshot.projectId) {
+      recalculateProjectTaskDates(snapshot.projectId)
+      get().loadTasks()
+    }
     return newSnapshot
   },
 
   editProgressSnapshot: (id, updates) => {
+    const existingSnapshot = get().progressSnapshots.find(s => s.id === id)
     updateProgressSnapshot(id, updates)
     const progressSnapshots = getProgressSnapshots()
     set({ progressSnapshots })
+    // Recalculate task dates since progress snapshots affect duration
+    if (existingSnapshot?.projectId) {
+      recalculateProjectTaskDates(existingSnapshot.projectId)
+      get().loadTasks()
+    }
   },
 
   removeProgressSnapshot: (id) => {
