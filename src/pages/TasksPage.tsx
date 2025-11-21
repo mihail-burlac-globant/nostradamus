@@ -680,59 +680,62 @@ const TasksPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-50 to-salmon-50 dark:from-gray-950 dark:to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* First Row: Page Title on Left, Project Selector + Tabs on Right */}
+        {/* Page Title with Tabs on Right */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-bold text-navy-800 dark:text-navy-100">Tasks & Milestones</h1>
-          <div className="flex items-center gap-4">
-            <select
-              value={selectedProjectFilter}
-              onChange={(e) => setSelectedProjectFilter(e.target.value)}
-              className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+          <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`
+                px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
+                ${
+                  activeTab === 'tasks'
+                    ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                    : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                }
+              `}
             >
-              <option value="all">All Projects</option>
-              {activeProjects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.title}
-                </option>
-              ))}
-            </select>
-            <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
-              <button
-                onClick={() => setActiveTab('tasks')}
-                className={`
-                  px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
-                  ${
-                    activeTab === 'tasks'
-                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                  }
-                `}
-              >
-                Tasks
-              </button>
-              <button
-                onClick={() => setActiveTab('milestones')}
-                className={`
-                  px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
-                  ${
-                    activeTab === 'milestones'
-                      ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
-                      : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
-                  }
-                `}
-              >
-                Milestones
-              </button>
-            </div>
+              Tasks
+            </button>
+            <button
+              onClick={() => setActiveTab('milestones')}
+              className={`
+                px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200
+                ${
+                  activeTab === 'milestones'
+                    ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-sm'
+                    : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                }
+              `}
+            >
+              Milestones
+            </button>
           </div>
         </div>
 
         {/* Tasks Tab Content */}
         {activeTab === 'tasks' && (
           <>
-            {/* Second Row: View Options on Left, Action Buttons on Right */}
+            {/* Filters and Actions */}
             <div className="mb-6 flex gap-6 items-center flex-wrap justify-between">
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-6 items-center flex-wrap">
+                <div className="flex gap-4 items-center">
+                  <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
+                  <select
+                    value={selectedProjectFilter}
+                    onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                    className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                  >
+                    <option value="all">All Projects</option>
+                    {activeProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-4 items-center">
                   <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
                   <div className="inline-flex bg-navy-50 dark:bg-navy-900 rounded-lg p-1 gap-1">
                     <button
@@ -853,9 +856,9 @@ const TasksPage = () => {
             </div>
 
             {/* Tasks - Progress View, Cards View, or List View */}
-            {viewMode === 'progress' ? (
-              // Progress View - Inline Editing
-              <div className="space-y-4">
+        {viewMode === 'progress' ? (
+          // Progress View - Inline Editing
+          <div className="space-y-4">
             {/* Progress View Controls */}
             <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
               <div className="flex flex-wrap gap-4 items-end mb-4">
@@ -1172,10 +1175,10 @@ const TasksPage = () => {
               }
               return null
             })()}
-              </div>
-            ) : viewMode === 'cards' ? (
-              // Kanban Board View
-              <div className="mt-6">
+          </div>
+        ) : viewMode === 'cards' ? (
+          // Kanban Board View
+          <div className="mt-6">
             {filteredTasks.length === 0 ? (
               <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
                 <p className="text-navy-500 dark:text-navy-400">No tasks found. Create your first task!</p>
@@ -1209,10 +1212,10 @@ const TasksPage = () => {
                 calculateTotalEstimate={calculateTotalEstimate}
               />
             )}
-              </div>
-            ) : (
-              // List View (Detailed or Compact)
-              <div className="space-y-8">
+          </div>
+        ) : (
+          // List View (Detailed or Compact)
+          <div className="space-y-8">
             {Object.entries(groupedTasks).length === 0 ? (
               <div className="text-center py-12 bg-white dark:bg-navy-800 rounded-lg shadow-md">
                 <p className="text-navy-500 dark:text-navy-400">No tasks found. Create your first task!</p>
@@ -1381,16 +1384,32 @@ const TasksPage = () => {
               </div>
             ))
           )}
-              </div>
-            )
+          </div>
+        )}
           </>
         )}
 
         {/* Milestones Tab Content */}
         {activeTab === 'milestones' && (
           <>
-            {/* Actions for Milestones */}
-            <div className="mb-6 flex justify-end">
+            {/* Filter and Actions */}
+            <div className="mb-6 flex gap-6 items-center flex-wrap justify-between">
+              <div className="flex gap-4 items-center">
+                <label className="text-navy-700 dark:text-navy-300 font-medium">Filter by Project:</label>
+                <select
+                  value={selectedProjectFilter}
+                  onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                  className="px-4 py-2 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-800 text-navy-800 dark:text-navy-100 focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
+                >
+                  <option value="all">All Projects</option>
+                  {activeProjects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {selectedProjectFilter !== 'all' && (
                 <button
                   onClick={() => {
