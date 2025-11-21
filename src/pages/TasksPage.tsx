@@ -774,14 +774,8 @@ const TasksPage = () => {
                   >
                     Cards
                   </button>
-                    <option value="all">All Projects</option>
-                    {activeProjects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.title}
-                      </option>
-                    ))}
-                  </select>
                 </div>
+              </div>
 
                 <div className="flex gap-4 items-center">
                   <label className="text-navy-700 dark:text-navy-300 font-medium">View:</label>
