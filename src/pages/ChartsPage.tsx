@@ -3,8 +3,9 @@ import { useEntitiesStore } from '../stores/entitiesStore'
 import GanttChart from '../components/charts/GanttChart'
 import BurndownChart from '../components/charts/BurndownChart'
 import EstimateHistoryChart from '../components/charts/EstimateHistoryChart'
+import FocusFactorHistoryChart from '../components/charts/FocusFactorHistoryChart'
 
-type ChartType = 'gantt' | 'burndown' | 'history'
+type ChartType = 'gantt' | 'burndown' | 'history' | 'focus'
 
 const ChartsPage = () => {
   const {
@@ -227,6 +228,35 @@ const ChartsPage = () => {
                       </svg>
                       <span>History</span>
                     </button>
+
+                    <button
+                      onClick={() => setActiveChart('focus')}
+                      disabled={!selectedProject || projectTasks.length === 0}
+                      className={`
+                        px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200
+                        flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                        ${
+                          activeChart === 'focus'
+                            ? 'bg-white dark:bg-navy-700 text-salmon-600 dark:text-salmon-500 shadow-soft'
+                            : 'text-navy-600 dark:text-navy-400 hover:text-navy-900 dark:hover:text-navy-200'
+                        }
+                      `}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                      <span>Focus Factor</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -261,8 +291,14 @@ const ChartsPage = () => {
                       tasks={projectTasks}
                       milestones={projectMilestones}
                     />
-                  ) : (
+                  ) : activeChart === 'history' ? (
                     <EstimateHistoryChart
+                      projectId={selectedProjectId}
+                      projectTitle={selectedProject.title}
+                      tasks={projectTasks}
+                    />
+                  ) : (
+                    <FocusFactorHistoryChart
                       projectId={selectedProjectId}
                       projectTitle={selectedProject.title}
                       tasks={projectTasks}
