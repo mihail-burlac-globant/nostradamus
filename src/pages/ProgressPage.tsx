@@ -13,6 +13,7 @@ const ProgressPage = () => {
     progressSnapshots,
     loadProgressSnapshots,
     addProgressSnapshot,
+    removeProgressSnapshot,
     editTask,
     initialize,
     isInitialized,
@@ -106,8 +107,10 @@ const ProgressPage = () => {
       } else {
         // Calculate remaining estimate from resources
         const resources = getTaskResources(task.id)
+        // Total effort is the sum of estimated days (person-days of work)
+        // Focus factor affects duration/velocity, not the amount of work
         const totalEstimate = resources.reduce((sum, resource) => {
-          return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+          return sum + resource.estimatedDays
         }, 0)
         const remaining = totalEstimate * (1 - task.progress / 100)
         newEstimates[task.id] = Math.max(0, Number(remaining.toFixed(2)))
@@ -199,6 +202,50 @@ const ProgressPage = () => {
     setCurrentTaskForNotes(null)
   }
 
+  const handleResetEstimates = () => {
+    if (!confirm('Are you sure you want to reset all remaining estimates to their original values? This will remove all manual updates for the selected date.')) {
+      return
+    }
+
+    // Remove all snapshots for the selected date and filtered tasks
+    filteredTasks.forEach(task => {
+      const snapshot = progressSnapshots.find(
+        s => s.taskId === task.id && s.date === selectedDate
+      )
+      if (snapshot) {
+        removeProgressSnapshot(snapshot.id)
+      }
+    })
+
+    // Reload snapshots
+    loadProgressSnapshots()
+
+    // Force reinitialization by clearing the lastInitKey
+    lastInitKey.current = ''
+
+    // Trigger reinitialization
+    const newEstimates: Record<string, number> = {}
+    const newProgress: Record<string, number> = {}
+    const newNotes: Record<string, string> = {}
+
+    filteredTasks.forEach(task => {
+      // Calculate remaining estimate from resources (original values)
+      const resources = getTaskResources(task.id)
+      const totalEstimate = resources.reduce((sum, resource) => {
+        return sum + resource.estimatedDays
+      }, 0)
+      const remaining = totalEstimate * (1 - task.progress / 100)
+      newEstimates[task.id] = Math.max(0, Number(remaining.toFixed(2)))
+      newProgress[task.id] = task.progress
+      newNotes[task.id] = ''
+    })
+
+    setEstimates(newEstimates)
+    setProgressValues(newProgress)
+    setNotes(newNotes)
+    setChangedTasks(new Set())
+  }
+
   // Calculate total remaining work
   const totalRemaining = Object.values(estimates).reduce((sum, val) => sum + val, 0)
 
@@ -288,14 +335,26 @@ const ProgressPage = () => {
             </div>
           </div>
 
-          {/* Second Row: Total Remaining */}
-          <div className="bg-salmon-50 dark:bg-salmon-900/20 rounded-lg p-4 flex items-center justify-between">
-            <div className="text-sm font-medium text-salmon-700 dark:text-salmon-400">
-              Total Remaining
+          {/* Second Row: Total Remaining and Reset Button */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 bg-salmon-50 dark:bg-salmon-900/20 rounded-lg p-4 flex items-center justify-between">
+              <div className="text-sm font-medium text-salmon-700 dark:text-salmon-400">
+                Total Remaining
+              </div>
+              <div className="text-2xl font-bold text-salmon-800 dark:text-salmon-300">
+                {totalRemaining.toFixed(1)} days
+              </div>
             </div>
-            <div className="text-2xl font-bold text-salmon-800 dark:text-salmon-300">
-              {totalRemaining.toFixed(1)} days
-            </div>
+            <button
+              onClick={handleResetEstimates}
+              className="px-4 py-3 bg-navy-100 hover:bg-navy-200 dark:bg-navy-700 dark:hover:bg-navy-600 text-navy-700 dark:text-navy-300 rounded-lg font-medium transition-colors flex items-center gap-2"
+              title="Reset all estimates to original values"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reset Estimates
+            </button>
           </div>
         </div>
 
@@ -335,8 +394,10 @@ const ProgressPage = () => {
 
               const aggregatedResources = Array.from(resourceMap.values())
 
+              // Total effort is the sum of estimated days (person-days of work)
+              // Focus factor affects duration/velocity, not the amount of work
               const totalEffort = resources.reduce((sum, resource) => {
-                return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+                return sum + resource.estimatedDays
               }, 0)
 
               // Calculate actual progress based on remaining estimate
