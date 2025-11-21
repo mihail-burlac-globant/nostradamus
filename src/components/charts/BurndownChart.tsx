@@ -216,29 +216,30 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       const dateKey = format(date, 'yyyy-MM-dd')
 
       if (!isFuture) {
-        // For past dates and today: show theoretical remaining based on snapshot progress (if available)
+        // For past dates and today: use manual remaining estimate from snapshot (if available)
         validTasks.forEach(task => {
           const idx = validTasks.indexOf(task)
           const snapshot = projectSnapshots.find(s => s.taskId === task.id && s.date === dateKey)
 
-          let theoreticalRemaining: number
+          let remainingForDay: number
           if (snapshot) {
-            // Calculate theoretical remaining from snapshot's progress
+            // Use the MANUAL remaining estimate from the snapshot
+            // This is what the user set on the Progress page
+            remainingForDay = snapshot.remainingEstimate
+          } else {
+            // No snapshot - calculate theoretical remaining from current progress
             const resources = getTaskResources(task.id)
             const totalEffort = resources.reduce((sum, resource) => {
               return sum + resource.estimatedDays
             }, 0)
-            theoreticalRemaining = totalEffort * (1 - snapshot.progress / 100)
-          } else {
-            // No snapshot - use current remaining
-            theoreticalRemaining = taskCurrentRemaining.get(task.id) || 0
+            remainingForDay = totalEffort * (1 - task.progress / 100)
           }
 
-          taskRemainingByDay[idx].data.push(theoreticalRemaining)
+          taskRemainingByDay[idx].data.push(remainingForDay)
 
           // Initialize simulation with today's values for future projections
           if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-            taskRemainingSimulation.set(task.id, theoreticalRemaining)
+            taskRemainingSimulation.set(task.id, remainingForDay)
           }
         })
       } else {
