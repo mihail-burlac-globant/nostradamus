@@ -234,7 +234,7 @@ const TaskWizardDialog = ({ editingTask, projectId, onClose, onSubmit }: TaskWiz
           <div className="px-8 pt-6 pb-4 border-b border-navy-200 dark:border-navy-700">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-bold text-navy-900 dark:text-white">
-                {editingTask ? 'Edit Task' : 'Create New Task'}
+                {editingTask ? `Edit Task - ${editingTask.title}` : 'Create New Task'}
               </h2>
               <button
                 onClick={onClose}
@@ -392,15 +392,6 @@ const TaskWizardDialog = ({ editingTask, projectId, onClose, onSubmit }: TaskWiz
             {/* Step 2: Dependencies */}
             {currentStep === 2 && (
               <div className="space-y-4">
-                <div className="text-center py-4">
-                  <h3 className="text-lg font-semibold text-navy-900 dark:text-white mb-2">
-                    Task Dependencies
-                  </h3>
-                  <p className="text-sm text-navy-600 dark:text-navy-400">
-                    Select tasks that must be completed before this task can start
-                  </p>
-                </div>
-
                 {availableTasks.length === 0 ? (
                   <div className="text-center py-8 text-navy-500 dark:text-navy-400">
                     No other tasks available in this project
@@ -467,15 +458,6 @@ const TaskWizardDialog = ({ editingTask, projectId, onClose, onSubmit }: TaskWiz
             {/* Step 3: Resources */}
             {currentStep === 3 && (
               <div className="space-y-4">
-                <div className="text-center py-4">
-                  <h3 className="text-lg font-semibold text-navy-900 dark:text-white mb-2">
-                    Task Resources
-                  </h3>
-                  <p className="text-sm text-navy-600 dark:text-navy-400">
-                    Assign resources with estimation and focus factor
-                  </p>
-                </div>
-
                 {sortedResources.length === 0 ? (
                   <div className="text-center py-8 text-navy-500 dark:text-navy-400">
                     No resources assigned to this project
