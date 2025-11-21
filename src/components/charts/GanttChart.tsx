@@ -232,6 +232,10 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       }
     })
 
+    // Calculate today once for opacity calculations (before chartData mapping)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     // Convert tasks to chart format
     const chartData = validTasks.map((task) => {
       const startDate = new Date(task.startDate!)
@@ -242,6 +246,11 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       if (scopeInfo?.hasScopeIncrease) {
         endDate = addWorkingDays(endDate, Math.ceil(scopeInfo.scopeIncreaseDays))
       }
+
+      // Determine if task is in the past (ended before today)
+      const taskEndDate = new Date(task.endDate!)
+      taskEndDate.setHours(0, 0, 0, 0)
+      const isPast = taskEndDate < today
 
       // Determine color based on status
       let color = '#B3B3BA' // Default gray for Todo
@@ -267,6 +276,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           color: color,
         },
         scopeInfo: scopeInfo, // Pass scope info to renderItem
+        isPast: isPast, // Pass isPast flag to renderItem
       }
     })
 
@@ -427,6 +437,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
             const color = dataItem?.itemStyle?.color || '#B3B3BA'
             const progress = task.progress / 100
             const scopeInfo = dataItem?.scopeInfo
+            const isPast = dataItem?.isPast || false
 
             const totalWidth = end[0] - start[0]
             const completedWidth = totalWidth * progress
@@ -443,26 +454,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               scopeIncreaseWidth = totalWidth - baseWidth
             }
 
-            // Determine if task is in the past (ended before today)
-            const today = new Date()
-            today.setHours(0, 0, 0, 0)
-            const taskEndDate = new Date(task.endDate!)
-            taskEndDate.setHours(0, 0, 0, 0)
-            const isPast = taskEndDate < today
-
-            // Debug logging (remove after verification)
-            if (params.dataIndex === 0) {
-              console.log('🎨 Gantt Opacity Debug:', {
-                taskTitle: task.title,
-                taskEndDate: task.endDate,
-                today: today.toISOString().split('T')[0],
-                taskEndDateNormalized: taskEndDate.toISOString().split('T')[0],
-                isPast,
-                taskOpacity: isPast ? 1.0 : 0.3
-              })
-            }
-
-            // Inverse opacity: past = 1.0, future = 0.3
+            // Apply opacity: past = 1.0 (full color), future = 0.3 (faded)
             const taskOpacity = isPast ? 1.0 : 0.3
 
             // Create group of shapes to show progress
