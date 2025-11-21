@@ -55,6 +55,19 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       return result
     }
 
+    // Helper function to count working days between two dates
+    const countWorkingDays = (startDate: Date, endDate: Date): number => {
+      let count = 0
+      let current = new Date(startDate)
+      while (current < endDate) {
+        if (!isWeekend(current)) {
+          count++
+        }
+        current = addDays(current, 1)
+      }
+      return count
+    }
+
     // Calculate effective start and end dates for each task
     const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
       // Check if already calculated
@@ -90,10 +103,12 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
         earliestStart = skipToNextWeekday(earliestStart)
       }
 
-      // Check if there's a progress snapshot for TODAY with updated remaining estimate
+      // Find the MOST RECENT progress snapshot for this task (not just today)
       const today = new Date()
-      const todayDateKey = format(today, 'yyyy-MM-dd')
-      const todaySnapshot = progressSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
+      const taskSnapshots = progressSnapshots
+        .filter(s => s.taskId === task.id && new Date(s.date) <= today)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      const todaySnapshot = taskSnapshots.length > 0 ? taskSnapshots[0] : undefined
 
       // If we have a snapshot for today with progress > 0, task is in progress
       // Use today as the continuation point, BUT respect dependency constraints
@@ -183,25 +198,29 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       chartInstance.current = echarts.init(chartRef.current)
     }
 
-    // Calculate scope increases for each task based on TODAY's snapshot
+    // Calculate scope increases for each task based on the MOST RECENT snapshot
     const taskScopeInfo = new Map<string, { hasScopeIncrease: boolean; scopeIncreaseDays: number }>()
     const todayDate = new Date()
-    const todayDateKey = format(todayDate, 'yyyy-MM-dd')
 
     validTasks.forEach(task => {
-      // Get TODAY's snapshot for this task
-      const todaySnapshot = progressSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
+      // Find the MOST RECENT snapshot for this task (not just today)
+      const taskSnapshots = progressSnapshots
+        .filter(s => s.taskId === task.id && new Date(s.date) <= todayDate)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      const latestSnapshot = taskSnapshots.length > 0 ? taskSnapshots[0] : undefined
 
-      if (todaySnapshot) {
+      if (latestSnapshot) {
         // Calculate theoretical remaining based on snapshot's progress
         const resources = getTaskResources(task.id)
+        // Total effort is the sum of estimated days (person-days of work)
+        // Focus factor affects duration/velocity, not the amount of work
         const totalEffort = resources.reduce((sum, resource) => {
-          return sum + (resource.estimatedDays * (resource.focusFactor / 100))
+          return sum + resource.estimatedDays
         }, 0)
-        const theoreticalRemaining = totalEffort * (1 - todaySnapshot.progress / 100)
+        const theoreticalRemaining = totalEffort * (1 - latestSnapshot.progress / 100)
 
         // Scope increase = manual remaining - theoretical remaining
-        const scopeIncrease = todaySnapshot.remainingEstimate - theoreticalRemaining
+        const scopeIncrease = latestSnapshot.remainingEstimate - theoreticalRemaining
 
         if (scopeIncrease > 0) {
           taskScopeInfo.set(task.id, {
@@ -217,11 +236,10 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       const startDate = new Date(task.startDate!)
       let endDate = new Date(task.endDate!)
 
-      // Extend end date if task has scope increase
+      // Extend end date if task has scope increase (using working days)
       const scopeInfo = taskScopeInfo.get(task.id)
       if (scopeInfo?.hasScopeIncrease) {
-        endDate = new Date(endDate)
-        endDate.setDate(endDate.getDate() + Math.ceil(scopeInfo.scopeIncreaseDays))
+        endDate = addWorkingDays(endDate, Math.ceil(scopeInfo.scopeIncreaseDays))
       }
 
       // Determine color based on status
@@ -284,7 +302,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           const endDate = new Date(params.value[1])
           const start = format(startDate, 'EEE, MMM dd, yyyy')
           const end = format(endDate, 'EEE, MMM dd, yyyy')
-          const duration = Math.ceil((params.value[1] - params.value[0]) / (1000 * 60 * 60 * 24))
+          const duration = countWorkingDays(startDate, endDate)
 
           // Get resources for this task
           const taskResources = getTaskResources(task.id)
@@ -306,7 +324,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               <div style="font-size: 12px; color: #6b7280;">
                 <div style="margin-bottom: 2px;">Start: <strong>${start}</strong></div>
                 <div style="margin-bottom: 2px;">End: <strong>${end}</strong></div>
-                <div style="margin-bottom: 2px;">Duration: <strong>${duration} days</strong></div>
+                <div style="margin-bottom: 2px;">Duration: <strong>${duration} working days</strong></div>
                 <div style="margin-bottom: 2px;">Status: <strong style="color: ${task.status === 'Done' ? '#10b981' : task.status === 'In Progress' ? '#f59e0b' : '#6b7280'};">${task.status}</strong></div>
                 <div>Progress: <strong style="color: #3b82f6;">${task.progress}%</strong></div>
               </div>
