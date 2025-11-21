@@ -52,35 +52,173 @@ export const seedDatabase = (): void => {
 
     // Create Resources
     console.log('Creating resources...')
+
+    // Frontend Developers
     const reactDev = createResource({
       title: 'React Developer',
-      description: 'Senior React developer with 5+ years experience',
+      description: 'Frontend developer specializing in React and modern JavaScript',
       defaultVelocity: 85,
       icon: 'react',
       status: 'Active',
     })
 
+    const vueDev = createResource({
+      title: 'Vue.js Developer',
+      description: 'Frontend developer with Vue.js expertise',
+      defaultVelocity: 83,
+      icon: 'vue',
+      status: 'Active',
+    })
+
+    const angularDev = createResource({
+      title: 'Angular Developer',
+      description: 'Frontend developer specializing in Angular framework',
+      defaultVelocity: 82,
+      icon: 'angular',
+      status: 'Active',
+    })
+
+    // Backend Developers
     const nodeDev = createResource({
       title: 'Node.js Developer',
-      description: 'Backend developer specializing in Node.js',
+      description: 'Backend developer specializing in Node.js and Express',
       defaultVelocity: 80,
       icon: 'nodejs',
       status: 'Active',
     })
 
+    const pythonDev = createResource({
+      title: 'Python Developer',
+      description: 'Backend developer with Python, Django, and FastAPI experience',
+      defaultVelocity: 81,
+      icon: 'python',
+      status: 'Active',
+    })
+
+    const javaDev = createResource({
+      title: 'Java Developer',
+      description: 'Enterprise Java developer with Spring Boot expertise',
+      defaultVelocity: 78,
+      icon: 'java',
+      status: 'Active',
+    })
+
+    const phpDev = createResource({
+      title: 'PHP Developer',
+      description: 'Backend developer specializing in PHP and Laravel',
+      defaultVelocity: 79,
+      icon: 'php',
+      status: 'Active',
+    })
+
+    // Mobile Developers
+    const iosDev = createResource({
+      title: 'iOS Developer',
+      description: 'Mobile developer specializing in Swift and iOS applications',
+      defaultVelocity: 84,
+      icon: 'ios',
+      status: 'Active',
+    })
+
+    const androidDev = createResource({
+      title: 'Android Developer',
+      description: 'Mobile developer with Kotlin and Android SDK experience',
+      defaultVelocity: 83,
+      icon: 'android',
+      status: 'Active',
+    })
+
+    // Full Stack Developer
+    const fullStackDev = createResource({
+      title: 'Full Stack Developer',
+      description: 'Full stack developer with both frontend and backend expertise',
+      defaultVelocity: 82,
+      icon: 'generic',
+      status: 'Active',
+    })
+
+    // Infrastructure & DevOps
+    const devOpsEngineer = createResource({
+      title: 'DevOps Engineer',
+      description: 'Infrastructure specialist with CI/CD and cloud expertise',
+      defaultVelocity: 86,
+      icon: 'devops',
+      status: 'Active',
+    })
+
+    const dbaEngineer = createResource({
+      title: 'Database Administrator',
+      description: 'Database specialist with SQL, NoSQL, and optimization skills',
+      defaultVelocity: 85,
+      icon: 'database',
+      status: 'Active',
+    })
+
+    // Design
     const uxDesigner = createResource({
       title: 'UX Designer',
-      description: 'User experience designer',
+      description: 'User experience designer with research and prototyping skills',
       defaultVelocity: 75,
       icon: 'design',
       status: 'Active',
     })
 
+    const uiDesigner = createResource({
+      title: 'UI Designer',
+      description: 'Visual designer specializing in user interfaces and design systems',
+      defaultVelocity: 76,
+      icon: 'design',
+      status: 'Active',
+    })
+
+    // Quality & Testing
     const qaEngineer = createResource({
       title: 'QA Engineer',
-      description: 'Quality assurance specialist',
+      description: 'Quality assurance specialist with automated testing expertise',
       defaultVelocity: 90,
       icon: 'testing',
+      status: 'Active',
+    })
+
+    // Management & Analysis
+    const productManager = createResource({
+      title: 'Product Manager',
+      description: 'Product management with roadmap planning and stakeholder coordination',
+      defaultVelocity: 88,
+      icon: 'generic',
+      status: 'Active',
+    })
+
+    const scrumMaster = createResource({
+      title: 'Scrum Master',
+      description: 'Agile facilitator and team coach',
+      defaultVelocity: 92,
+      icon: 'generic',
+      status: 'Active',
+    })
+
+    const businessAnalyst = createResource({
+      title: 'Business Analyst',
+      description: 'Requirements gathering and business process analysis',
+      defaultVelocity: 87,
+      icon: 'generic',
+      status: 'Active',
+    })
+
+    // Specialized Roles
+    const securityEngineer = createResource({
+      title: 'Security Engineer',
+      description: 'Cybersecurity specialist with penetration testing and security audits',
+      defaultVelocity: 82,
+      icon: 'security',
+      status: 'Active',
+    })
+
+    const dataEngineer = createResource({
+      title: 'Data Engineer',
+      description: 'Big data and data pipeline specialist',
+      defaultVelocity: 81,
+      icon: 'database',
       status: 'Active',
     })
 
@@ -97,26 +235,103 @@ export const seedDatabase = (): void => {
       description: 'Default configuration for new projects',
     })
 
-    const config1 = createConfiguration({
-      name: 'Agile Sprint Configuration',
-      key: 'agile_sprint_config',
+    const scrumConfig = createConfiguration({
+      name: 'Scrum - 2 Week Sprints',
+      key: 'scrum_2week',
       value: JSON.stringify({
         sprintDuration: 14,
         velocityTarget: 85,
         methodology: 'Scrum',
       }),
-      description: 'Standard agile sprint configuration',
+      description: 'Standard Scrum methodology with 2-week sprints, daily standups, and sprint retrospectives',
     })
 
-    const config2 = createConfiguration({
-      name: 'Design Sprint Configuration',
-      key: 'design_sprint_config',
+    const scrumConfig1Week = createConfiguration({
+      name: 'Scrum - 1 Week Sprints',
+      key: 'scrum_1week',
+      value: JSON.stringify({
+        sprintDuration: 7,
+        velocityTarget: 88,
+        methodology: 'Scrum',
+      }),
+      description: 'Fast-paced Scrum with 1-week sprints for rapid iteration',
+    })
+
+    const kanbanConfig = createConfiguration({
+      name: 'Kanban - Continuous Flow',
+      key: 'kanban_continuous',
+      value: JSON.stringify({
+        sprintDuration: 7,
+        velocityTarget: 90,
+        methodology: 'Kanban',
+      }),
+      description: 'Continuous flow methodology with WIP limits and pull-based system',
+    })
+
+    const waterfallConfig = createConfiguration({
+      name: 'Waterfall - Traditional',
+      key: 'waterfall_traditional',
+      value: JSON.stringify({
+        sprintDuration: 30,
+        velocityTarget: 75,
+        methodology: 'Waterfall',
+      }),
+      description: 'Traditional sequential development with distinct phases: requirements, design, implementation, testing, deployment',
+    })
+
+    const vModelConfig = createConfiguration({
+      name: 'V-Model - Verification & Validation',
+      key: 'vmodel_testing',
+      value: JSON.stringify({
+        sprintDuration: 21,
+        velocityTarget: 78,
+        methodology: 'V-Model',
+      }),
+      description: 'V-Model methodology emphasizing testing at each development phase with parallel verification and validation',
+    })
+
+    const safeConfig = createConfiguration({
+      name: 'SAFe - Scaled Agile',
+      key: 'safe_scaled',
+      value: JSON.stringify({
+        sprintDuration: 14,
+        velocityTarget: 82,
+        methodology: 'SAFe',
+      }),
+      description: 'Scaled Agile Framework for large enterprise projects with program increments and release trains',
+    })
+
+    const xpConfig = createConfiguration({
+      name: 'XP - Extreme Programming',
+      key: 'xp_programming',
+      value: JSON.stringify({
+        sprintDuration: 7,
+        velocityTarget: 92,
+        methodology: 'XP',
+      }),
+      description: 'Extreme Programming with pair programming, TDD, continuous integration, and frequent releases',
+    })
+
+    const leanConfig = createConfiguration({
+      name: 'Lean - Minimize Waste',
+      key: 'lean_development',
       value: JSON.stringify({
         sprintDuration: 10,
-        velocityTarget: 75,
-        methodology: 'Design Thinking',
+        velocityTarget: 87,
+        methodology: 'Lean',
       }),
-      description: 'Design-focused sprint configuration',
+      description: 'Lean software development focusing on eliminating waste, fast delivery, and continuous improvement',
+    })
+
+    const designSprintConfig = createConfiguration({
+      name: 'Design Sprint - 5 Days',
+      key: 'design_sprint_5day',
+      value: JSON.stringify({
+        sprintDuration: 5,
+        velocityTarget: 75,
+        methodology: 'Design Sprint',
+      }),
+      description: 'Google Ventures Design Sprint for rapid prototyping and validation in 5 days',
     })
 
     // Assign Resources to Projects
@@ -130,11 +345,21 @@ export const seedDatabase = (): void => {
 
     // Assign Configurations to Projects (ONE per project)
     console.log('Assigning configurations to projects...')
-    assignConfigurationToProject(project1.id, config1.id)
-    assignConfigurationToProject(project2.id, config2.id)
+    assignConfigurationToProject(project1.id, scrumConfig.id)
+    assignConfigurationToProject(project2.id, designSprintConfig.id)
 
-    // Note: defaultConfig is automatically assigned to new projects via store logic
-    console.log('Default configuration created:', defaultConfig.name)
+    // Log all created configurations
+    console.log('All configurations created:')
+    console.log(`  - ${defaultConfig.name}`)
+    console.log(`  - ${scrumConfig.name}`)
+    console.log(`  - ${scrumConfig1Week.name}`)
+    console.log(`  - ${kanbanConfig.name}`)
+    console.log(`  - ${waterfallConfig.name}`)
+    console.log(`  - ${vModelConfig.name}`)
+    console.log(`  - ${safeConfig.name}`)
+    console.log(`  - ${xpConfig.name}`)
+    console.log(`  - ${leanConfig.name}`)
+    console.log(`  - ${designSprintConfig.name}`)
 
     // Task colors
     const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1']
@@ -238,7 +463,15 @@ export const seedDatabase = (): void => {
       { title: 'Post-launch monitoring', description: 'Monitor crashes, performance, and user feedback', duration: 5 },
     ]
 
-    const resources = [reactDev, nodeDev, uxDesigner, qaEngineer]
+    const resources = [
+      reactDev, vueDev, angularDev,
+      nodeDev, pythonDev, javaDev, phpDev,
+      iosDev, androidDev, fullStackDev,
+      devOpsEngineer, dbaEngineer,
+      uxDesigner, uiDesigner, qaEngineer,
+      productManager, scrumMaster, businessAnalyst,
+      securityEngineer, dataEngineer
+    ]
 
     // Create tasks for Project 1
     // Note: Start and end dates are no longer set explicitly - they will be calculated
@@ -500,8 +733,8 @@ export const seedDatabase = (): void => {
     console.log('✅ Database seeding completed successfully!')
     console.log(`Created:
   - 2 Projects
-  - 4 Resources
-  - 3 Configurations
+  - 20 Resources (Frontend: 3, Backend: 4, Mobile: 2, Full Stack: 1, Infrastructure: 2, Design: 2, QA: 1, Management: 3, Specialized: 2)
+  - 10 Configurations (Default, Scrum 2-week, Scrum 1-week, Kanban, Waterfall, V-Model, SAFe, XP, Lean, Design Sprint)
   - ${project1Tasks.length} tasks for E-Commerce Platform
   - ${project2Tasks.length} tasks for Mobile App Redesign
   - 6 milestones for E-Commerce Platform
