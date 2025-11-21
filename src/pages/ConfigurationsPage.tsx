@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Configuration } from '../types/entities.types'
+import ResourcesManagement from '../components/ResourcesManagement'
+
+type TabType = 'configurations' | 'resources'
 
 const ConfigurationsPage = () => {
   const {
@@ -13,6 +16,10 @@ const ConfigurationsPage = () => {
     loadConfigurations,
   } = useEntitiesStore()
 
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const saved = localStorage.getItem('nostradamus_config_active_tab')
+    return (saved === 'configurations' || saved === 'resources') ? saved : 'configurations'
+  })
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [editingConfig, setEditingConfig] = useState<Configuration | null>(null)
   const [configFormData, setConfigFormData] = useState({
@@ -33,6 +40,10 @@ const ConfigurationsPage = () => {
       loadConfigurations()
     }
   }, [isInitialized, initialize, loadConfigurations])
+
+  useEffect(() => {
+    localStorage.setItem('nostradamus_config_active_tab', activeTab)
+  }, [activeTab])
 
   const openCreateConfigModal = () => {
     setEditingConfig(null)
@@ -111,27 +122,91 @@ const ConfigurationsPage = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-h1 font-serif text-navy-900 dark:text-white mb-2">
-            Configuration Templates
+            Configurations & Resources
           </h1>
           <p className="text-navy-600 dark:text-navy-400">
-            Manage configuration templates for your projects
+            Manage configuration templates and resource types for your projects
           </p>
         </div>
-        <button
-          onClick={openCreateConfigModal}
-          className="flex items-center gap-2 px-6 py-3 text-sm font-medium
-                   text-white bg-salmon-600 hover:bg-salmon-700
-                   rounded-lg transition-colors duration-200"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Configuration
-        </button>
       </div>
 
-      {/* Configurations List */}
-      {configurations.length === 0 ? (
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <div className="border-b border-navy-200 dark:border-navy-700">
+          <nav className="-mb-px flex gap-8">
+            <button
+              onClick={() => setActiveTab('configurations')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'configurations'
+                  ? 'border-salmon-600 text-salmon-600 dark:text-salmon-400'
+                  : 'border-transparent text-navy-500 hover:text-navy-700 hover:border-navy-300 dark:text-navy-400 dark:hover:text-navy-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Configurations
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('resources')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'resources'
+                  ? 'border-salmon-600 text-salmon-600 dark:text-salmon-400'
+                  : 'border-transparent text-navy-500 hover:text-navy-700 hover:border-navy-300 dark:text-navy-400 dark:hover:text-navy-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                  />
+                </svg>
+                Resource Types
+              </div>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'configurations' ? (
+        <>
+          {/* Configurations Tab Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-navy-900 dark:text-white mb-1">
+                Configuration Templates
+              </h2>
+              <p className="text-sm text-navy-600 dark:text-navy-400">
+                Manage configuration templates for your projects
+              </p>
+            </div>
+            <button
+              onClick={openCreateConfigModal}
+              className="flex items-center gap-2 px-6 py-3 text-sm font-medium
+                       text-white bg-salmon-600 hover:bg-salmon-700
+                       rounded-lg transition-colors duration-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Configuration
+            </button>
+          </div>
+
+          {/* Configurations List */}
+          {configurations.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-navy-800 rounded-xl border border-navy-100 dark:border-navy-700">
           <svg
             className="w-16 h-16 mx-auto mb-4 text-navy-300 dark:text-navy-600"
@@ -381,6 +456,11 @@ const ConfigurationsPage = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
+      ) : (
+        /* Resources Tab */
+        <ResourcesManagement />
       )}
     </div>
   )
