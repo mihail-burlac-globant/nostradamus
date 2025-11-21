@@ -16,8 +16,15 @@ const EstimatesPage = () => {
     loadProgressSnapshots,
   } = useEntitiesStore()
 
+  const activeProjects = projects.filter(p => p.status === 'Active')
+
   const [selectedProjectId, setSelectedProjectId] = useState<string>(() => {
-    return localStorage.getItem('estimates_selectedProjectId') || 'all'
+    const saved = localStorage.getItem('estimates_selectedProjectId')
+    // Don't use 'all' - only use a valid project ID
+    if (saved && saved !== 'all') {
+      return saved
+    }
+    return '' // Empty string means no selection yet
   })
 
   useEffect(() => {
@@ -30,31 +37,28 @@ const EstimatesPage = () => {
     }
   }, [isInitialized, initialize, loadProjects, loadTasks, loadProgressSnapshots])
 
-  // Persist selection to localStorage
+  // Auto-select first active project if none selected or saved project doesn't exist
   useEffect(() => {
-    localStorage.setItem('estimates_selectedProjectId', selectedProjectId)
-  }, [selectedProjectId])
-
-  // Auto-select first active project if none selected
-  useEffect(() => {
-    if (selectedProjectId === 'all' && projects.length > 0) {
-      const activeProjects = projects.filter(p => p.status === 'Active')
-      if (activeProjects.length > 0) {
+    if (activeProjects.length > 0) {
+      // If no project selected, or selected project is no longer active
+      const isValidSelection = activeProjects.some(p => p.id === selectedProjectId)
+      if (!selectedProjectId || !isValidSelection) {
         setSelectedProjectId(activeProjects[0].id)
       }
     }
-  }, [projects, selectedProjectId])
+  }, [activeProjects, selectedProjectId])
 
-  const activeProjects = projects.filter(p => p.status === 'Active')
+  // Persist selection to localStorage
+  useEffect(() => {
+    if (selectedProjectId) {
+      localStorage.setItem('estimates_selectedProjectId', selectedProjectId)
+    }
+  }, [selectedProjectId])
 
   // Calculate comparisons for all tasks
   const comparisons = useMemo(() => {
-    const filteredTasks = selectedProjectId === 'all'
-      ? tasks.filter(t => {
-          const project = projects.find(p => p.id === t.projectId)
-          return project?.status === 'Active'
-        })
-      : tasks.filter(t => t.projectId === selectedProjectId)
+    // Only show tasks for the selected project
+    const filteredTasks = tasks.filter(t => t.projectId === selectedProjectId)
 
     return filteredTasks.map(task => {
       const taskResources = getTaskResources(task.id)
@@ -113,7 +117,6 @@ const EstimatesPage = () => {
               onChange={(e) => setSelectedProjectId(e.target.value)}
               className="flex-1 max-w-md px-4 py-2 border border-navy-300 dark:border-navy-600 rounded-md bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-2 focus:ring-salmon-500"
             >
-              <option value="all">All Active Projects</option>
               {activeProjects.map(project => (
                 <option key={project.id} value={project.id}>
                   {project.title}

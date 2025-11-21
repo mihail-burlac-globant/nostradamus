@@ -7,7 +7,7 @@ interface TaskEstimateComparisonTableProps {
   onExport?: () => void
 }
 
-type SortColumn = 'task' | 'project' | 'original' | 'remaining' | 'completed' | 'progress' | 'variance' | 'status'
+type SortColumn = 'task' | 'duration' | 'original' | 'remaining' | 'completed' | 'progress' | 'variance' | 'status'
 type SortDirection = 'asc' | 'desc'
 
 const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComparisonTableProps) => {
@@ -71,9 +71,9 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
           aValue = a.taskTitle
           bValue = b.taskTitle
           break
-        case 'project':
-          aValue = a.projectTitle
-          bValue = b.projectTitle
+        case 'duration':
+          aValue = a.duration
+          bValue = b.duration
           break
         case 'original':
           aValue = a.originalEstimate
@@ -282,15 +282,6 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-medium text-navy-700 dark:text-navy-300 uppercase tracking-wider cursor-pointer hover:bg-navy-100 dark:hover:bg-navy-700"
-                onClick={() => handleSort('project')}
-              >
-                <div className="flex items-center gap-2">
-                  Project {getSortIcon('project')}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-medium text-navy-700 dark:text-navy-300 uppercase tracking-wider cursor-pointer hover:bg-navy-100 dark:hover:bg-navy-700"
                 onClick={() => handleSort('task')}
               >
                 <div className="flex items-center gap-2">
@@ -299,6 +290,15 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
               </th>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-navy-700 dark:text-navy-300 uppercase tracking-wider">
                 Status
+              </th>
+              <th
+                scope="col"
+                className="px-4 py-3 text-right text-xs font-medium text-navy-700 dark:text-navy-300 uppercase tracking-wider cursor-pointer hover:bg-navy-100 dark:hover:bg-navy-700"
+                onClick={() => handleSort('duration')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  Duration {getSortIcon('duration')}
+                </div>
               </th>
               <th
                 scope="col"
@@ -367,9 +367,6 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
               <>
                 {filteredAndSortedComparisons.map((comparison) => (
                   <tr key={comparison.taskId} className="hover:bg-navy-50 dark:hover:bg-navy-800 transition-colors">
-                    <td className="px-4 py-3 text-sm text-navy-900 dark:text-navy-100">
-                      {comparison.projectTitle}
-                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div
@@ -394,6 +391,9 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
                     </td>
                     <td className="px-4 py-3">
                       {getTaskStatusBadge(comparison.taskStatus)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100 font-medium">
+                      {comparison.duration > 0 ? `${comparison.duration}d` : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100 font-medium">
                       {comparison.originalEstimate.toFixed(1)}d
@@ -435,11 +435,9 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
                 {filteredAndSortedComparisons.length > 0 && (
                   <tr className="bg-salmon-50 dark:bg-salmon-900/20 border-t-2 border-salmon-200 dark:border-salmon-800 font-bold">
                     <td className="px-4 py-3 text-sm text-navy-900 dark:text-navy-100">
-                      TOTALS
+                      TOTALS ({filteredAndSortedComparisons.length} tasks)
                     </td>
-                    <td className="px-4 py-3 text-sm text-navy-600 dark:text-navy-400">
-                      {filteredAndSortedComparisons.length} tasks
-                    </td>
+                    <td className="px-4 py-3"></td>
                     <td className="px-4 py-3"></td>
                     <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100">
                       {totals.totalOriginal.toFixed(1)}d
