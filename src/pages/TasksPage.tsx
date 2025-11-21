@@ -153,6 +153,9 @@ const TasksPage = () => {
   useEffect(() => {
     if (viewMode !== 'progress') return
 
+    // Only initialize after database is ready and tasks with resources are loaded
+    if (!isInitialized || tasksWithResources.length === 0) return
+
     const initKey = `${selectedDate}-${selectedProjectFilter}`
 
     // Skip if we've already initialized for this date/project combo
@@ -207,7 +210,7 @@ const TasksPage = () => {
     setProgressValues(newProgress)
     setNotes(newNotes)
     setChangedTasks(new Set())
-  }, [viewMode, selectedDate, selectedProjectFilter, progressSearchTerm, progressSnapshots, tasksWithResources, projects])
+  }, [viewMode, selectedDate, selectedProjectFilter, progressSearchTerm, progressSnapshots, tasksWithResources, projects, isInitialized])
 
   const activeProjects = projects.filter((p) => p.status === 'Active')
 
