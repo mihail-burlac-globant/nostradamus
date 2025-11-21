@@ -652,7 +652,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           'Past Projection',
           'Current Projection',
         ],
-        top: 50,
+        top: 35,
         textStyle: {
           color: textColor,
           fontSize: 11,
@@ -666,8 +666,8 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
       grid: {
         left: '10%',
         right: '10%',
-        top: 100,
-        bottom: 80,
+        top: 70,
+        bottom: 85,
       },
       xAxis: {
         type: 'category',
