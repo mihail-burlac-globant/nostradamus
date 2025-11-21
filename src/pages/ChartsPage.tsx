@@ -49,11 +49,11 @@ const ChartsPage = () => {
 
   useEffect(() => {
     // Reload milestones when project changes to ensure fresh data
-    if (selectedProjectId) {
+    if (isInitialized && selectedProjectId) {
       console.log('📊 Loading milestones for project:', selectedProjectId)
       loadMilestones(selectedProjectId)
     }
-  }, [selectedProjectId, loadMilestones])
+  }, [isInitialized, selectedProjectId, loadMilestones])
 
   // Persist selections to localStorage
   useEffect(() => {

@@ -54,13 +54,13 @@ const ProjectsPage = () => {
   }, [viewMode])
 
   useEffect(() => {
-    if (viewingProject) {
+    if (isInitialized && viewingProject) {
       const resources = getProjectResources(viewingProject.id)
       const configs = getProjectConfigurations(viewingProject.id)
       setProjectResources(resources)
       setProjectConfigs(configs)
     }
-  }, [viewingProject, getProjectResources, getProjectConfigurations])
+  }, [isInitialized, viewingProject, getProjectResources, getProjectConfigurations])
 
   const filteredProjects = projects.filter((p) =>
     filterStatus === 'all' ? true : p.status === filterStatus
