@@ -252,6 +252,18 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       taskEndDate.setHours(0, 0, 0, 0)
       const isPast = taskEndDate < today
 
+      // Debug logging for first task
+      if (validTasks.indexOf(task) === 0) {
+        console.log('🎨 Gantt Opacity Debug:', {
+          taskTitle: task.title,
+          taskEndDate: task.endDate,
+          taskEndDateNormalized: taskEndDate.toISOString().split('T')[0],
+          today: today.toISOString().split('T')[0],
+          isPast,
+          calculatedOpacity: isPast ? 0.3 : 1.0
+        })
+      }
+
       // Determine color based on status
       let color = '#B3B3BA' // Default gray for Todo
       if (task.status === 'Done') {
