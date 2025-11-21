@@ -89,27 +89,15 @@ const HomePage = () => {
         const totalTasks = projectTasks.length
         const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
-        // Calculate health based on progress and timeline
+        // Calculate health based on progress
+        // Note: Projects don't have endDate, so health is based on progress only
         let health: 'on-track' | 'at-risk' | 'behind' = 'on-track'
 
-        if (project.endDate) {
-          const today = new Date()
-          const endDate = parseISO(project.endDate)
-          const startDate = project.startDate ? parseISO(project.startDate) : today
-
-          const totalDuration = differenceInDays(endDate, startDate)
-          const elapsedDuration = differenceInDays(today, startDate)
-          const expectedProgress = totalDuration > 0 ? (elapsedDuration / totalDuration) * 100 : 0
-
-          // Determine health
-          if (progress < expectedProgress - 20) {
-            health = 'behind'
-          } else if (progress < expectedProgress - 10) {
+        // Simple health check based on task progress
+        if (totalTasks > 0) {
+          if (progress < 30) {
             health = 'at-risk'
-          }
-
-          // If past end date and not complete
-          if (isAfter(today, endDate) && progress < 100) {
+          } else if (progress < 10) {
             health = 'behind'
           }
         }
@@ -356,9 +344,6 @@ const HomePage = () => {
                     </div>
                     <div className="flex items-center justify-between text-xs text-navy-500 dark:text-navy-500">
                       <span>{project.totalTasks} tasks</span>
-                      {project.endDate && (
-                        <span>Due {format(parseISO(project.endDate), 'MMM dd, yyyy')}</span>
-                      )}
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import type { Task, TaskResource, ProgressSnapshot } from '../types/entities.types'
+import type { Task, ProgressSnapshot, Resource } from '../types/entities.types'
 
 export interface TaskEstimateComparison {
   taskId: string
@@ -31,7 +31,7 @@ export interface TaskEstimateComparison {
  */
 export const calculateTaskEstimateComparison = (
   task: Task,
-  taskResources: TaskResource[],
+  taskResources: (Resource & { estimatedDays: number; focusFactor: number; numberOfProfiles: number })[],
   progressSnapshots: ProgressSnapshot[],
   projectTitle: string
 ): TaskEstimateComparison => {
@@ -109,8 +109,8 @@ export const calculateTaskEstimateComparison = (
     lastUpdated,
     hasSnapshot,
     resources: taskResources.map(r => ({
-      id: r.resourceId,
-      title: r.title || '',
+      id: r.id,
+      title: r.title,
       icon: r.icon || 'generic',
       estimatedDays: r.estimatedDays,
       numberOfProfiles: r.numberOfProfiles,

@@ -37,7 +37,7 @@ const EstimateHistoryChart = ({ projectId, projectTitle, tasks }: EstimateHistor
     })
 
     // Sort snapshots by date for each task
-    snapshotsByTask.forEach((snapshots, taskId) => {
+    snapshotsByTask.forEach((snapshots) => {
       snapshots.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     })
 
@@ -108,7 +108,7 @@ const EstimateHistoryChart = ({ projectId, projectTitle, tasks }: EstimateHistor
               yAxis: originalEstimate,
               lineStyle: {
                 color: task.color,
-                type: 'dashed',
+                type: 'dashed' as const,
                 width: 1,
                 opacity: 0.4,
               },
@@ -143,12 +143,14 @@ const EstimateHistoryChart = ({ projectId, projectTitle, tasks }: EstimateHistor
         axisPointer: {
           type: 'cross',
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (params: any) {
           if (!params || params.length === 0) return ''
 
           const date = params[0].axisValue
           let result = `<div style="padding: 8px; min-width: 200px;"><div style="font-weight: 600; margin-bottom: 8px;">${date}</div>`
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           params.forEach((param: any) => {
             if (param.value !== null) {
               result += `

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo } from 'react'
 import * as echarts from 'echarts'
-import type { Task, ProgressSnapshot, Resource } from '../../types/entities.types'
+import type { Task, Resource } from '../../types/entities.types'
 import { format, parseISO } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { getResourceIconEmoji } from '../../utils/resourceIconEmojis'
@@ -120,7 +120,7 @@ const FocusFactorHistoryChart = ({ projectId, projectTitle, tasks }: FocusFactor
               yAxis: resource.defaultVelocity,
               lineStyle: {
                 color: color,
-                type: 'dashed',
+                type: 'dashed' as const,
                 width: 1,
                 opacity: 0.4,
               },
@@ -155,12 +155,14 @@ const FocusFactorHistoryChart = ({ projectId, projectTitle, tasks }: FocusFactor
         axisPointer: {
           type: 'cross',
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (params: any) {
           if (!params || params.length === 0) return ''
 
           const date = params[0].axisValue
           let result = `<div style="padding: 8px; min-width: 200px;"><div style="font-weight: 600; margin-bottom: 8px;">${date}</div>`
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           params.forEach((param: any) => {
             if (param.value !== null) {
               result += `

@@ -542,7 +542,6 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               // Add diagonal stripes for completed portion
               const stripeWidth = 4 // Width of each stripe
               const stripeSpacing = 8 // Space between stripes
-              const stripeAngle = 45 // Degrees
 
               // Calculate how many stripes we need
               const totalDistance = completedWidth + height // Account for diagonal
