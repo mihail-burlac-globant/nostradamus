@@ -487,7 +487,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                   opacity: taskOpacity * 0.4, // Lighter shade for remaining work
                 },
               },
-              // Foreground bar (completed work)
+              // Foreground bar (completed work) - always show progress prominently
               {
                 type: 'rect',
                 shape: {
@@ -498,7 +498,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
                 style: {
                   fill: color,
-                  opacity: taskOpacity,
+                  opacity: 1.0, // Always show completed progress at full opacity
                 },
               },
             ]
@@ -552,9 +552,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                   fill: '#fff',
                   fontSize: 11,
                   fontWeight: 'bold',
-                  textShadowColor: `rgba(0,0,0,${taskOpacity * 0.5})`,
+                  textShadowColor: 'rgba(0,0,0,0.5)',
                   textShadowBlur: 2,
-                  opacity: taskOpacity, // Apply same past/future logic to text
+                  opacity: 1.0, // Always show progress text at full opacity
                 },
               })
             }
