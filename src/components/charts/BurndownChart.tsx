@@ -563,7 +563,7 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
         {
           text: velocitySubtitle,
           left: 'center',
-          top: 28,
+          bottom: 10,
           textStyle: {
             color: textColor,
             fontSize: 12,
