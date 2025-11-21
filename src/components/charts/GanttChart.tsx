@@ -96,10 +96,11 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       const todaySnapshot = progressSnapshots.find(s => s.taskId === task.id && s.date === todayDateKey)
 
       // If we have a snapshot for today with progress > 0, task is in progress
-      // Use today as the continuation point
+      // Use today as the continuation point, BUT respect dependency constraints
       if (todaySnapshot && todaySnapshot.progress > 0 && todaySnapshot.remainingEstimate > 0) {
-        // Task is in progress, continue from today
-        earliestStart = skipToNextWeekday(today)
+        // Task is in progress, continue from today OR after dependencies complete (whichever is LATER)
+        const todayAsStart = skipToNextWeekday(today)
+        earliestStart = new Date(Math.max(earliestStart.getTime(), todayAsStart.getTime()))
       }
 
       // Calculate duration: estimatedDays / (numberOfProfiles * focusFactor)
