@@ -61,7 +61,7 @@ interface EntitiesState {
 
   // Project actions
   loadProjects: (status?: 'Active' | 'Archived') => void
-  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void
+  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Project
   editProject: (id: string, updates: Partial<Omit<Project, 'id' | 'createdAt'>>) => void
   removeProject: (id: string) => void
   archiveProject: (id: string) => void
@@ -156,13 +156,15 @@ export const useEntitiesStore = create<EntitiesState>((set, get) => ({
   addProject: (project) => {
     const newProject = createProject(project)
 
-    // Auto-assign default configuration to new projects
+    // Auto-assign default configuration to new projects only if not called from wizard
+    // (wizard will handle configuration assignment)
     const defaultConfig = getConfigurationByKey('default_config')
     if (defaultConfig) {
       assignConfigurationToProject(newProject.id, defaultConfig.id)
     }
 
     get().loadProjects()
+    return newProject
   },
 
   editProject: (id, updates) => {
