@@ -489,8 +489,12 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                   opacity: taskOpacity * 0.4, // Lighter shade for remaining work
                 },
               },
-              // Foreground bar (completed work) - always show progress prominently
-              {
+            ]
+
+            // Add completed work with striped pattern
+            if (progress > 0 && completedWidth > 0) {
+              // Base rectangle for completed portion (lighter background)
+              children.push({
                 type: 'rect',
                 shape: {
                   x: start[0],
@@ -500,10 +504,49 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
                 style: {
                   fill: color,
-                  opacity: 1.0, // Always show completed progress at full opacity
+                  opacity: taskOpacity * 0.5, // Base for completed work
                 },
-              },
-            ]
+              })
+
+              // Add diagonal stripes for completed portion
+              const stripeWidth = 4 // Width of each stripe
+              const stripeSpacing = 8 // Space between stripes
+              const stripeAngle = 45 // Degrees
+
+              // Calculate how many stripes we need
+              const totalDistance = completedWidth + height // Account for diagonal
+              const numStripes = Math.ceil(totalDistance / stripeSpacing)
+
+              for (let i = 0; i < numStripes; i++) {
+                const offsetX = i * stripeSpacing - height // Start offset
+
+                children.push({
+                  type: 'polygon',
+                  shape: {
+                    points: [
+                      [start[0] + offsetX, start[1] + height / 2],
+                      [start[0] + offsetX + stripeWidth, start[1] + height / 2],
+                      [start[0] + offsetX + height + stripeWidth, start[1] - height / 2],
+                      [start[0] + offsetX + height, start[1] - height / 2],
+                    ]
+                  },
+                  style: {
+                    fill: color,
+                    opacity: taskOpacity, // Full taskOpacity for stripes
+                  },
+                  // Clip to completed width
+                  clipPath: {
+                    type: 'rect',
+                    shape: {
+                      x: start[0],
+                      y: start[1] - height / 2,
+                      width: completedWidth,
+                      height: height,
+                    }
+                  }
+                })
+              }
+            }
 
             // Add scope increase section if it exists
             if (scopeInfo?.hasScopeIncrease && scopeIncreaseWidth > 0) {
