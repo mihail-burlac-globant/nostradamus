@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Project } from '../types/entities.types'
+import { getIconById } from '../utils/resourceIcons'
 
 interface ProjectWizardDialogProps {
   editingProject: Project | null
@@ -405,15 +406,21 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-baseline gap-2">
-                                    <h3 className="text-sm font-semibold text-navy-900 dark:text-white">
-                                      {resource.title}
-                                    </h3>
-                                    {resource.description && (
-                                      <p className="text-xs text-navy-500 dark:text-navy-400 truncate">
-                                        {resource.description}
-                                      </p>
-                                    )}
+                                  <div className="flex items-center gap-2">
+                                    {(() => {
+                                      const IconComponent = getIconById(resource.icon)
+                                      return <IconComponent className="w-5 h-5 flex-shrink-0 text-navy-600 dark:text-navy-400" />
+                                    })()}
+                                    <div className="flex items-baseline gap-2 min-w-0">
+                                      <h3 className="text-sm font-semibold text-navy-900 dark:text-white">
+                                        {resource.title}
+                                      </h3>
+                                      {resource.description && (
+                                        <p className="text-xs text-navy-500 dark:text-navy-400 truncate">
+                                          {resource.description}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                                 {isSelected && (
@@ -494,6 +501,7 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
           <button
             onClick={onClose}
             className="px-6 py-2 text-sm font-medium text-navy-700 dark:text-navy-300
+                     border border-navy-200 dark:border-navy-700
                      hover:bg-navy-100 dark:hover:bg-navy-700 rounded-lg transition-colors"
           >
             Cancel
