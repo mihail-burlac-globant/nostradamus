@@ -450,6 +450,18 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
             taskEndDate.setHours(0, 0, 0, 0)
             const isPast = taskEndDate < today
 
+            // Debug logging (remove after verification)
+            if (params.dataIndex === 0) {
+              console.log('🎨 Gantt Opacity Debug:', {
+                taskTitle: task.title,
+                taskEndDate: task.endDate,
+                today: today.toISOString().split('T')[0],
+                taskEndDateNormalized: taskEndDate.toISOString().split('T')[0],
+                isPast,
+                taskOpacity: isPast ? 1.0 : 0.3
+              })
+            }
+
             // Inverse opacity: past = 1.0, future = 0.3
             const taskOpacity = isPast ? 1.0 : 0.3
 
