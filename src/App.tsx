@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
+import HomePage from './pages/HomePage'
 import ChartsPage from './pages/ChartsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import TasksPage from './pages/TasksPage'
@@ -24,7 +25,7 @@ function App() {
 
         <main className="flex-1">
           <Routes>
-            <Route path="/" element={<ChartsPage />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/charts" element={<ChartsPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
