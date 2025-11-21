@@ -4,6 +4,7 @@ import type { Task, Milestone } from '../../types/entities.types'
 import { format, isWeekend, addDays } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { getResourceIconEmoji } from '../../utils/resourceIconEmojis'
+import { addWatermarkToChart } from '../../utils/chartWatermark'
 
 interface ExpandedGanttChartProps {
   projectId: string
@@ -611,6 +612,24 @@ const ExpandedGanttChart = ({
     }
   }, [projectId, projectTitle, projectStartDate, tasks, milestones, getTaskResources, getTaskDependencies, getProjectResources, progressSnapshots])
 
+  const handleExportPNG = async () => {
+    if (chartInstance.current) {
+      const url = chartInstance.current.getDataURL({
+        type: 'png',
+        pixelRatio: 2,
+        backgroundColor: '#fff'
+      })
+
+      // Add watermark to the chart
+      const watermarkedUrl = await addWatermarkToChart(url)
+
+      const link = document.createElement('a')
+      link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '-')}-gantt-chart-expanded.png`
+      link.href = watermarkedUrl
+      link.click()
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-navy-800 rounded-lg shadow-2xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col">
@@ -619,15 +638,26 @@ const ExpandedGanttChart = ({
           <h2 className="text-xl font-bold text-navy-900 dark:text-white">
             Expanded Daily View - {projectTitle}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-navy-400 hover:text-navy-600 dark:hover:text-navy-300 transition-colors rounded-lg hover:bg-navy-100 dark:hover:bg-navy-700"
-            title="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportPNG}
+              className="p-2 text-navy-600 dark:text-navy-300 hover:text-salmon-600 dark:hover:text-salmon-500 transition-colors rounded-lg hover:bg-navy-100 dark:hover:bg-navy-700"
+              title="Export as PNG"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 text-navy-400 hover:text-navy-600 dark:hover:text-navy-300 transition-colors rounded-lg hover:bg-navy-100 dark:hover:bg-navy-700"
+              title="Close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Chart Content */}
