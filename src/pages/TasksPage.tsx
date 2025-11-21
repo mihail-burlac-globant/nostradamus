@@ -107,13 +107,16 @@ const TasksPage = () => {
   }, [isInitialized, initialize, loadProjects, loadTasks, loadProgressSnapshots])
 
   useEffect(() => {
+    // Only load resources after initialization is complete
+    if (!isInitialized) return
+
     // Load resources for each task
     const tasksWithResourcesData: TaskWithResources[] = tasks.map((task) => ({
       ...task,
       resources: getTaskResources(task.id),
     }))
     setTasksWithResources(tasksWithResourcesData)
-  }, [tasks, getTaskResources])
+  }, [tasks, getTaskResources, isInitialized])
 
   useEffect(() => {
     // Save filter selection to localStorage
