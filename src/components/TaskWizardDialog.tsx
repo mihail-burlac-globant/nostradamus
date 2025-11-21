@@ -231,26 +231,26 @@ const TaskWizardDialog = ({ editingTask, projectId, onClose, onSubmit }: TaskWiz
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="bg-white dark:bg-navy-800 rounded-lg w-full max-w-4xl my-8 shadow-2xl">
           {/* Header */}
-          <div className="px-8 pt-8 pb-6 border-b border-navy-200 dark:border-navy-700">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-navy-900 dark:text-white">
+          <div className="px-8 pt-6 pb-4 border-b border-navy-200 dark:border-navy-700">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-bold text-navy-900 dark:text-white">
                 {editingTask ? 'Edit Task' : 'Create New Task'}
               </h2>
               <button
                 onClick={onClose}
                 className="text-navy-400 hover:text-navy-600 dark:hover:text-navy-300 transition-colors"
               >
-                <XMarkIcon className="w-6 h-6" />
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 
             {/* Step Indicator */}
-            <div className="mt-6 flex items-center justify-between max-w-2xl mx-auto">
+            <div className="flex items-center justify-between max-w-xl mx-auto">
               {[1, 2, 3].map((step) => (
                 <div key={step} className="flex items-center flex-1">
                   <div className="flex flex-col items-center flex-1">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
                         step < currentStep
                           ? 'bg-green-500 text-white'
                           : step === currentStep
@@ -258,9 +258,9 @@ const TaskWizardDialog = ({ editingTask, projectId, onClose, onSubmit }: TaskWiz
                           : 'bg-navy-200 dark:bg-navy-700 text-navy-600 dark:text-navy-400'
                       }`}
                     >
-                      {step < currentStep ? <CheckIcon className="w-5 h-5" /> : step}
+                      {step < currentStep ? <CheckIcon className="w-4 h-4" /> : step}
                     </div>
-                    <span className="text-xs mt-2 font-medium text-navy-600 dark:text-navy-400">
+                    <span className="text-xs mt-1 font-medium text-navy-600 dark:text-navy-400">
                       {step === 1 ? 'Basic Info' : step === 2 ? 'Dependencies' : 'Resources'}
                     </span>
                   </div>
