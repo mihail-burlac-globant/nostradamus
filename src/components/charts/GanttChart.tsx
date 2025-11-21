@@ -252,6 +252,18 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       taskEndDate.setHours(0, 0, 0, 0)
       const isPast = taskEndDate < today
 
+      // Debug logging for first task
+      if (validTasks.indexOf(task) === 0) {
+        console.log('🎨 Gantt Opacity Debug:', {
+          taskTitle: task.title,
+          taskEndDate: task.endDate,
+          taskEndDateNormalized: taskEndDate.toISOString().split('T')[0],
+          today: today.toISOString().split('T')[0],
+          isPast,
+          calculatedOpacity: isPast ? 1.0 : 0.3
+        })
+      }
+
       // Determine color based on status
       let color = '#B3B3BA' // Default gray for Todo
       if (task.status === 'Done') {
@@ -454,8 +466,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               scopeIncreaseWidth = totalWidth - baseWidth
             }
 
-            // Apply opacity: past = 0.3 (faded), future = 1.0 (full color)
-            const taskOpacity = isPast ? 0.3 : 1.0
+            // Apply opacity: past = 1.0 (full - show completed work), future = 0.3 (faded)
+            // This is OPPOSITE of burndown because Gantt emphasizes what's done
+            const taskOpacity = isPast ? 1.0 : 0.3
 
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
