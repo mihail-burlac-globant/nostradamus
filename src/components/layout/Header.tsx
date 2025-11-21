@@ -112,6 +112,9 @@ const Header = () => {
           <div className="flex items-center gap-3">
             {/* Navigation Menu */}
             <nav className="hidden md:flex items-center gap-2">
+              <NavLink to="/" className={navLinkClass}>
+                Home
+              </NavLink>
               <NavLink to="/charts" className={navLinkClass}>
                 Charts
               </NavLink>
