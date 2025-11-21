@@ -96,6 +96,7 @@ export interface ProgressSnapshot {
   status: TaskStatus // Task status at this point in time
   progress: number // Task progress percentage at this point in time (0-100)
   notes?: string // Optional notes about progress or blockers
+  focusFactors?: Record<string, number> // resourceId -> focusFactor at snapshot time (0-100)
   createdAt: string
   updatedAt: string
 }

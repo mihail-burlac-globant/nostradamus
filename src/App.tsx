@@ -6,7 +6,6 @@ import HomePage from './pages/HomePage'
 import ChartsPage from './pages/ChartsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import TasksPage from './pages/TasksPage'
-import ProgressPage from './pages/ProgressPage'
 import EstimatesPage from './pages/EstimatesPage'
 import ResourcesPage from './pages/ResourcesPage'
 import ConfigurationsPage from './pages/ConfigurationsPage'
@@ -31,7 +30,6 @@ function App() {
             <Route path="/charts" element={<ChartsPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/configurations" element={<ConfigurationsPage />} />
