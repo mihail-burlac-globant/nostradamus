@@ -4,6 +4,7 @@ import type { Task, Milestone } from '../../types/entities.types'
 import { format, isWeekend, addDays, getWeek, getYear } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { addWatermarkToChart } from '../../utils/chartWatermark'
+import { getResourceIconEmoji } from '../../utils/resourceIconEmojis'
 
 type TimeView = 'day' | 'week' | 'month'
 
@@ -310,42 +311,13 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           // Calculate total effort
           const totalEffort = taskResources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
 
-          // Map icon IDs to emoji representations
-          const iconEmojis: Record<string, string> = {
-            'react': '⚛️',
-            'vue': '🅥',
-            'angular': '🅰️',
-            'nodejs': '🟢',
-            'python': '🐍',
-            'java': '☕',
-            'php': '🐘',
-            'dotnet': '⚙️',
-            'ios': '🍎',
-            'android': '🤖',
-            'database': '🗄️',
-            'cloud': '☁️',
-            'server': '🖥️',
-            'docker': '🐳',
-            'git': '📦',
-            'kubernetes': '☸️',
-            'typescript': '📘',
-            'javascript': '📜',
-            'design': '🎨',
-            'testing': '✅',
-            'project-manager': '📊',
-            'product-owner': '💡',
-            'architect': '🏗️',
-            'ai': '🤖',
-            'generic': '📋'
-          }
-
           const resourcesHtml = taskResources.length > 0
             ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
                 <div style="font-weight: 600; margin-bottom: 4px; color: #374151;">Resources:</div>
                 ${taskResources.map(resource => {
                   const numberOfProfiles = resource.numberOfProfiles || 1
                   const multiplier = numberOfProfiles > 1 ? `${numberOfProfiles}x ` : ''
-                  const iconEmoji = iconEmojis[resource.icon] || iconEmojis['generic']
+                  const iconEmoji = getResourceIconEmoji(resource.icon)
                   return `
                     <div style="display: flex; justify-content: space-between; margin-top: 2px;">
                       <span style="color: #6b7280;">${iconEmoji} ${multiplier}${resource.title}</span>
@@ -478,8 +450,8 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
             taskEndDate.setHours(0, 0, 0, 0)
             const isPast = taskEndDate < today
 
-            // Inverse opacity: past = 0.3, future = 1.0
-            const taskOpacity = isPast ? 0.3 : 1.0
+            // Inverse opacity: past = 1.0, future = 0.3
+            const taskOpacity = isPast ? 1.0 : 0.3
 
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

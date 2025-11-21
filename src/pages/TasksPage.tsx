@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Task, Resource, TaskStatus, Milestone } from '../types/entities.types'
-import { getIconById } from '../utils/resourceIcons'
 import { exportToJSON, exportToCSV, exportToExcel } from '../utils/taskExporter'
 import KanbanBoard from '../components/KanbanBoard'
+import { getResourceIconEmoji } from '../utils/resourceIconEmojis'
 
 interface TaskWithResources extends Task {
   resources: (Resource & { estimatedDays: number; focusFactor: number })[]
@@ -797,7 +797,7 @@ const TasksPage = () => {
                                 // Adjusted = calendar duration accounting for focus factor
                                 // If 10 days work at 75% focus = 10 / 0.75 = 13.33 calendar days
                                 const adjustedEstimate = resource.estimatedDays / (resource.focusFactor / 100)
-                                const ResourceIcon = getIconById(resource.icon || 'generic')
+                                const emoji = getResourceIconEmoji(resource.icon || 'generic')
                                 return (
                                   <div
                                     key={resource.id}
@@ -805,7 +805,9 @@ const TasksPage = () => {
                                   >
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
-                                        <ResourceIcon className="w-5 h-5 text-navy-600 dark:text-navy-400" />
+                                        <span className="text-xl" role="img" aria-label={resource.title}>
+                                          {emoji}
+                                        </span>
                                         <span className="font-medium text-navy-800 dark:text-navy-100">
                                           {resource.title}
                                         </span>

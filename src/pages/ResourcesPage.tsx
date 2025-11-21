@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useEntitiesStore } from '../stores/entitiesStore'
 import type { Resource } from '../types/entities.types'
-import { RESOURCE_ICONS, getIconById } from '../utils/resourceIcons'
+import { RESOURCE_ICONS } from '../utils/resourceIcons'
+import { getResourceIconEmoji } from '../utils/resourceIconEmojis'
 
 const ResourcesPage = () => {
   const {
@@ -261,10 +262,9 @@ const ResourcesPage = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      {(() => {
-                        const IconComponent = getIconById(resource.icon || 'generic')
-                        return <IconComponent className="w-8 h-8 text-salmon-600 dark:text-salmon-400" />
-                      })()}
+                      <span className="text-3xl" role="img" aria-label={resource.title}>
+                        {getResourceIconEmoji(resource.icon || 'generic')}
+                      </span>
                       <h3 className="text-lg font-semibold text-navy-900 dark:text-white group-hover:text-salmon-600 dark:group-hover:text-salmon-400 transition-colors">
                         {resource.title}
                       </h3>
@@ -354,10 +354,9 @@ const ResourcesPage = () => {
                 <tr key={resource.id} className="hover:bg-navy-50 dark:hover:bg-navy-900/30 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      {(() => {
-                        const IconComponent = getIconById(resource.icon || 'generic')
-                        return <IconComponent className="w-6 h-6 text-salmon-600 dark:text-salmon-400" />
-                      })()}
+                      <span className="text-2xl" role="img" aria-label={resource.title}>
+                        {getResourceIconEmoji(resource.icon || 'generic')}
+                      </span>
                       <div className="text-sm font-medium text-navy-900 dark:text-white">
                         {resource.title}
                       </div>
@@ -532,8 +531,8 @@ const ResourcesPage = () => {
                   </label>
                   <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 border border-navy-200 dark:border-navy-700 rounded-lg bg-white dark:bg-navy-900">
                     {RESOURCE_ICONS.map((icon) => {
-                      const IconComponent = icon.component
                       const isSelected = formData.icon === icon.id
+                      const emoji = getResourceIconEmoji(icon.id)
                       return (
                         <button
                           key={icon.id}
@@ -546,11 +545,9 @@ const ResourcesPage = () => {
                           }`}
                           title={icon.name}
                         >
-                          <IconComponent className={`w-5 h-5 ${
-                            isSelected
-                              ? 'text-salmon-600 dark:text-salmon-400'
-                              : 'text-navy-600 dark:text-navy-400'
-                          }`} />
+                          <span className="text-2xl" role="img" aria-label={icon.name}>
+                            {emoji}
+                          </span>
                         </button>
                       )
                     })}
