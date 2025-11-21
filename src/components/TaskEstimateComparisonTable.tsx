@@ -165,6 +165,27 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
     }
   }
 
+  // Calculate totals from filtered comparisons
+  const totals = useMemo(() => {
+    const totalOriginal = filteredAndSortedComparisons.reduce((sum, c) => sum + c.originalEstimate, 0)
+    const totalRemaining = filteredAndSortedComparisons.reduce((sum, c) => sum + c.currentRemaining, 0)
+    const totalCompleted = filteredAndSortedComparisons.reduce((sum, c) => sum + c.workCompleted, 0)
+    const totalVariance = filteredAndSortedComparisons.reduce((sum, c) => sum + c.variance, 0)
+    const avgProgress = filteredAndSortedComparisons.length > 0
+      ? filteredAndSortedComparisons.reduce((sum, c) => sum + c.progressPercentage, 0) / filteredAndSortedComparisons.length
+      : 0
+    const totalVariancePercentage = totalOriginal > 0 ? (totalVariance / totalOriginal) * 100 : 0
+
+    return {
+      totalOriginal,
+      totalRemaining,
+      totalCompleted,
+      totalVariance,
+      avgProgress,
+      totalVariancePercentage,
+    }
+  }, [filteredAndSortedComparisons])
+
   return (
     <div className="space-y-4">
       {/* Filters and Actions */}
@@ -343,71 +364,117 @@ const TaskEstimateComparisonTable = ({ comparisons, onExport }: TaskEstimateComp
                 </td>
               </tr>
             ) : (
-              filteredAndSortedComparisons.map((comparison) => (
-                <tr key={comparison.taskId} className="hover:bg-navy-50 dark:hover:bg-navy-800 transition-colors">
-                  <td className="px-4 py-3 text-sm text-navy-900 dark:text-navy-100">
-                    {comparison.projectTitle}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: comparison.taskColor }}
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-navy-900 dark:text-navy-100">
-                          {comparison.taskTitle}
-                        </div>
-                        {comparison.resources.length > 0 && (
-                          <div className="flex items-center gap-1 mt-1">
-                            {comparison.resources.map((resource, idx) => (
-                              <span key={idx} className="text-xs text-navy-500 dark:text-navy-400">
-                                {getResourceIconEmoji(resource.icon)} {resource.numberOfProfiles}x
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {getTaskStatusBadge(comparison.taskStatus)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100 font-medium">
-                    {comparison.originalEstimate.toFixed(1)}d
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100 font-medium">
-                    {comparison.currentRemaining.toFixed(1)}d
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100">
-                    {comparison.workCompleted.toFixed(1)}d
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="w-24 bg-navy-200 dark:bg-navy-700 rounded-full h-2">
+              <>
+                {filteredAndSortedComparisons.map((comparison) => (
+                  <tr key={comparison.taskId} className="hover:bg-navy-50 dark:hover:bg-navy-800 transition-colors">
+                    <td className="px-4 py-3 text-sm text-navy-900 dark:text-navy-100">
+                      {comparison.projectTitle}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
                         <div
-                          className="bg-salmon-600 h-2 rounded-full transition-all"
-                          style={{ width: `${Math.min(100, comparison.progressPercentage)}%` }}
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: comparison.taskColor }}
                         />
+                        <div>
+                          <div className="text-sm font-medium text-navy-900 dark:text-navy-100">
+                            {comparison.taskTitle}
+                          </div>
+                          {comparison.resources.length > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              {comparison.resources.map((resource, idx) => (
+                                <span key={idx} className="text-xs text-navy-500 dark:text-navy-400">
+                                  {getResourceIconEmoji(resource.icon)} {resource.numberOfProfiles}x
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-navy-900 dark:text-navy-100 font-medium">
-                        {comparison.progressPercentage.toFixed(0)}%
-                      </span>
-                    </div>
-                  </td>
-                  <td className={`px-4 py-3 text-sm text-right font-semibold ${getVarianceColor(comparison.variancePercentage)}`}>
-                    <div>
-                      {comparison.variance >= 0 ? '+' : ''}{comparison.variance.toFixed(1)}d
-                    </div>
-                    <div className="text-xs">
-                      ({comparison.variancePercentage >= 0 ? '+' : ''}{comparison.variancePercentage.toFixed(1)}%)
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {getStatusBadge(comparison.status)}
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td className="px-4 py-3">
+                      {getTaskStatusBadge(comparison.taskStatus)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100 font-medium">
+                      {comparison.originalEstimate.toFixed(1)}d
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100 font-medium">
+                      {comparison.currentRemaining.toFixed(1)}d
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100">
+                      {comparison.workCompleted.toFixed(1)}d
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-24 bg-navy-200 dark:bg-navy-700 rounded-full h-2">
+                          <div
+                            className="bg-salmon-600 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, comparison.progressPercentage)}%` }}
+                          />
+                        </div>
+                        <span className="text-navy-900 dark:text-navy-100 font-medium">
+                          {comparison.progressPercentage.toFixed(0)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className={`px-4 py-3 text-sm text-right font-semibold ${getVarianceColor(comparison.variancePercentage)}`}>
+                      <div>
+                        {comparison.variance >= 0 ? '+' : ''}{comparison.variance.toFixed(1)}d
+                      </div>
+                      <div className="text-xs">
+                        ({comparison.variancePercentage >= 0 ? '+' : ''}{comparison.variancePercentage.toFixed(1)}%)
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {getStatusBadge(comparison.status)}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Totals Row */}
+                {filteredAndSortedComparisons.length > 0 && (
+                  <tr className="bg-salmon-50 dark:bg-salmon-900/20 border-t-2 border-salmon-200 dark:border-salmon-800 font-bold">
+                    <td className="px-4 py-3 text-sm text-navy-900 dark:text-navy-100">
+                      TOTALS
+                    </td>
+                    <td className="px-4 py-3 text-sm text-navy-600 dark:text-navy-400">
+                      {filteredAndSortedComparisons.length} tasks
+                    </td>
+                    <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100">
+                      {totals.totalOriginal.toFixed(1)}d
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100">
+                      {totals.totalRemaining.toFixed(1)}d
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-navy-900 dark:text-navy-100">
+                      {totals.totalCompleted.toFixed(1)}d
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-24 bg-navy-200 dark:bg-navy-700 rounded-full h-2">
+                          <div
+                            className="bg-salmon-600 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, totals.avgProgress)}%` }}
+                          />
+                        </div>
+                        <span className="text-navy-900 dark:text-navy-100">
+                          {totals.avgProgress.toFixed(0)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className={`px-4 py-3 text-sm text-right ${getVarianceColor(totals.totalVariancePercentage)}`}>
+                      <div>
+                        {totals.totalVariance >= 0 ? '+' : ''}{totals.totalVariance.toFixed(1)}d
+                      </div>
+                      <div className="text-xs">
+                        ({totals.totalVariancePercentage >= 0 ? '+' : ''}{totals.totalVariancePercentage.toFixed(1)}%)
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"></td>
+                  </tr>
+                )}
+              </>
             )}
           </tbody>
         </table>

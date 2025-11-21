@@ -92,21 +92,21 @@ const Header = () => {
       <div className="container-wide">
         <div className="flex items-center justify-between py-4">
           {/* Logo & Brand */}
-          <div className="flex items-center space-x-4">
+          <NavLink to="/" className="flex items-center space-x-4 cursor-pointer group">
             <img
               src={isDarkMode ? '/logo-dark.svg' : '/logo-light.svg'}
               alt="Nostradamus"
-              className="w-12 h-12 transition-transform hover:scale-105"
+              className="w-12 h-12 transition-transform group-hover:scale-105"
             />
             <div>
-              <h1 className="text-2xl font-serif font-bold text-navy-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl font-serif font-bold text-navy-900 dark:text-white tracking-tight group-hover:text-salmon-600 dark:group-hover:text-salmon-400 transition-colors">
                 Nostradamus
               </h1>
               <p className="text-sm text-navy-500 dark:text-navy-400 font-light">
                 Project Intelligence & Visualization
               </p>
             </div>
-          </div>
+          </NavLink>
 
           {/* Navigation & Theme Toggle */}
           <div className="flex items-center gap-3">

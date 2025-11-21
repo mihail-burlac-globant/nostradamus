@@ -516,52 +516,6 @@ const HomePage = () => {
             </div>
           )}
         </div>
-
-        {/* Priority 1: Quick Actions */}
-        <div className="bg-gradient-to-r from-salmon-500 to-salmon-600 dark:from-salmon-600 dark:to-salmon-700 rounded-lg shadow-md p-8">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <button
-              onClick={() => navigate('/projects')}
-              className="bg-white dark:bg-navy-800 hover:bg-navy-50 dark:hover:bg-navy-700 text-navy-800 dark:text-navy-100 rounded-lg p-6 transition-all duration-200 shadow-md hover:shadow-lg flex flex-col items-center gap-3"
-            >
-              <svg className="w-10 h-10 text-salmon-600 dark:text-salmon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="font-semibold">New Project</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/tasks')}
-              className="bg-white dark:bg-navy-800 hover:bg-navy-50 dark:hover:bg-navy-700 text-navy-800 dark:text-navy-100 rounded-lg p-6 transition-all duration-200 shadow-md hover:shadow-lg flex flex-col items-center gap-3"
-            >
-              <svg className="w-10 h-10 text-salmon-600 dark:text-salmon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-              <span className="font-semibold">Add Task</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/tasks')}
-              className="bg-white dark:bg-navy-800 hover:bg-navy-50 dark:hover:bg-navy-700 text-navy-800 dark:text-navy-100 rounded-lg p-6 transition-all duration-200 shadow-md hover:shadow-lg flex flex-col items-center gap-3"
-            >
-              <svg className="w-10 h-10 text-salmon-600 dark:text-salmon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="font-semibold">Log Progress</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/charts')}
-              className="bg-white dark:bg-navy-800 hover:bg-navy-50 dark:hover:bg-navy-700 text-navy-800 dark:text-navy-100 rounded-lg p-6 transition-all duration-200 shadow-md hover:shadow-lg flex flex-col items-center gap-3"
-            >
-              <svg className="w-10 h-10 text-salmon-600 dark:text-salmon-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="font-semibold">View Charts</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   )
