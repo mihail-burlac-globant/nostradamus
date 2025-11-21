@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEntitiesStore } from '../stores/entitiesStore'
-import { format, differenceInDays, isAfter, isBefore, parseISO } from 'date-fns'
+import { format, differenceInDays, isAfter, parseISO } from 'date-fns'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -134,64 +134,6 @@ const HomePage = () => {
       })
       .slice(0, 5)
   }, [tasks, projects, progressSnapshots])
-
-  // Recent activity
-  const recentActivity = useMemo(() => {
-    const today = new Date()
-    const threeDaysAgo = new Date()
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-
-    const activities: Array<{
-      type: 'task-completed' | 'milestone-reached'
-      title: string
-      projectName: string
-      date: Date
-    }> = []
-
-    // Recently completed tasks
-    tasks.forEach(task => {
-      if (task.status === 'Done') {
-        const project = projects.find(p => p.id === task.projectId)
-        if (project?.status === 'Active') {
-          const taskSnapshots = progressSnapshots
-            .filter(s => s.taskId === task.id && s.progress === 100)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-          if (taskSnapshots.length > 0) {
-            const completionDate = new Date(taskSnapshots[0].date)
-            if (completionDate >= threeDaysAgo) {
-              activities.push({
-                type: 'task-completed',
-                title: task.title,
-                projectName: project.title,
-                date: completionDate,
-              })
-            }
-          }
-        }
-      }
-    })
-
-    // Recently reached milestones
-    milestones.forEach(milestone => {
-      const milestoneDate = parseISO(milestone.date)
-      if (milestoneDate >= threeDaysAgo && isBefore(milestoneDate, today)) {
-        const project = projects.find(p => p.id === milestone.projectId)
-        if (project?.status === 'Active') {
-          activities.push({
-            type: 'milestone-reached',
-            title: milestone.title,
-            projectName: project.title,
-            date: milestoneDate,
-          })
-        }
-      }
-    })
-
-    return activities
-      .sort((a, b) => b.date.getTime() - a.date.getTime())
-      .slice(0, 5)
-  }, [tasks, milestones, projects, progressSnapshots])
 
   const getHealthColor = (health: 'on-track' | 'at-risk' | 'behind') => {
     switch (health) {
@@ -469,53 +411,6 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Priority 3: Recent Activity */}
-        <div className="bg-white dark:bg-navy-800 rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-navy-800 dark:text-navy-100 mb-4">Recent Activity</h2>
-
-          {recentActivity.length === 0 ? (
-            <p className="text-navy-500 dark:text-navy-500 text-sm text-center py-8">
-              No recent activity in the last 3 days
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-3 bg-navy-50 dark:bg-navy-900 rounded-lg border border-navy-200 dark:border-navy-700"
-                >
-                  <div className={`p-2 rounded-full ${
-                    activity.type === 'task-completed'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                      : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                  }`}>
-                    {activity.type === 'task-completed' ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-navy-800 dark:text-navy-100">
-                      {activity.type === 'task-completed' ? 'Task completed: ' : 'Milestone reached: '}
-                      <span className="text-navy-600 dark:text-navy-400">{activity.title}</span>
-                    </p>
-                    <p className="text-xs text-navy-500 dark:text-navy-500 mt-0.5">
-                      {activity.projectName}
-                    </p>
-                  </div>
-                  <span className="text-xs text-navy-500 dark:text-navy-500">
-                    {format(activity.date, 'MMM dd')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )
