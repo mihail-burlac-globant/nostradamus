@@ -345,25 +345,33 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
 
           {/* Step 3: Resources */}
           {currentStep === 3 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-3">
+                <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
                   Project Resources
                 </label>
-                <p className="text-sm text-navy-600 dark:text-navy-400 mb-4">
+                <p className="text-sm text-navy-600 dark:text-navy-400 mb-3">
                   Select resources for your project and configure the number of resources and focus factor for each type.
                 </p>
 
                 {resources.filter(r => r.status === 'Active').length === 0 ? (
-                  <div className="text-center py-8 bg-navy-50 dark:bg-navy-900/30 rounded-lg">
+                  <div className="text-center py-6 bg-navy-50 dark:bg-navy-900/30 rounded-lg">
                     <p className="text-sm text-navy-600 dark:text-navy-400">
                       No active resources available. Please create resources in the Resources page.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {resources
                       .filter(r => r.status === 'Active')
+                      .sort((a, b) => {
+                        // Sort assigned resources first
+                        const aAssigned = formData.resources.some(r => r.resourceId === a.id)
+                        const bAssigned = formData.resources.some(r => r.resourceId === b.id)
+                        if (aAssigned && !bAssigned) return -1
+                        if (!aAssigned && bAssigned) return 1
+                        return a.title.localeCompare(b.title)
+                      })
                       .map((resource) => {
                         const assignedResource = formData.resources.find(r => r.resourceId === resource.id)
                         const isSelected = !!assignedResource
@@ -371,37 +379,37 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                         return (
                           <div
                             key={resource.id}
-                            className={`border-2 rounded-lg transition-all ${
+                            className={`border rounded-lg transition-all ${
                               isSelected
                                 ? 'border-salmon-600 bg-salmon-50 dark:bg-salmon-900/20'
                                 : 'border-navy-200 dark:border-navy-700'
                             }`}
                           >
                             <div
-                              className="p-4 cursor-pointer"
+                              className="px-3 py-2 cursor-pointer"
                               onClick={() => handleResourceToggle(resource.id)}
                             >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                      isSelected
-                                        ? 'border-salmon-600 bg-salmon-600'
-                                        : 'border-navy-300 dark:border-navy-600'
-                                    }`}
-                                  >
-                                    {isSelected && (
-                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    )}
-                                  </div>
-                                  <div>
-                                    <h3 className="text-base font-semibold text-navy-900 dark:text-white">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                    isSelected
+                                      ? 'border-salmon-600 bg-salmon-600'
+                                      : 'border-navy-300 dark:border-navy-600'
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-baseline gap-2">
+                                    <h3 className="text-sm font-semibold text-navy-900 dark:text-white">
                                       {resource.title}
                                     </h3>
                                     {resource.description && (
-                                      <p className="text-sm text-navy-600 dark:text-navy-400">
+                                      <p className="text-xs text-navy-500 dark:text-navy-400 truncate">
                                         {resource.description}
                                       </p>
                                     )}
@@ -411,11 +419,11 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                             </div>
 
                             {isSelected && assignedResource && (
-                              <div className="px-4 pb-4 space-y-3 border-t border-navy-200 dark:border-navy-700 pt-4">
-                                <div className="grid grid-cols-2 gap-4">
+                              <div className="px-3 pb-2 border-t border-navy-200 dark:border-navy-700 pt-2">
+                                <div className="grid grid-cols-2 gap-3">
                                   <div>
-                                    <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                                      Number of Resources
+                                    <label className="block text-xs font-medium text-navy-700 dark:text-navy-300 mb-1">
+                                      Quantity
                                     </label>
                                     <input
                                       type="number"
@@ -427,15 +435,15 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                                         Math.max(1, parseInt(e.target.value) || 1)
                                       )}
                                       onClick={(e) => e.stopPropagation()}
-                                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                                      className="w-full px-2 py-1 text-sm border border-navy-200 dark:border-navy-700 rounded
                                                bg-white dark:bg-navy-900 text-navy-900 dark:text-white
                                                focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
                                     />
                                   </div>
 
                                   <div>
-                                    <label className="block text-sm font-medium text-navy-700 dark:text-navy-300 mb-2">
-                                      Focus Factor (%)
+                                    <label className="block text-xs font-medium text-navy-700 dark:text-navy-300 mb-1">
+                                      Focus (%)
                                     </label>
                                     <input
                                       type="number"
@@ -448,15 +456,12 @@ const ProjectWizardDialog = ({ editingProject, onClose, onSubmit, errorMessage }
                                         Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
                                       )}
                                       onClick={(e) => e.stopPropagation()}
-                                      className="w-full px-3 py-2 border border-navy-200 dark:border-navy-700 rounded-lg
+                                      className="w-full px-2 py-1 text-sm border border-navy-200 dark:border-navy-700 rounded
                                                bg-white dark:bg-navy-900 text-navy-900 dark:text-white
                                                focus:ring-2 focus:ring-salmon-500 focus:border-transparent"
                                     />
                                   </div>
                                 </div>
-                                <p className="text-xs text-navy-500 dark:text-navy-400">
-                                  Focus factor represents the percentage of time this resource can dedicate to project work
-                                </p>
                               </div>
                             )}
                           </div>
