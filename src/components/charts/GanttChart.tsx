@@ -71,9 +71,39 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
       return count
     }
 
-    // Calculate effective start and end dates for each task
+    /**
+     * Calculate effective start and end dates for each task
+     *
+     * This function handles task scheduling with dependencies and progress snapshots.
+     *
+     * KEY BEHAVIORS:
+     * 1. Dependency Shifting: When a dependency task's end date changes (due to progress updates),
+     *    dependent tasks automatically shift their start dates accordingly.
+     *
+     * 2. Progress-Based Recalculation: Uses the most recent progress snapshot to recalculate
+     *    remaining duration. If a task has:
+     *    - Less remaining work than expected: task finishes earlier, dependents start earlier
+     *    - More remaining work (scope increase): task finishes later, dependents start later
+     *
+     * 3. Recursive Calculation: For tasks with dependencies, recursively calculates dependency
+     *    end dates first, then uses those to determine the earliest start date.
+     *
+     * FORMULA FOR TASK WITH PROGRESS SNAPSHOT:
+     * - earliestStart = max(today, max(dependency_end_dates))
+     * - duration = remainingEstimate / (sum of numberOfProfiles * focusFactor for all resources)
+     * - endDate = earliestStart + duration (in working days)
+     *
+     * FORMULA FOR TASK WITHOUT PROGRESS SNAPSHOT:
+     * - earliestStart = max(task.startDate or project.startDate, max(dependency_end_dates))
+     * - duration = max(estimatedDays / (numberOfProfiles * focusFactor)) for each resource
+     * - endDate = earliestStart + duration (in working days)
+     *
+     * @param task - The task to calculate dates for
+     * @param taskDateMap - Shared cache of already-calculated task dates (prevents recalculation)
+     * @returns Object with start and end dates
+     */
     const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
-      // Check if already calculated
+      // Check if already calculated (caching for performance)
       if (taskDateMap.has(task.id)) {
         return taskDateMap.get(task.id)!
       }
