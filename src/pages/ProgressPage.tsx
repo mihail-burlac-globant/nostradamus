@@ -10,6 +10,7 @@ const ProgressPage = () => {
     loadProjects,
     loadTasks,
     getTaskResources,
+    assignResourceToTask,
     progressSnapshots,
     loadProgressSnapshots,
     addProgressSnapshot,
@@ -32,6 +33,8 @@ const ProgressPage = () => {
   const [estimates, setEstimates] = useState<Record<string, number>>({})
   const [progressValues, setProgressValues] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
+  // Track focus factor changes: key is "taskId-resourceId", value is focus factor
+  const [focusFactorChanges, setFocusFactorChanges] = useState<Record<string, number>>({})
   const [changedTasks, setChangedTasks] = useState<Set<string>>(new Set())
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [showNotesModal, setShowNotesModal] = useState(false)
@@ -152,16 +155,36 @@ const ProgressPage = () => {
         // Also update the task's base progress field (editTask reloads tasks automatically)
         editTask(task.id, { progress: clampedProgress })
       }
+
+      // Save focus factor changes for this task's resources
+      const resources = getTaskResources(task.id)
+      resources.forEach(resource => {
+        const key = `${task.id}-${resource.id}`
+        const newFocusFactor = focusFactorChanges[key]
+        if (newFocusFactor !== undefined) {
+          // Update the resource assignment with new focus factor
+          assignResourceToTask(
+            task.id,
+            resource.id,
+            resource.estimatedDays,
+            newFocusFactor,
+            resource.numberOfProfiles
+          )
+        }
+      })
     }
 
     // Reload progress snapshots to ensure we have the latest data
     loadProgressSnapshots()
+    // Reload tasks to get updated resource assignments
+    loadTasks()
 
     // Clear the lastInitKey to allow useEffect to reinitialize with new data
     lastInitKey.current = ''
 
-    // Clear changed tasks after saving
+    // Clear changed tasks and focus factor changes after saving
     setChangedTasks(new Set())
+    setFocusFactorChanges({})
 
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 2000)
@@ -189,6 +212,14 @@ const ProgressPage = () => {
       ...prev,
       [taskId]: Math.max(0, (prev[taskId] || 0) + delta)
     }))
+    setChangedTasks(prev => new Set(prev).add(taskId))
+  }
+
+  const handleFocusFactorChange = (taskId: string, resourceId: string, value: string) => {
+    const numValue = parseInt(value) || 0
+    const clampedValue = Math.min(100, Math.max(0, numValue))
+    const key = `${taskId}-${resourceId}`
+    setFocusFactorChanges(prev => ({ ...prev, [key]: clampedValue }))
     setChangedTasks(prev => new Set(prev).add(taskId))
   }
 
@@ -243,6 +274,7 @@ const ProgressPage = () => {
     setEstimates(newEstimates)
     setProgressValues(newProgress)
     setNotes(newNotes)
+    setFocusFactorChanges({})
     setChangedTasks(new Set())
   }
 
@@ -449,14 +481,28 @@ const ProgressPage = () => {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {aggregatedResources.map((resource, idx) => {
                           const IconComponent = getIconById(resource.icon || 'generic')
+                          const key = `${task.id}-${resource.id}`
+                          const currentFocusFactor = focusFactorChanges[key] !== undefined
+                            ? focusFactorChanges[key]
+                            : resource.focusFactor
                           return (
                             <div
                               key={idx}
                               className="flex items-center gap-1.5 px-2 py-1 bg-navy-100 dark:bg-navy-700 rounded text-xs text-navy-700 dark:text-navy-300 font-medium"
-                              title={`${resource.numberOfProfiles}x ${resource.title} @ ${resource.focusFactor}%`}
                             >
                               <IconComponent className="w-3.5 h-3.5" />
                               <span>{resource.numberOfProfiles}x {resource.title}</span>
+                              <span className="text-navy-500 dark:text-navy-400">@</span>
+                              <input
+                                type="number"
+                                value={currentFocusFactor}
+                                onChange={(e) => handleFocusFactorChange(task.id, resource.id, e.target.value)}
+                                min="0"
+                                max="100"
+                                className="w-10 h-5 px-1 border border-navy-300 dark:border-navy-600 rounded bg-white dark:bg-navy-700 text-navy-800 dark:text-navy-100 focus:outline-none focus:ring-1 focus:ring-salmon-500 text-center text-xs"
+                                title="Focus factor percentage"
+                              />
+                              <span>%</span>
                             </div>
                           )
                         })}
