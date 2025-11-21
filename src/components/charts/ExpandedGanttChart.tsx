@@ -77,7 +77,10 @@ const ExpandedGanttChart = ({
           const depDates = calculateTaskDates(dep, taskDateMap)
           return depDates.end
         })
-        earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
+        const latestDependencyEnd = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
+        // Dependent task starts on the NEXT WORKING DAY after the dependency finishes
+        const nextDay = addDays(latestDependencyEnd, 1)
+        earliestStart = skipToNextWeekday(nextDay)
       } else {
         if (task.startDate) {
           earliestStart = new Date(task.startDate)

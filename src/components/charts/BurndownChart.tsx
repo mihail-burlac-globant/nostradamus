@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 import type { Task, Milestone } from '../../types/entities.types'
-import { format, eachDayOfInterval, isAfter, startOfDay, isWeekend } from 'date-fns'
+import { format, eachDayOfInterval, isAfter, startOfDay, isWeekend, addDays } from 'date-fns'
 import { useEntitiesStore } from '../../stores/entitiesStore'
 import { getResourceIconEmoji } from '../../utils/resourceIconEmojis'
 import {
@@ -39,6 +39,15 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
     // Get project resources BEFORE calculateTaskDates to avoid initialization error
     const projectResources = getProjectResources(projectId)
 
+    // Helper function to skip to next weekday if date is on weekend
+    const skipToNextWeekday = (date: Date): Date => {
+      let result = new Date(date)
+      while (isWeekend(result)) {
+        result = addDays(result, 1)
+      }
+      return result
+    }
+
     // Calculate effective start and end dates for each task
     const calculateTaskDates = (task: Task, taskDateMap: Map<string, { start: Date; end: Date }>): { start: Date; end: Date } => {
       // Check if already calculated
@@ -58,9 +67,10 @@ const BurndownChart = ({ projectId, projectTitle, projectStartDate, tasks, miles
           const depDates = calculateTaskDates(dep, taskDateMap)
           return depDates.end
         })
-        earliestStart = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
-        // The end date already represents when the dependency is complete
-        // Dependent task can start immediately (no extra buffer needed)
+        const latestDependencyEnd = new Date(Math.max(...dependencyEndDates.map(d => d.getTime())))
+        // Dependent task starts on the NEXT WORKING DAY after the dependency finishes
+        const nextDay = addDays(latestDependencyEnd, 1)
+        earliestStart = skipToNextWeekday(nextDay)
       } else {
         // No dependencies - use task start date or project start date
         if (task.startDate) {
