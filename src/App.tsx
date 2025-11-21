@@ -7,7 +7,6 @@ import ProjectsPage from './pages/ProjectsPage'
 import TasksPage from './pages/TasksPage'
 import ResourcesPage from './pages/ResourcesPage'
 import ConfigurationsPage from './pages/ConfigurationsPage'
-import ProgressPage from './pages/ProgressPage'
 import SeedPage from './pages/SeedPage'
 import { useThemeStore } from './stores/themeStore'
 
@@ -31,7 +30,6 @@ function App() {
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/configurations" element={<ConfigurationsPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
             <Route path="/seed" element={<SeedPage />} />
           </Routes>
         </main>
