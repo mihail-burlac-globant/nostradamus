@@ -307,19 +307,52 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           // Get resources for this task
           const taskResources = getTaskResources(task.id)
 
-          // Calculate total effort and count resources
+          // Calculate total effort
           const totalEffort = taskResources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
-          const numberOfResources = taskResources.length
+
+          // Map icon IDs to emoji representations
+          const iconEmojis: Record<string, string> = {
+            'react': '⚛️',
+            'vue': '🅥',
+            'angular': '🅰️',
+            'nodejs': '🟢',
+            'python': '🐍',
+            'java': '☕',
+            'php': '🐘',
+            'dotnet': '⚙️',
+            'ios': '🍎',
+            'android': '🤖',
+            'database': '🗄️',
+            'cloud': '☁️',
+            'server': '🖥️',
+            'docker': '🐳',
+            'git': '📦',
+            'kubernetes': '☸️',
+            'typescript': '📘',
+            'javascript': '📜',
+            'design': '🎨',
+            'testing': '✅',
+            'project-manager': '📊',
+            'product-owner': '💡',
+            'architect': '🏗️',
+            'ai': '🤖',
+            'generic': '📋'
+          }
 
           const resourcesHtml = taskResources.length > 0
             ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
                 <div style="font-weight: 600; margin-bottom: 4px; color: #374151;">Resources:</div>
-                ${taskResources.map(resource => `
-                  <div style="display: flex; justify-content: space-between; margin-top: 2px;">
-                    <span style="color: #6b7280;">• ${resource.title}</span>
-                    <span style="color: #9ca3af; font-size: 11px;">${resource.estimatedDays}d @ ${resource.focusFactor}%</span>
-                  </div>
-                `).join('')}
+                ${taskResources.map(resource => {
+                  const numberOfProfiles = resource.numberOfProfiles || 1
+                  const multiplier = numberOfProfiles > 1 ? `${numberOfProfiles}x ` : ''
+                  const iconEmoji = iconEmojis[resource.icon] || iconEmojis['generic']
+                  return `
+                    <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+                      <span style="color: #6b7280;">${iconEmoji} ${multiplier}${resource.title}</span>
+                      <span style="color: #9ca3af; font-size: 11px;">${resource.estimatedDays}d @ ${resource.focusFactor}%</span>
+                    </div>
+                  `
+                }).join('')}
               </div>`
             : ''
 
@@ -331,7 +364,6 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 <div style="margin-bottom: 2px;">End: <strong>${end}</strong></div>
                 <div style="margin-bottom: 2px;">Duration: <strong>${duration} working days</strong></div>
                 <div style="margin-bottom: 2px;">Effort: <strong>${totalEffort} person-days</strong></div>
-                <div style="margin-bottom: 2px;">Resources: <strong>${numberOfResources}</strong></div>
                 <div style="margin-bottom: 2px;">Status: <strong style="color: ${task.status === 'Done' ? '#10b981' : task.status === 'In Progress' ? '#f59e0b' : '#6b7280'};">${task.status}</strong></div>
                 <div>Progress: <strong style="color: #3b82f6;">${task.progress}%</strong></div>
               </div>
@@ -439,10 +471,20 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               scopeIncreaseWidth = totalWidth - baseWidth
             }
 
+            // Determine if task is in the past (ended before today)
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            const taskEndDate = new Date(task.endDate!)
+            taskEndDate.setHours(0, 0, 0, 0)
+            const isPast = taskEndDate < today
+
+            // Inverse opacity: past = 0.3, future = 1.0
+            const taskOpacity = isPast ? 0.3 : 1.0
+
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const children: any[] = [
-              // Background bar (remaining work) with reduced opacity - base portion
+              // Background bar (remaining work) - base portion
               {
                 type: 'rect',
                 shape: {
@@ -453,10 +495,10 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
                 style: {
                   fill: color,
-                  opacity: 0.3,
+                  opacity: taskOpacity * 0.4, // Lighter shade for remaining work
                 },
               },
-              // Foreground bar (completed work) with full opacity
+              // Foreground bar (completed work)
               {
                 type: 'rect',
                 shape: {
@@ -467,7 +509,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 },
                 style: {
                   fill: color,
-                  opacity: 1,
+                  opacity: taskOpacity,
                 },
               },
             ]
@@ -486,7 +528,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                   },
                   style: {
                     fill: color,
-                    opacity: 0.15,
+                    opacity: taskOpacity * 0.2, // Apply same past/future logic
                   },
                 },
                 // Red border around scope increase
@@ -502,6 +544,7 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                     fill: 'transparent',
                     stroke: '#ef4444',
                     lineWidth: 2,
+                    opacity: taskOpacity, // Apply same past/future logic to border
                   },
                 }
               )
@@ -520,8 +563,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                   fill: '#fff',
                   fontSize: 11,
                   fontWeight: 'bold',
-                  textShadowColor: 'rgba(0,0,0,0.5)',
+                  textShadowColor: `rgba(0,0,0,${taskOpacity * 0.5})`,
                   textShadowBlur: 2,
+                  opacity: taskOpacity, // Apply same past/future logic to text
                 },
               })
             }
