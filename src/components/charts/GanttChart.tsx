@@ -468,9 +468,9 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
               scopeIncreaseWidth = totalWidth - baseWidth
             }
 
-            // Apply opacity: past = 0.3 (faded), future = 1.0 (full - emphasize upcoming work)
-            // This emphasizes current and future tasks rather than completed work
-            const taskOpacity = isPast ? 0.3 : 1.0
+            // Apply opacity: past = 1.0 (full color), future = 0.3 (faded)
+            // This emphasizes completed work rather than upcoming tasks
+            const taskOpacity = isPast ? 1.0 : 0.3
 
             // Create group of shapes to show progress
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
