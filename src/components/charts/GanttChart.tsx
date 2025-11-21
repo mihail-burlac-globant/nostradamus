@@ -307,19 +307,22 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
           // Get resources for this task
           const taskResources = getTaskResources(task.id)
 
-          // Calculate total effort and count resources
+          // Calculate total effort
           const totalEffort = taskResources.reduce((sum, resource) => sum + resource.estimatedDays, 0)
-          const numberOfResources = taskResources.length
 
           const resourcesHtml = taskResources.length > 0
             ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
                 <div style="font-weight: 600; margin-bottom: 4px; color: #374151;">Resources:</div>
-                ${taskResources.map(resource => `
-                  <div style="display: flex; justify-content: space-between; margin-top: 2px;">
-                    <span style="color: #6b7280;">• ${resource.title}</span>
-                    <span style="color: #9ca3af; font-size: 11px;">${resource.estimatedDays}d @ ${resource.focusFactor}%</span>
-                  </div>
-                `).join('')}
+                ${taskResources.map(resource => {
+                  const numberOfProfiles = resource.numberOfProfiles || 1
+                  const multiplier = numberOfProfiles > 1 ? `${numberOfProfiles}x ` : ''
+                  return `
+                    <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+                      <span style="color: #6b7280;">• ${multiplier}${resource.title}</span>
+                      <span style="color: #9ca3af; font-size: 11px;">${resource.estimatedDays}d @ ${resource.focusFactor}%</span>
+                    </div>
+                  `
+                }).join('')}
               </div>`
             : ''
 
@@ -331,7 +334,6 @@ const GanttChart = ({ projectId, projectTitle, projectStartDate, tasks, mileston
                 <div style="margin-bottom: 2px;">End: <strong>${end}</strong></div>
                 <div style="margin-bottom: 2px;">Duration: <strong>${duration} working days</strong></div>
                 <div style="margin-bottom: 2px;">Effort: <strong>${totalEffort} person-days</strong></div>
-                <div style="margin-bottom: 2px;">Resources: <strong>${numberOfResources}</strong></div>
                 <div style="margin-bottom: 2px;">Status: <strong style="color: ${task.status === 'Done' ? '#10b981' : task.status === 'In Progress' ? '#f59e0b' : '#6b7280'};">${task.status}</strong></div>
                 <div>Progress: <strong style="color: #3b82f6;">${task.progress}%</strong></div>
               </div>
