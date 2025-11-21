@@ -40,10 +40,15 @@ const Footer = () => {
             </span>
           </div>
 
-          {/* Copyright */}
-          <p className="text-sm text-navy-600 dark:text-navy-400">
-            &copy; {new Date().getFullYear()} Mihail Burlac - all rights reserved.
-          </p>
+          {/* Copyright and Version */}
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-sm text-navy-600 dark:text-navy-400">
+              &copy; {new Date().getFullYear()} Mihail Burlac - all rights reserved.
+            </p>
+            <p className="text-xs text-navy-500 dark:text-navy-500 font-mono">
+              v{__APP_VERSION__}
+            </p>
+          </div>
         </div>
       </div>
     </footer>
