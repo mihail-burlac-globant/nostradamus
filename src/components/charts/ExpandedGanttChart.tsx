@@ -394,7 +394,7 @@ const ExpandedGanttChart = ({
               scopeIncreaseWidth = totalWidth - baseWidth
             }
 
-            const taskOpacity = isPast ? 0.3 : 1.0
+            const taskOpacity = isPast ? 1.0 : 0.3
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const children: any[] = [
