@@ -25,9 +25,6 @@ describe('Task Dependency Date Shifting', () => {
     // - Task B: continues from 2025-01-08, ends 2025-01-09 (2 more working days)
     // - Task A: starts 2025-01-10 (shifted EARLIER by 5 days), ends 2025-01-16
 
-    const projectStart = new Date('2025-01-01')
-    const progressDate = new Date('2025-01-08')
-
     // Original Task B end date
     const originalTaskBEnd = new Date('2025-01-14')
 
@@ -60,9 +57,6 @@ describe('Task Dependency Date Shifting', () => {
     // Expected after GanttChart recalculation:
     // - Task B: continues from 2025-01-08, ends 2025-01-21 (8 more working days)
     // - Task A: starts 2025-01-22 (shifted LATER by 7 days), ends 2025-01-28
-
-    const projectStart = new Date('2025-01-01')
-    const progressDate = new Date('2025-01-08')
 
     // Original Task B end date
     const originalTaskBEnd = new Date('2025-01-14')
